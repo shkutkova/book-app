@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% from "_macros.html" import cover %}
+{% block content %}
+<div class="pills">
+  <div class="pill"><b>{{ counts.get('finished', 0) }}</b><span>прочитано</span></div>
+  <div class="pill"><b id="year-count">—</b><span>в {{ year }} году</span></div>
+  <div class="pill"><b>{{ counts.get('reading', 0) }}</b><span>читаю сейчас</span></div>
+  <div class="pill"><b>{{ counts.get('want_to_read', 0) }}</b><span>хочу прочитать</span></div>
+</div>
+
+<div class="card">
+  <h2>Читаю сейчас</h2>
+  <div class="row">
+    {% for b in reading %}{{ cover(b, caption=True) }}
+    {% else %}<span class="muted">Сейчас ничего не читаешь</span>{% endfor %}
+  </div>
+</div>
+
+{% if series %}
+<div class="card">
+  <h2>Серии в процессе</h2>
+  <div class="grid">
+    {% for s in series %}
+    <a href="/series/{{ s.id }}" style="color:inherit">
+      <strong>{{ s.name }}</strong> <span class="muted small">{{ s.finished_books }} из {{ s.total_books }}</span>
+      <div class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Прочитано по месяцам</h2>
+  <div class="tools">
+    <select id="year" aria-label="Год"></select>
+    <button id="by-books" class="on" type="button">Книги</button>
+    <button id="by-pages" type="button">Страницы</button>
+  </div>
+  <div class="chart" id="chart"></div>
+  <div class="scroll"><table class="year-table" id="year-table"></table></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Каждый элемент — одно прочтение: d — дата окончания, t — название, p — страницы
+const READS = {{ reads_json|safe }};
+const MONTHS = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+const THIS_YEAR = {{ year }};
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+// год -> 12 месяцев -> список прочтений
+const byYear = {};
+for (const r of READS) {
+  const y = +r.d.slice(0, 4), m = +r.d.slice(5, 7) - 1;
+  (byYear[y] ??= Array.from({length: 12}, () => []))[m].push(r);
+}
+const years = Object.keys(byYear).map(Number).concat(THIS_YEAR).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => b - a);
+$('year-count').textContent = (byYear[THIS_YEAR] || []).flat().length;
+
+let year = THIS_YEAR, mode = 'books';
+years.forEach(y => $('year').append(new Option(y, y)));
+$('year').onchange = e => { year = +e.target.value; draw(); };
+for (const [id, m] of [['by-books', 'books'], ['by-pages', 'pages']]) {
+  $(id).onclick = () => { mode = m; $('by-books').classList.toggle('on', m === 'books'); $('by-pages').classList.toggle('on', m === 'pages'); draw(); };
+}
+
+function draw() {
+  const months = byYear[year] || Array.from({length: 12}, () => []);
+  const value = list => mode === 'books' ? list.length : list.reduce((s, r) => s + r.p, 0);
+  const max = Math.max(1, ...months.map(value));
+  const chart = $('chart'); chart.replaceChildren();
+  months.forEach((list, i) => {
+    const col = el('div', 'col'); col.tabIndex = list.length ? 0 : -1;
+    const fill = el('div', 'fill'); fill.style.height = (value(list) / max * 100) + '%';
+    const track = el('div', 'track'); track.append(fill);
+    col.append(el('span', 'val', value(list) || ''), track, el('small', '', MONTHS[i]));
+    if (list.length) {  // подсказка при наведении: какие это книги
+      const tip = el('div', 'tip');
+      tip.append(el('strong', '', `${MONTHS[i]}: ${list.length} книг, ${list.reduce((s, r) => s + r.p, 0)} стр.`));
+      const ol = el('ol'); list.forEach(r => ol.append(el('li', '', r.t))); tip.append(ol);
+      col.append(tip);
+    }
+    chart.append(col);
+  });
+}
+
+// Таблица годы × месяцы с итогами — как в Notion
+function table() {
+  const t = $('year-table');
+  const head = el('tr'); head.append(el('th', '', 'Год'));
+  MONTHS.forEach(m => head.append(el('th', '', m))); head.append(el('th', '', 'Всего'));
+  t.append(head);
+  for (const y of years) {
+    const months = byYear[y] || Array.from({length: 12}, () => []);
+    const max = Math.max(1, ...months.map(l => l.length));
+    const tr = el('tr'); tr.append(el('th', '', y));
+    months.forEach(l => {
+      const td = el('td', '', l.length || '');
+      if (l.length) td.style.background = `rgba(79,134,240,${0.15 + 0.6 * l.length / max})`;
+      tr.append(td);
+    });
+    tr.append(el('td', 'total', months.flat().length));
+    t.append(tr);
+  }
+}
+draw(); table();
+</script>
+{% endblock %}

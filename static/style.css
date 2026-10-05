@@ -1,0 +1,70 @@
+/* Временный дизайн: палитра из старой версии. Свой дизайн — отдельным шагом,
+   менять можно только этот файл и шаблоны, логика не затрагивается. */
+:root{--bg:#0b1020;--card:#111a2e;--card2:#1a2540;--text:#e8ecf5;--mut:#8b95ab;--line:#232e48;
+ --blue:#4f86f0;--green:#5cc16a;--amber:#e3b23c;--pink:#d9569a;--red:#e05a5a}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.45}
+a{color:#7aa2ff;text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:1100px;margin:0 auto;padding:1rem 1rem 4rem}
+nav{display:flex;gap:1.2rem;align-items:center;padding:.8rem 1rem;border-bottom:1px solid var(--line);max-width:1100px;margin:0 auto}
+nav a{color:var(--mut);font-weight:500}nav a.on{color:var(--text)}nav .logo{color:var(--text);font-weight:700;margin-right:auto}
+h1{font-size:1.7rem;margin:.6rem 0 .2rem}h2{font-size:1.1rem;margin:0 0 .8rem}
+.sub{color:var(--mut);margin:0 0 1rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1rem 1.1rem;margin-bottom:1.1rem}
+.error{background:#3a1620;border:1px solid var(--red);color:#ffb3b3;border-radius:12px;padding:.7rem 1rem;margin:.8rem 0}
+.pills{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.7rem;margin:1rem 0}
+.pill{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.8rem 1rem}
+.pill b{font-size:1.8rem;display:block}.pill span{color:var(--mut);font-size:.85rem}
+.row{display:flex;gap:.8rem;overflow-x:auto;padding-bottom:.4rem}
+.cover{display:block;flex:0 0 92px;width:92px;color:var(--text)}
+.cover:hover{text-decoration:none}
+.cover .img,.cover img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:8px;display:block;background:var(--card2)}
+.cover .img{display:flex;align-items:center;justify-content:center;padding:.4rem;text-align:center;font-size:.72rem;color:var(--mut);border:1px solid var(--line)}
+.cover .t{display:block;font-size:.75rem;margin-top:.35rem;line-height:1.2}
+.cover.st-finished .img,.cover.st-finished img{outline:3px solid var(--green)}
+.cover.st-reading .img,.cover.st-reading img{outline:3px solid var(--blue)}
+.cover.st-skipped,.cover.st-none{opacity:.45}
+.bar{height:8px;background:#2c3650;border-radius:4px;overflow:hidden;margin:.4rem 0}
+.bar i{display:block;height:100%;background:var(--green);border-radius:4px}
+.muted{color:var(--mut)}.small{font-size:.85rem}
+.badge{display:inline-block;font-size:.75rem;padding:.1rem .5rem;border-radius:999px;background:var(--card2);color:var(--mut);white-space:nowrap}
+.badge.finished{background:#1d3b25;color:#8fe39b}.badge.reading{background:#1b2c52;color:#9dbcff}
+.badge.skipped,.badge.dnf{background:#3a1f2c;color:#f2a0c4}.badge.paused{background:#3b3216;color:#f0d27a}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem}
+.series-card h3{margin:0;font-size:1rem}.series-card .row{margin-top:.6rem}
+button,select,input,textarea{font:inherit;color:var(--text);background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:.45rem .7rem}
+button{cursor:pointer}button.primary{background:var(--blue);border-color:var(--blue)}button.link{background:none;border:none;color:#7aa2ff;padding:0}
+button.on{background:var(--blue);border-color:var(--blue)}
+textarea{width:100%;min-height:5rem}
+label{display:block;font-size:.85rem;color:var(--mut);margin:.6rem 0 .2rem}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0 1rem}
+.check{display:flex;gap:.5rem;align-items:center;color:var(--text);font-size:1rem}
+.check input{width:auto}
+:focus-visible{outline:2px solid #9dbcff;outline-offset:2px}
+/* таблица книг серии */
+.books{width:100%;border-collapse:collapse}
+.books td{padding:.55rem .4rem;border-top:1px solid var(--line);vertical-align:middle}
+.books .num{width:3rem;color:var(--mut);text-align:center}
+.books .mini{width:42px}.books .mini .img,.books .mini img{width:42px;aspect-ratio:2/3;border-radius:5px;object-fit:cover;background:var(--card2);display:block}
+.books .pos{width:4.5rem}
+.stars{color:var(--amber);white-space:nowrap}
+/* страница книги */
+.book-head{display:grid;grid-template-columns:180px 1fr;gap:1.4rem}
+.book-head .cover{width:100%;flex:none}
+@media (max-width:640px){.book-head{grid-template-columns:110px 1fr;gap:1rem}h1{font-size:1.35rem}}
+.desc{white-space:pre-line;max-width:70ch}
+.reads td{padding:.3rem .4rem 0 0}
+/* статистика */
+.tools{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.8rem}
+.chart{display:flex;gap:.4rem;height:200px;align-items:stretch}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;cursor:default}
+.track{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.fill{width:70%;max-width:44px;border-radius:6px 6px 0 0;min-height:2px;background:var(--blue)}
+.col small{color:var(--mut);font-size:.7rem}.val{font-size:.75rem;height:1.1em}
+.tip{position:absolute;bottom:105%;left:50%;transform:translateX(-50%);background:#000d;border:1px solid var(--line);
+ border-radius:10px;padding:.5rem .6rem;font-size:.75rem;width:max-content;max-width:240px;z-index:5;display:none;text-align:left}
+.col:hover .tip,.col:focus .tip{display:block}.tip ol{margin:.3rem 0 0;padding-left:1.1rem}
+.year-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:1rem}
+.year-table th,.year-table td{padding:.35rem;text-align:center;border:1px solid var(--line)}
+.year-table th{color:var(--mut);font-weight:500}.year-table td.total{font-weight:700}
+.scroll{overflow-x:auto}

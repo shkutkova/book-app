@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Мои книги{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav>
+  <a class="logo" href="/">📚 Мои книги</a>
+  <a href="/" class="{{ 'on' if request.url.path == '/' }}">Главная</a>
+  <a href="/series" class="{{ 'on' if request.url.path.startswith('/series') }}">Серии</a>
+</nav>
+<div class="wrap">
+  {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

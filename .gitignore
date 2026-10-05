@@ -16,5 +16,5 @@ __pycache__/
 
 # macOS
 .DS_Store
-
+# Экспорт из Notion (личные данные)
 notion_export/

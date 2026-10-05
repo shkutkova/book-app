@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "_macros.html" import cover %}
+{% block title %}{{ b.title }}{% endblock %}
+{% block content %}
+<div class="book-head" style="margin-top:1rem">
+  <div>{{ cover(b, link=False) }}</div>
+  <div>
+    <h1>{{ b.title }}</h1>
+    {% if b.title_ru %}<p class="sub" style="margin:0">{{ b.title_ru }}</p>{% endif %}
+    <p>{{ b.authors or '' }}</p>
+    {% for s in b.series %}
+      <p><a href="/series/{{ s.id }}">{{ s.name }}</a>{% if s.sort_position is not none %}, книга {{ s.sort_position|position }}{% endif %} <span class="muted">из {{ s.books_count }}</span></p>
+    {% endfor %}
+    <p class="muted small">
+      {% if b.pages %}{{ b.pages }} стр.{% endif %}
+      {% if b.release_date %} · вышла {{ b.release_date|ru_date }}{% endif %}
+    </p>
+    {% if b.status %}<span class="badge {{ b.status }}">{{ STATUS[b.status] }}</span> <span class="stars">{{ b.rating|stars }}</span>{% if b.is_favorite %} ❤️{% endif %}{% endif %}
+    {% if b.source_url %}<p class="small"><a href="{{ b.source_url }}" target="_blank" rel="noopener">Где читать</a></p>{% endif %}
+    {% if b.hardcover_slug %}<p class="small"><a href="https://hardcover.app/books/{{ b.hardcover_slug }}" target="_blank" rel="noopener">Открыть в Hardcover</a></p>{% endif %}
+  </div>
+</div>
+
+{% if b.description_ru or b.description %}
+<div class="card" style="margin-top:1.2rem"><p class="desc" style="margin:0">{{ b.description_ru or b.description }}</p></div>
+{% endif %}
+
+{% set tags = b.hardcover_tags or {} %}
+{% if tags.get('genres') or tags.get('moods') %}
+<div class="card">
+  {% if tags.get('genres') %}<p><strong>Жанры:</strong> {{ tags.genres|join(', ') }}</p>{% endif %}
+  {% if tags.get('moods') %}<p><strong>Настроение:</strong> {{ tags.moods|join(', ') }}</p>{% endif %}
+  {% if tags.get('content_warnings') %}<details><summary>Предупреждения о содержимом</summary><p>{{ tags.content_warnings|join(', ') }}</p></details>{% endif %}
+</div>
+{% endif %}
+
+{% if not b.in_library %}
+<form method="post" action="/book/{{ b.id }}/add" class="card">
+  <p>Этой книги нет в твоей библиотеке.</p>
+  <button class="primary">Добавить в «Хочу прочитать»</button>
+</form>
+{% else %}
+<form method="post" action="/book/{{ b.id }}" class="card">
+  <h2>Моё</h2>
+  <div class="form-grid">
+    <div><label for="status">Статус</label>
+      <select id="status" name="status">{% for k, v in STATUS.items() %}<option value="{{ k }}" {{ 'selected' if b.status == k }}>{{ v }}</option>{% endfor %}</select></div>
+    <div><label for="rating">Оценка</label>
+      <select id="rating" name="rating"><option value="">—</option>
+        {% for r in [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5] %}<option value="{{ r }}" {{ 'selected' if b.rating is not none and b.rating|float == r }}>{{ r|stars }} {{ r }}</option>{% endfor %}</select></div>
+    <div><label for="genre">Мой жанр</label>
+      <select id="genre" name="my_genre_id"><option value="">—</option>
+        {% for g in genres %}<option value="{{ g.id }}" {{ 'selected' if b.my_genre_id == g.id }}>{{ g.name }}</option>{% endfor %}</select></div>
+  </div>
+  <div class="form-grid">
+    <div><label for="started_at">Начала читать</label><input type="date" id="started_at" name="started_at" max="{{ today }}"></div>
+    <div><label for="finished_at">Дочитала</label><input type="date" id="finished_at" name="finished_at" max="{{ today }}"></div>
+  </div>
+  <p class="muted small">Даты нужны, только когда меняешь статус на «Читаю» или «Прочитано». Если не указать — будет сегодняшняя.</p>
+  <label class="check"><input type="checkbox" name="is_favorite" {{ 'checked' if b.is_favorite }}> ❤️ Избранное</label>
+  <label for="title_ru">Название на русском</label><input id="title_ru" name="title_ru" value="{{ b.title_ru or '' }}" style="width:100%">
+  <label for="notes">Заметки</label><textarea id="notes" name="notes">{{ b.notes or '' }}</textarea>
+  <details {{ 'open' if not b.hardcover_slug and not b.source_url }}>
+    <summary>Связь с Hardcover и обложка</summary>
+    <label for="hardcover_link">Ссылка на книгу в Hardcover</label>
+    <input id="hardcover_link" name="hardcover_link" value="{{ 'https://hardcover.app/books/' ~ b.hardcover_slug if b.hardcover_slug else '' }}" placeholder="https://hardcover.app/books/..." style="width:100%">
+    <p class="muted small">Если поиск нашёл не ту книгу или не нашёл вовсе — вставь ссылку и запусти scripts/sync_hardcover.py.</p>
+    <label for="cover_url">Ссылка на обложку (если книги нет в Hardcover)</label>
+    <input id="cover_url" name="cover_url" value="{{ b.cover_url or '' }}" placeholder="https://..." style="width:100%">
+  </details>
+  <p><button class="primary">Сохранить</button></p>
+</form>
+
+<div class="card">
+  <h2>Прочтения</h2>
+  {% for r in b.reads %}
+  <form method="post" action="/book/{{ b.id }}/reads/{{ r.id }}" style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem">
+    <input type="date" name="started_at" value="{{ r.started_at or '' }}" max="{{ today }}" aria-label="Начало">
+    <span class="muted">—</span>
+    <input type="date" name="finished_at" value="{{ r.finished_at or '' }}" max="{{ today }}" aria-label="Окончание">
+    <button>Сохранить даты</button>
+    <button class="link" formaction="/book/{{ b.id }}/reads/{{ r.id }}/delete" onclick="return confirm('Удалить это прочтение?')">Удалить</button>
+  </form>
+  {% else %}<p class="muted">Прочтений пока нет. Они появятся, когда поставишь статус «Читаю» или «Прочитано».</p>{% endfor %}
+  {% if b.status == 'finished' %}
+  <details><summary>Перечитала</summary>
+    <form method="post" action="/book/{{ b.id }}/reads" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem">
+      <input type="date" name="started_at" max="{{ today }}" aria-label="Начало"> <input type="date" name="finished_at" max="{{ today }}" aria-label="Окончание">
+      <button>Добавить прочтение</button>
+    </form>
+  </details>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

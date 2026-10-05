@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import cover %}
+{% block title %}Серии{% endblock %}
+{% block content %}
+<h1>Серии</h1>
+{% for key, items in groups.items() if items %}
+<section>
+  <h2 style="margin-top:1.4rem">{{ SERIES_STATUS[key] }} <span class="muted">{{ items|length }}</span></h2>
+  <div class="grid">
+    {% for s in items %}
+    <div class="card series-card">
+      <h3><a href="/series/{{ s.id }}">{{ s.name }}</a></h3>
+      {% if s.name_ru %}<div class="muted small">{{ s.name_ru }}</div>{% endif %}
+      <div class="muted small">{{ s.authors or '' }}</div>
+      <div class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></div>
+      <div class="small muted">{{ s.finished_books }} из {{ s.total_books }}{% if s.is_reading %} · читаю{% endif %}</div>
+      <div class="row">{% for b in s.books %}{{ cover(b) }}{% endfor %}</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<p class="muted">Серий пока нет. Они появятся, когда ты добавишь книгу из серии.</p>
+{% endfor %}
+{% endblock %}

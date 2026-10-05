@@ -2,4 +2,7 @@ fastapi
 uvicorn
 httpx
 python-dotenv
+jinja2
+python-multipart
 psycopg[binary]
+psycopg-pool

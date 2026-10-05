@@ -1,0 +1,12 @@
+{# Обложка книги. Пока у книг из Notion нет обложек — показывается название. #}
+{% macro cover(b, link=True, caption=False) -%}
+<a class="cover st-{{ b.status or 'none' }}" {% if link %}href="/book/{{ b.id }}"{% endif %} title="{{ b.title }}">
+  {% if b.cover_url %}<img src="{{ b.cover_url }}" alt="" loading="lazy">
+  {% else %}<span class="img">{{ b.title_ru or b.title }}</span>{% endif %}
+  {% if caption %}<span class="t">{{ b.title_ru or b.title }}</span>{% endif %}
+</a>
+{%- endmacro %}
+
+{% macro book_title(b) -%}
+{{ b.title }}{% if b.title_ru %} <span class="muted">· {{ b.title_ru }}</span>{% endif %}
+{%- endmacro %}

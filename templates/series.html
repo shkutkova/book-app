@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_macros.html" import cover, book_title %}
+{% block title %}{{ s.name }}{% endblock %}
+{% block content %}
+<p class="small"><a href="/series">← Все серии</a></p>
+<h1>{{ s.name }}</h1>
+<p class="sub">
+  {% if s.name_ru %}{{ s.name_ru }}<br>{% endif %}
+  {{ s.authors|join(', ') }}
+</p>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+    <strong>{{ SERIES_STATUS[s.progress_status] }}</strong>
+    <span class="muted">{{ s.finished_books }} из {{ s.total_books }} книг{% if s.skipped_books %} · пропускаю {{ s.skipped_books }}{% endif %}{% if s.pages %} · {{ s.pages }} стр.{% endif %}</span>
+  </div>
+  <div class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></div>
+  {% if s.description %}<p class="desc">{{ s.description }}</p>{% endif %}
+  {% if s.notes %}<p class="desc muted"><strong>Заметки:</strong> {{ s.notes }}</p>{% endif %}
+  {% if not edit %}<p><a href="?edit=1">Изменить серию</a></p>{% endif %}
+</div>
+
+<form method="post" action="/series/{{ s.id }}">
+<div class="card">
+  <h2>Книги {% if s.use_my_order %}<span class="badge">мой порядок</span>{% endif %}</h2>
+  <table class="books">
+    {% for b in s.books %}
+    <tr>
+      <td class="num">{{ b.sort_position|position or '—' }}</td>
+      <td class="mini"><a href="/book/{{ b.id }}">{% if b.cover_url %}<img src="{{ b.cover_url }}" alt="">{% else %}<span class="img"></span>{% endif %}</a></td>
+      <td><a href="/book/{{ b.id }}">{{ book_title(b) }}</a>
+        {% if b.is_favorite %} <span title="Избранное">❤️</span>{% endif %}
+        {% if edit and b.official_position is not none %}<div class="muted small">официальный номер: {{ b.official_position|position }}</div>{% endif %}
+      </td>
+      <td class="stars">{{ b.rating|stars }}</td>
+      <td><span class="badge {{ b.status or '' }}">{{ STATUS.get(b.status, 'Не добавлена') }}</span>
+        {% if b.finished_at %}<div class="muted small">{{ b.finished_at|ru_date }}</div>{% endif %}</td>
+      {% if edit %}<td class="pos"><input name="pos_{{ b.id }}" value="{{ b.my_position|position }}" inputmode="decimal" aria-label="Мой номер для {{ b.title }}" style="width:4rem"></td>{% endif %}
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% if edit %}
+<div class="card">
+  <h2>Изменить серию</h2>
+  <label class="check"><input type="checkbox" name="use_my_order" {{ 'checked' if s.use_my_order }}> Показывать в моём порядке (номера — в колонке справа у книг)</label>
+  <label for="name_ru">Название на русском</label>
+  <input id="name_ru" name="name_ru" value="{{ s.name_ru or '' }}" style="width:100%">
+  <label for="description">О серии</label>
+  <textarea id="description" name="description">{{ s.description or '' }}</textarea>
+  <label for="notes">Заметки</label>
+  <textarea id="notes" name="notes">{{ s.notes or '' }}</textarea>
+  <label class="check"><input type="checkbox" name="is_abandoned" {{ 'checked' if s.is_abandoned }}> Бросила серию</label>
+  <p style="display:flex;gap:.8rem;align-items:center">
+    <button class="primary">Сохранить серию</button> <a href="/series/{{ s.id }}">Отмена</a>
+  </p>
+</div>
+{% endif %}
+</form>
+{% endblock %}
