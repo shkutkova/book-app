@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Добавить фанфик{% endblock %}
+{% block content %}
+<h1>Добавить фанфик</h1>
+<p class="sub" id="hint">Открой фанфик на ficbook и нажми закладку «В мои книги» — форма заполнится сама. Или заполни вручную.</p>
+
+<form method="post" action="/add/ficbook" class="card" id="fic-form">
+  <div style="display:flex;gap:1rem;align-items:flex-start">
+    <img id="cover-preview" alt="" src="{{ f.cover_url or '' }}" style="width:92px;aspect-ratio:2/3;object-fit:cover;border-radius:8px;background:var(--card2);{{ '' if f.cover_url else 'display:none' }}">
+    <div style="flex:1">
+      <label for="url">Ссылка на ficbook *</label>
+      <input id="url" name="url" value="{{ f.url or '' }}" placeholder="https://ficbook.net/readfic/..." required style="width:100%">
+      <label for="title">Название *</label>
+      <input id="title" name="title" value="{{ f.title or '' }}" required style="width:100%">
+      <p class="muted small">Для переводов «Оригинал | Перевод» — разделится на два названия, как в Notion.</p>
+    </div>
+  </div>
+  <div class="form-grid">
+    <div><label for="authors">Автор</label><input id="authors" name="authors" value="{{ f.authors or '' }}" placeholder="через запятую"></div>
+    <div><label for="translators">Переводчик</label><input id="translators" name="translators" value="{{ f.translators or '' }}" placeholder="через запятую"></div>
+  </div>
+  <div class="form-grid">
+    <div><label for="fandoms">Фэндом</label><textarea id="fandoms" name="fandoms" placeholder="по одному на строку">{{ f.fandoms or '' }}</textarea></div>
+    <div><label for="pairings">Пейринг</label><textarea id="pairings" name="pairings" placeholder="по одному на строку">{{ f.pairings or '' }}</textarea></div>
+  </div>
+  <div class="form-grid">
+    <div><label for="pages">Страниц</label><input id="pages" name="pages" value="{{ f.pages or '' }}" inputmode="numeric"></div>
+    <div><label for="words">Слов</label><input id="words" name="words" value="{{ f.words or '' }}" inputmode="numeric"></div>
+    <div><label for="parts">Частей</label><input id="parts" name="parts" value="{{ f.parts or '' }}" inputmode="numeric"></div>
+    <div><label for="work_status">Статус работы</label>
+      <select id="work_status" name="work_status"><option value="">—</option>
+        {% for k, v in WORK_STATUS.items() %}<option value="{{ k }}" {{ 'selected' if f.work_status == k }}>{{ v }}</option>{% endfor %}</select></div>
+  </div>
+  <label for="cover_url">Обложка (ссылка на картинку)</label>
+  <input id="cover_url" name="cover_url" value="{{ f.cover_url or '' }}" placeholder="https://..." style="width:100%">
+  <label for="description">Описание</label>
+  <textarea id="description" name="description" style="min-height:8rem">{{ f.description or '' }}</textarea>
+  <div class="form-grid">
+    <div><label for="series_name">Серия (цикл)</label><input id="series_name" name="series_name" value="{{ f.series_name or '' }}"></div>
+    <div><label for="series_position">Номер в серии</label><input id="series_position" name="series_position" value="{{ f.series_position or '' }}" inputmode="decimal"></div>
+  </div>
+  <input type="hidden" id="series_ficbook_id" name="series_ficbook_id" value="{{ f.series_ficbook_id or '' }}">
+  <input type="hidden" id="people_ids" name="people_ids" value="{{ f.people_ids or '' }}">
+  <input type="hidden" id="meta" name="meta" value="{{ f.meta or '' }}">
+  <p id="meta-view" class="muted small"></p>
+  <p class="muted small">Фанфик добавится в «Хочу прочитать». Если он уже есть — обновятся данные с ficbook, твой статус и оценка не изменятся.</p>
+  <p><button class="primary">Сохранить</button></p>
+</form>
+
+<details class="card">
+  <summary><strong>Как поставить закладку «В мои книги»</strong></summary>
+  <p><strong>На компьютере:</strong> перетащи эту кнопку на панель закладок →
+    <a class="badge" href="{{ bookmarklet }}" onclick="alert('Эту кнопку нужно перетащить на панель закладок, а потом нажимать на странице фанфика'); return false;">📚 В мои книги</a></p>
+  <p><strong>На iPhone (Safari):</strong></p>
+  <ol class="small">
+    <li>Добавь в закладки любую страницу (Поделиться → Добавить закладку), назови «В мои книги».</li>
+    <li>Скопируй код ниже кнопкой «Скопировать».</li>
+    <li>Открой закладки → «Изменить» → эта закладка → вставь код вместо адреса.</li>
+    <li>На странице фанфика: нажми на адресную строку → выбери закладку «В мои книги».</li>
+  </ol>
+  <textarea id="bm-code" readonly style="min-height:4rem;font-size:.75rem">{{ bookmarklet }}</textarea>
+  <p><button type="button" id="bm-copy">Скопировать</button></p>
+  <p class="muted small">Адрес приложения зашит в закладку. Когда приложение переедет в интернет, закладку нужно будет обновить с этой страницы.</p>
+</details>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Данные от закладки приходят в адресе после #: на сервер они не уходят, пока не нажмёшь «Сохранить».
+const $ = id => document.getElementById(id);
+const STATUS = {'В процессе': 'in_progress', 'Завершён': 'finished', 'Заморожен': 'frozen'};
+
+function fill(d) {
+  const by = role => (d.people || []).filter(p => p.role === role).map(p => p.name).join(', ');
+  const set = (id, v) => { if (v !== undefined && v !== null && v !== '') $(id).value = v; };
+  set('url', d.url); set('title', d.title);
+  set('authors', by('author')); set('translators', by('translator'));
+  set('fandoms', (d.fandoms || []).join('\n')); set('pairings', (d.pairings || []).join('\n'));
+  set('pages', d.pages); set('words', d.words); set('parts', d.parts);
+  set('work_status', STATUS[d.status]);
+  set('cover_url', d.cover); set('description', d.description);
+  if (d.series) { set('series_name', d.series.name); set('series_ficbook_id', d.series.id); }
+  $('people_ids').value = JSON.stringify(Object.fromEntries((d.people || []).filter(p => p.id).map(p => [p.name, p.id])));
+  const meta = {direction: d.direction, rating: d.rating, tags: d.tags, characters: d.characters,
+                translation: d.translation, original_url: d.original_url, original_author: d.original_author};
+  $('meta').value = JSON.stringify(meta);
+  $('meta-view').textContent = [d.direction, d.rating, d.translation && 'перевод',
+                                (d.tags || []).length && `меток: ${d.tags.length}`].filter(Boolean).join(' · ');
+  $('hint').textContent = 'Данные взяты со страницы ficbook. Проверь и нажми «Сохранить».';
+  preview();
+}
+
+function preview() {
+  const url = $('cover_url').value.trim();
+  $('cover-preview').src = url; $('cover-preview').style.display = url ? '' : 'none';
+}
+$('cover_url').addEventListener('input', preview);
+
+if (location.hash.length > 1) {
+  try { fill(JSON.parse(decodeURIComponent(location.hash.slice(1)))); }
+  catch (e) { $('hint').textContent = 'Не получилось прочитать данные от закладки — заполни вручную.'; }
+  history.replaceState(null, '', location.pathname);  // чтобы данные не висели в адресе
+}
+
+$('bm-copy').onclick = () => {
+  $('bm-code').select();
+  navigator.clipboard ? navigator.clipboard.writeText($('bm-code').value) : document.execCommand('copy');
+  $('bm-copy').textContent = 'Скопировано';
+};
+</script>
+{% endblock %}
