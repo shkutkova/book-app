@@ -149,7 +149,20 @@ def add_book_page(request: Request, q: str = "", error: str | None = None, link:
         for r in results:
             r["known"] = known.get(r["id"])
     return templates.TemplateResponse(request, "add_book.html",
-                                      {"q": q, "results": results, "error": error, "target": target})
+                                      {"q": q, "results": results, "error": error, "target": target, "f": {}})
+
+
+@router.post("/add/manual")
+async def add_manual(request: Request):
+    """Книга, которой нет в Hardcover."""
+    form = dict(await request.form())
+    try:
+        book_id = catalog.add_manual(current_user_id(), form)
+    except library.ValidationError as e:
+        # без редиректа: иначе пропадёт всё, что ввела
+        return templates.TemplateResponse(request, "add_book.html", {
+            "q": "", "results": [], "error": str(e), "target": None, "f": form, "manual": True})
+    return back(f"/book/{book_id}")
 
 
 @router.post("/add/book")

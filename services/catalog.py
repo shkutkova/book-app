@@ -10,7 +10,8 @@ from datetime import date
 
 from db import transaction
 from services import hardcover_api as hc
-from services.library import ValidationError
+from services.ficbook import CYRILLIC, names, positive_int, split_title
+from services.library import ValidationError, cover_link
 
 # Название без регистра, пробелов и знаков препинания — для поиска дублей
 NORM = "lower(regexp_replace({}, '[^[:alnum:]]', '', 'g'))"
@@ -185,6 +186,64 @@ def refresh_series(series_id: int) -> None:
         raise ValidationError("Серии больше нет в Hardcover")
     with transaction() as conn:
         _series(conn, s)
+
+
+def add_manual(user_id: str, form: dict) -> int:
+    """Книга, которой нет в Hardcover: всё из формы. Добавляется в «Хочу прочитать».
+    Позже её можно связать с Hardcover кнопкой «Найти в Hardcover»."""
+    raw_title = (form.get("title") or "").strip()
+    if not raw_title:
+        raise ValidationError("Нужно название")
+    title, title_ru = split_title(raw_title)
+    authors = names(form.get("authors"))
+    if not authors:
+        raise ValidationError("Укажи автора")
+    pages = positive_int(form.get("pages"), "Страницы")
+    cover = cover_link(form.get("cover_url"))
+    source = (form.get("source_url") or "").strip() or None
+    if source and not source.startswith(("http://", "https://")):
+        raise ValidationError("Ссылка «Где читать» должна начинаться с http:// или https://")
+    description = (form.get("description") or "").strip() or None
+    series_name = (form.get("series_name") or "").strip() or None
+    position = (form.get("series_position") or "").strip().replace(",", ".")
+    try:
+        position = float(position) if position else None
+    except ValueError:
+        raise ValidationError(f"Номер в серии должен быть числом: {position}")
+
+    with transaction() as conn:
+        twin = conn.execute(
+            f"select id, title from books where kind = 'book' and {NORM.format('title')} = {NORM.format('%s')}",
+            (title,)).fetchone()
+        if twin:
+            # уже в каталоге (например, пришла с серией как «не добавлена») — берём её, без дубля
+            conn.execute("insert into library (user_id, book_id) values (%s, %s) on conflict do nothing",
+                         (user_id, twin["id"]))
+            return twin["id"]
+        # русское описание — в description_ru (как из Notion), иначе — description
+        ru = description and CYRILLIC.search(description)
+        book_id = conn.execute(
+            """insert into books (kind, title, title_ru, pages, cover_url, source_url, description, description_ru)
+               values ('book', %s, %s, %s, %s, %s, %s, %s) returning id""",
+            (title, title_ru, pages, cover, source, None if ru else description, description if ru else None)
+        ).fetchone()["id"]
+        for name in authors:
+            row = conn.execute(f"select id from authors where {NORM.format('name')} = {NORM.format('%s')} "
+                               "order by id limit 1", (name,)).fetchone()
+            author_id = row["id"] if row else conn.execute(
+                "insert into authors (name) values (%s) returning id", (name,)).fetchone()["id"]
+            conn.execute("insert into book_authors (book_id, author_id) values (%s, %s) on conflict do nothing",
+                         (book_id, author_id))
+        if series_name:
+            name, name_ru = split_title(series_name)
+            row = conn.execute(f"select id from series where {NORM.format('name')} = {NORM.format('%s')} "
+                               "order by id limit 1", (name,)).fetchone()
+            series_id = row["id"] if row else conn.execute(
+                "insert into series (name, name_ru) values (%s, %s) returning id", (name, name_ru)).fetchone()["id"]
+            conn.execute("insert into series_books (series_id, book_id, official_position) values (%s, %s, %s)",
+                         (series_id, book_id, position))
+        conn.execute("insert into library (user_id, book_id) values (%s, %s)", (user_id, book_id))
+    return book_id
 
 
 def known(user_id: str, hc_ids: list[int]) -> dict[int, dict]:

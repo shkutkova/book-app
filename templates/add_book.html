@@ -59,6 +59,46 @@
   </div>
   {% endfor %}
 </div>
-{% if not target %}<p class="muted small">Не нашла книгу? Её может не быть в Hardcover — ручное добавление сделаем следующим шагом.</p>{% endif %}
 {% endif %}
+
+{% if not target %}
+<details class="card" {{ 'open' if manual }}>
+  <summary><strong>Нет в Hardcover? Добавить вручную</strong></summary>
+  <form method="post" action="/add/manual" style="margin-top:.6rem">
+    <div style="display:flex;gap:1rem;align-items:flex-start">
+      <img id="cover-preview" alt="" src="{{ f.cover_url or '' }}" style="width:92px;aspect-ratio:2/3;object-fit:cover;border-radius:8px;background:var(--card2);{{ '' if f.cover_url else 'display:none' }}">
+      <div style="flex:1">
+        <label for="m-title">Название *</label>
+        <input id="m-title" name="title" value="{{ f.title or '' }}" required style="width:100%">
+        <p class="muted small">«Оригинал | Перевод» — разделится на два названия, как в Notion.</p>
+        <label for="m-authors">Автор *</label>
+        <input id="m-authors" name="authors" value="{{ f.authors or '' }}" required placeholder="через запятую" style="width:100%">
+      </div>
+    </div>
+    <label for="m-cover">Обложка — ссылка на картинку</label>
+    <input id="m-cover" name="cover_url" value="{{ f.cover_url or '' }}" placeholder="https://..." style="width:100%">
+    <div class="form-grid">
+      <div><label for="m-pages">Страниц</label><input id="m-pages" name="pages" value="{{ f.pages or '' }}" inputmode="numeric"></div>
+      <div><label for="m-series">Серия</label><input id="m-series" name="series_name" value="{{ f.series_name or '' }}"></div>
+      <div><label for="m-pos">Номер в серии</label><input id="m-pos" name="series_position" value="{{ f.series_position or '' }}" inputmode="decimal" placeholder="1, 2, 1.5…"></div>
+    </div>
+    <label for="m-source">Где читать (ссылка)</label>
+    <input id="m-source" name="source_url" value="{{ f.source_url or '' }}" placeholder="https://..." style="width:100%">
+    <label for="m-desc">Описание</label>
+    <textarea id="m-desc" name="description" style="min-height:6rem">{{ f.description or '' }}</textarea>
+    <p class="muted small">Книга добавится в «Хочу прочитать». Если серия с таким названием уже есть — книга попадёт в неё. Если такая книга уже есть в каталоге — откроется она, без дубля. Номер 1.5 — значит дополнительная, в прогресс серии не входит.</p>
+    <p><button class="primary">Добавить</button></p>
+  </form>
+</details>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const cover = document.getElementById('m-cover');
+if (cover) cover.addEventListener('input', () => {
+  const img = document.getElementById('cover-preview');
+  img.src = cover.value.trim(); img.style.display = cover.value.trim() ? '' : 'none';
+});
+</script>
 {% endblock %}
