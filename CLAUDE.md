@@ -11,7 +11,11 @@ py -m venv .venv && source .venv/Scripts/activate && pip install -r requirements
 python main.py            # http://127.0.0.1:8000
 ```
 
-`.env` (не коммитить, не выводить значения): `DATABASE_URL`, `HARDCOVER_TOKEN` (только чтение); необязательные: `APP_USER_ID`, `APP_BASE_URL` (внешний адрес — для закладки ficbook и команды iPhone), `GOOGLE_BOOKS_KEY` (без него Google Books часто отвечает 429).
+`.env` (не коммитить, не выводить значения): `DATABASE_URL`, `HARDCOVER_TOKEN` (только чтение); необязательные: `APP_PASSWORD` (вход; без него вход выключен и висит предупреждение), `SESSION_SECRET`, `APP_USER_ID`, `APP_BASE_URL` (внешний адрес — для закладки ficbook и команды iPhone; на Render берётся `RENDER_EXTERNAL_URL`), `GOOGLE_BOOKS_KEY` (без него Google Books часто отвечает 429).
+
+Хостинг — Render, `render.yaml` (free, автодеплой из `main`, засыпает через 15 мин). Версии в `requirements.txt` закреплены; Python на Render — 3.13 (`PYTHON_VERSION`), локально 3.14.
+
+Вход: `services/auth.py` + middleware в `main.py` — без входа открыты только `/login` и `/static/`. Новые публичные адреса (например, для PWA: manifest) добавлять в `auth.OPEN_PATHS`.
 
 ## Стек и устройство
 

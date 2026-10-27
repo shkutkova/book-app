@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Вход{% endblock %}
+{% block nav %}{% endblock %}
+{% block content %}
+<form method="post" action="/login" class="card" style="max-width:360px;margin:4rem auto">
+  <h1 style="margin-top:0">📚 Мои книги</h1>
+  <input type="hidden" name="next" value="{{ next }}">
+  <label for="password">Пароль</label>
+  <input type="password" id="password" name="password" autocomplete="current-password" required autofocus style="width:100%">
+  <p><button class="primary" style="width:100%">Войти</button></p>
+</form>
+{% endblock %}

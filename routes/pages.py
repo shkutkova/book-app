@@ -1,5 +1,6 @@
 """Страницы приложения. Здесь только «какой адрес что показывает»:
 данные берутся из services/queries.py, изменения — через services/library.py."""
+import asyncio
 import json
 import os
 import re
@@ -13,7 +14,7 @@ from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
 from starlette.concurrency import run_in_threadpool
 
-from services import catalog, covers, ficbook, hardcover_api, library, queries
+from services import auth, catalog, covers, ficbook, hardcover_api, library, queries
 from services.users import current_user_id
 
 router = APIRouter()
@@ -67,13 +68,45 @@ def simple_md(text: str | None) -> Markup:
 
 
 templates.env.filters.update(ru_date=ru_date, stars=stars, position=position, md=simple_md)
-templates.env.globals.update(STATUS=queries.STATUS_NAMES, SERIES_STATUS=queries.SERIES_STATUS_NAMES,
+templates.env.globals.update(LOGIN_ON=auth.password, STATUS=queries.STATUS_NAMES, SERIES_STATUS=queries.SERIES_STATUS_NAMES,
                              WORK_STATUS=queries.WORK_STATUS_NAMES)
 
 
 def back(url: str, error: str | None = None) -> RedirectResponse:
     """После сохранения возвращаемся на страницу (303 — чтобы F5 не отправил форму повторно)."""
     return RedirectResponse(url + ("?" + urlencode({"error": error}) if error else ""), status_code=303)
+
+
+# ------------------------------------------------------------------ вход
+
+@router.get("/login", response_class=HTMLResponse)
+def login_page(request: Request, next: str = "/", error: str | None = None):
+    if not auth.password():
+        return RedirectResponse("/", status_code=303)
+    return templates.TemplateResponse(request, "login.html", {"next": auth.safe_next(next), "error": error})
+
+
+@router.post("/login")
+async def login(request: Request):
+    form = dict(await request.form())
+    target = auth.safe_next(form.get("next"))
+    if not auth.check_password(form.get("password")):
+        await asyncio.sleep(1)  # чтобы пароль нельзя было быстро перебирать
+        return RedirectResponse("/login?" + urlencode({"next": target, "error": "Неверный пароль"}),
+                                status_code=303)
+    response = RedirectResponse(target, status_code=303)
+    # secure — только по https (на хостинге); локально по http cookie тоже должна работать
+    https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+    response.set_cookie(auth.COOKIE, auth.new_cookie(), max_age=auth.MAX_AGE,
+                        httponly=True, samesite="lax", secure=https)
+    return response
+
+
+@router.post("/logout")
+def logout():
+    response = RedirectResponse("/login", status_code=303)
+    response.delete_cookie(auth.COOKIE)
+    return response
 
 
 # ------------------------------------------------------------------ главная
@@ -274,7 +307,8 @@ def _ficbook_form(request: Request, form: dict | None = None, error: str | None 
     code = BOOKMARKLET.read_text(encoding="utf-8")
     code = "\n".join(line for line in code.splitlines() if not line.lstrip().startswith("//"))
     # APP_BASE_URL — внешний адрес приложения (Codespaces, хостинг): за прокси base_url бывает localhost
-    base = os.getenv("APP_BASE_URL") or str(request.base_url)
+    # RENDER_EXTERNAL_URL Render задаёт сам
+    base = os.getenv("APP_BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or str(request.base_url)
     code = code.replace("__BASE__", base.rstrip("/"))
     return templates.TemplateResponse(request, "add_ficbook.html", {
         "f": form or {}, "error": error, "base": base.rstrip("/"),

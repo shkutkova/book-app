@@ -1,0 +1,22 @@
+# Хостинг на Render (render.com): New → Blueprint → этот репозиторий.
+# Секреты (sync: false) Render спросит при создании — в git их нет.
+services:
+  - type: web
+    name: book-app
+    runtime: python
+    plan: free
+    branch: main
+    autoDeploy: true            # каждый push в main — новая версия сайта
+    buildCommand: pip install -r requirements.txt
+    # proxy-headers: Render отдаёт сайт по https через свой прокси — без этого
+    # приложение думает, что оно на http, и cookie входа не помечается secure
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips "*"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.5"
+      - key: DATABASE_URL       # строка Session pooler из Supabase
+        sync: false
+      - key: HARDCOVER_TOKEN
+        sync: false
+      - key: APP_PASSWORD       # пароль для входа в приложение
+        sync: false

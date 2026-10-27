@@ -1,9 +1,10 @@
 """Точка входа: создаёт приложение и подключает страницы. Логика живёт в других файлах."""
 from pathlib import Path
+from urllib.parse import urlencode
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from psycopg import OperationalError
 from psycopg_pool import PoolTimeout
@@ -12,11 +13,22 @@ load_dotenv()  # читает DATABASE_URL и HARDCOVER_TOKEN из .env до п�
 
 from routes.pages import router as pages_router  # noqa: E402
 from search import router as search_router  # noqa: E402
+from services import auth  # noqa: E402
 
 app = FastAPI(title="My Book App")
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 app.include_router(pages_router)
 app.include_router(search_router)
+
+
+@app.middleware("http")
+async def require_login(request: Request, call_next):
+    """Все страницы — только после входа (кроме самой страницы входа и стилей)."""
+    path = request.url.path
+    if path.startswith(auth.OPEN_PATHS) or auth.is_logged_in(request.cookies.get(auth.COOKIE)):
+        return await call_next(request)
+    target = path + (f"?{request.url.query}" if request.url.query else "")
+    return RedirectResponse("/login?" + urlencode({"next": target}), status_code=303)
 
 
 @app.exception_handler(PoolTimeout)
