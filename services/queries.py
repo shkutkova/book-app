@@ -46,19 +46,37 @@ def home(user_id: str) -> dict:
         from library l join books b on b.id = l.book_id
         where l.user_id = %(u)s and l.status = 'reading'
         order by b.title""", u)
-    # Каждое прочтение — отдельная строка, поэтому перечитывания тоже считаются
-    reads = fetch_all("""
-        select r.finished_at, b.id as book_id, b.title, b.title_ru, b.cover_url,
-               coalesce(b.pages, 0) as pages
-        from reads r join books b on b.id = r.book_id
-        where r.user_id = %(u)s and r.finished_at is not null
-        order by r.finished_at""", u)
+    # Прочтения с датой окончания в этом году (перечитывания тоже считаются)
+    year_reads = fetch_one("""
+        select count(*) as n from reads
+        where user_id = %(u)s and finished_at >= date_trunc('year', current_date)""", u)["n"]
     series = fetch_all("""
         select id, name, name_ru, total_books, finished_books
         from series_progress
         where user_id = %(u)s and status = 'in_progress'
         order by is_reading desc, finished_books::float / greatest(total_books, 1) desc, name""", u)
-    return {"counts": counts, "reading": reading, "reads": reads, "series": series}
+    return {"counts": counts, "reading": reading, "year_reads": year_reads, "series": series}
+
+
+# ------------------------------------------------------------------ статистика
+
+def stats(user_id: str) -> list[dict]:
+    """Прочитанное: одна строка на прочтение (перечитывания — отдельно).
+    Книга «Прочитано» без даты окончания — одна строка с finished_at = null:
+    она попадает только в статистику «за всё время»."""
+    return fetch_all("""
+        select r.finished_at, b.id, coalesce(b.title_ru, b.title) as title, b.cover_url,
+               coalesce(b.pages, 0) as pages, l.rating, g.name as genre,
+               (select string_agg(a.name, ', ' order by a.name)
+                  from book_authors ba join authors a on a.id = ba.author_id
+                 where ba.book_id = b.id and ba.role = 'author') as authors
+        from library l
+        join books b on b.id = l.book_id
+        left join reads r on r.user_id = l.user_id and r.book_id = l.book_id
+                         and r.finished_at is not null
+        left join my_genres g on g.id = l.my_genre_id
+        where l.user_id = %(u)s and (l.status = 'finished' or r.finished_at is not null)
+        order by r.finished_at nulls first""", {"u": user_id})
 
 
 # ------------------------------------------------------------------ серии

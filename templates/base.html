@@ -12,6 +12,7 @@
   <a class="logo" href="/">📚 Мои книги</a>
   <a href="/" class="{{ 'on' if request.url.path == '/' }}">Главная</a>
   <a href="/series" class="{{ 'on' if request.url.path.startswith('/series') }}">Серии</a>
+  <a href="/stats" class="{{ 'on' if request.url.path.startswith('/stats') }}">Статистика</a>
   <a href="/fanfics" class="{{ 'on' if request.url.path.startswith('/fanfics') or request.url.path.startswith('/add/ficbook') }}">Фанфики</a>
   <a href="/add/book" class="{{ 'on' if request.url.path.startswith('/add/book') }}">+ Книга</a>
   {% if LOGIN_ON() %}<form method="post" action="/logout" style="margin:0 0 0 auto"><button class="link">Выйти</button></form>{% endif %}

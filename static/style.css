@@ -1,12 +1,14 @@
 /* Временный дизайн: палитра из старой версии. Свой дизайн — отдельным шагом,
    менять можно только этот файл и шаблоны, логика не затрагивается. */
 :root{--bg:#0b1020;--card:#111a2e;--card2:#1a2540;--text:#e8ecf5;--mut:#8b95ab;--line:#232e48;
- --blue:#4f86f0;--green:#5cc16a;--amber:#e3b23c;--pink:#d9569a;--red:#e05a5a}
+ --blue:#4f86f0;--green:#5cc16a;--amber:#e3b23c;--pink:#d9569a;--red:#e05a5a;
+ /* пастель для графиков; порядок подобран, чтобы соседние цвета различались и при дальтонизме */
+ --c1:#9d7bff;--c2:#ff7eb6;--c3:#f5b942;--c4:#e8705a;--c5:#5aa9ff;--c6:#3ec9a0;--other:#56607a;--none:#2f3a55}
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.45}
 a{color:#7aa2ff;text-decoration:none}a:hover{text-decoration:underline}
 .wrap{max-width:1100px;margin:0 auto;padding:1rem 1rem 4rem}
-nav{display:flex;gap:1.2rem;align-items:center;padding:.8rem 1rem;border-bottom:1px solid var(--line);max-width:1100px;margin:0 auto}
+nav{display:flex;flex-wrap:wrap;gap:.4rem 1.2rem;align-items:center;padding:.8rem 1rem;border-bottom:1px solid var(--line);max-width:1100px;margin:0 auto}
 nav a{color:var(--mut);font-weight:500}nav a.on{color:var(--text)}nav .logo{color:var(--text);font-weight:700;margin-right:auto}
 h1{font-size:1.7rem;margin:.6rem 0 .2rem}h2{font-size:1.1rem;margin:0 0 .8rem}
 .sub{color:var(--mut);margin:0 0 1rem}
@@ -55,16 +57,48 @@ label{display:block;font-size:.85rem;color:var(--mut);margin:.6rem 0 .2rem}
 .desc{white-space:pre-line;max-width:70ch}
 .reads td{padding:.3rem .4rem 0 0}
 /* статистика */
-.tools{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.8rem}
-.chart{display:flex;gap:.4rem;height:200px;align-items:stretch}
-.col{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;cursor:default}
-.track{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center}
-.fill{width:70%;max-width:44px;border-radius:6px 6px 0 0;min-height:2px;background:var(--blue)}
-.col small{color:var(--mut);font-size:.7rem}.val{font-size:.75rem;height:1.1em}
-.tip{position:absolute;bottom:105%;left:50%;transform:translateX(-50%);background:#000d;border:1px solid var(--line);
- border-radius:10px;padding:.5rem .6rem;font-size:.75rem;width:max-content;max-width:240px;z-index:5;display:none;text-align:left}
-.col:hover .tip,.col:focus .tip{display:block}.tip ol{margin:.3rem 0 0;padding-left:1.1rem}
-.year-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:1rem}
+.stats-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:.6rem 0 .2rem}
+.stats-head h1{margin:0}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
+.card h2{margin-bottom:.2rem}
+.lead{color:var(--mut);margin:0 0 1rem;font-size:.92rem}
+.tools{display:flex;gap:.5rem;flex-wrap:wrap}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:0 1.1rem}
+.empty{margin:2rem 0;text-align:center}
+/* столбики: цифра стоит над своим столбиком, а не над колонкой */
+.chart{display:flex;gap:2px;height:230px;align-items:stretch}
+.chart.short{height:190px}
+.col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;position:relative;
+ background:none;border:0;border-radius:8px;padding:0;color:inherit}
+.col:disabled{cursor:default;opacity:1}
+.track{flex:1;width:100%;padding-top:1.3rem;display:flex;align-items:flex-end;justify-content:center;border-bottom:1px solid var(--line)}
+.fill{position:relative;width:62%;max-width:28px;border-radius:4px 4px 0 0;background:var(--series);transition:filter .15s}
+.val{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);padding-bottom:3px;font-size:.75rem;font-variant-numeric:tabular-nums}
+.col small{color:var(--mut);font-size:.7rem;margin-top:.35rem;white-space:nowrap}
+.col:not(:disabled):hover .fill,.col[aria-pressed="true"] .fill{filter:brightness(1.15) saturate(1.1)}
+.col[aria-pressed="true"] small{color:var(--text)}
+.tip{position:absolute;bottom:calc(100% - 1rem);left:50%;transform:translateX(-50%);background:#05081aee;border:1px solid var(--line);
+ border-radius:10px;padding:.5rem .6rem;font-size:.75rem;width:max-content;max-width:240px;z-index:5;display:none;text-align:left;pointer-events:none}
+.col:hover .tip,.col:focus-visible .tip{display:block}.tip ol{margin:.3rem 0 0;padding-left:1.1rem}
+.picked:not(:empty){margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--line)}
+.picked h3{font-size:.9rem;font-weight:500;color:var(--mut);margin:0 0 .6rem}
+/* кольцо жанров */
+.donut-wrap{display:flex;gap:1.4rem;align-items:center;flex-wrap:wrap}
+.donut-ring{position:relative;width:180px;flex:none}
+.donut{display:block;width:100%}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.donut-center b{font-size:1.8rem;line-height:1}.donut-center span{color:var(--mut);font-size:.8rem}
+.legend,.hbars{list-style:none;margin:0;padding:0;flex:1;min-width:200px}
+.legend button,.hbars button{display:flex;align-items:center;gap:.6rem;width:100%;background:none;border:0;border-radius:8px;
+ padding:.35rem .4rem;text-align:left}
+.legend button:hover,.hbars button:hover,.legend [aria-pressed="true"],.hbars [aria-pressed="true"]{background:var(--card2)}
+.swatch{width:10px;height:10px;border-radius:50%;flex:none}
+.legend .name,.hbars .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.legend .num,.hbars .num{color:var(--mut);font-size:.85rem;font-variant-numeric:tabular-nums}
+.hbars .name{flex:0 0 40%}
+.hbar{flex:1;height:8px}.hbar i{display:block;height:100%;border-radius:0 4px 4px 0;background:var(--series)}
+.year-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:1.2rem;font-variant-numeric:tabular-nums}
 .year-table th,.year-table td{padding:.35rem;text-align:center;border:1px solid var(--line)}
 .year-table th{color:var(--mut);font-weight:500}.year-table td.total{font-weight:700}
 .scroll{overflow-x:auto}
+@media (max-width:640px){.chart{height:200px}.col small{font-size:.62rem}.val{font-size:.68rem}}

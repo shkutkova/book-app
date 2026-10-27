@@ -114,10 +114,19 @@ def logout():
 @router.get("/", response_class=HTMLResponse)
 def home(request: Request):
     data = queries.home(current_user_id())
-    reads = [{"d": r["finished_at"].isoformat(), "id": r["book_id"], "t": r["title_ru"] or r["title"],
-              "c": r["cover_url"], "p": r["pages"]} for r in data["reads"]]
-    return templates.TemplateResponse(request, "home.html", {
-        **data,
+    return templates.TemplateResponse(request, "home.html", {**data, "year": date.today().year})
+
+
+# ------------------------------------------------------------------ статистика
+
+@router.get("/stats", response_class=HTMLResponse)
+def stats(request: Request):
+    # Короткие ключи: данные целиком уходят в страницу, графики считаются в браузере
+    reads = [{"d": r["finished_at"].isoformat() if r["finished_at"] else None, "id": r["id"],
+              "t": r["title"], "c": r["cover_url"], "p": r["pages"],
+              "r": float(r["rating"]) if r["rating"] is not None else None,
+              "g": r["genre"], "a": r["authors"]} for r in queries.stats(current_user_id())]
+    return templates.TemplateResponse(request, "stats.html", {
         "reads_json": json.dumps(reads, ensure_ascii=False).replace("</", "<\\/"),
         "year": date.today().year,
     })

@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% block title %}Статистика{% endblock %}
+{% block content %}
+<div class="stats-head">
+  <h1>Статистика</h1>
+  <select id="period" aria-label="Период"></select>
+</div>
+
+<div class="pills" id="tiles"></div>
+
+<section class="card">
+  <div class="card-head">
+    <div><h2 id="time-title">По месяцам</h2><p class="lead" id="time-lead"></p></div>
+    <div class="tools">
+      <button id="by-books" class="on" type="button" aria-pressed="true">Книги</button>
+      <button id="by-pages" type="button" aria-pressed="false">Страницы</button>
+    </div>
+  </div>
+  <div class="chart" id="time-chart" style="--series:var(--c1)"></div>
+  <div class="picked" id="time-picked"></div>
+  <div class="scroll"><table class="year-table" id="year-table"></table></div>
+</section>
+
+<div class="stat-grid">
+  <section class="card">
+    <h2>Жанры</h2><p class="lead" id="genre-lead"></p>
+    <div class="donut-wrap" id="genre-chart"></div>
+    <div class="picked" id="genre-picked"></div>
+  </section>
+  <section class="card">
+    <h2>Оценки</h2><p class="lead" id="rating-lead"></p>
+    <div class="chart short" id="rating-chart" style="--series:var(--c3)"></div>
+    <div class="picked" id="rating-picked"></div>
+  </section>
+  <section class="card">
+    <h2>Объём книг</h2><p class="lead" id="pages-lead"></p>
+    <div class="chart short" id="pages-chart" style="--series:var(--c5)"></div>
+    <div class="picked" id="pages-picked"></div>
+  </section>
+  <section class="card">
+    <h2>Любимые авторы</h2><p class="lead" id="author-lead"></p>
+    <ol class="hbars" id="author-chart" style="--series:var(--c2)"></ol>
+    <div class="picked" id="author-picked"></div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Каждый элемент — одно прочтение: d — дата окончания (null — «прочитано» без даты),
+// id/t/c — книга, p — страницы, r — оценка, g — мой жанр, a — авторы
+const READS = {{ reads_json|safe }};
+const THIS_YEAR = {{ year }};
+const MONTHS = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+const MONTHS_FULL = ['январе','феврале','марте','апреле','мае','июне','июле','августе','сентябре','октябре','ноябре','декабре'];
+const PAGE_BUCKETS = [[1,100],[101,200],[201,300],[301,400],[401,500],[501,600],[601,1000],[1001,Infinity]];
+const RATINGS = [0.5,1,1.5,2,2.5,3,3.5,4,4.5,5];
+const SLOTS = ['--c1','--c2','--c3','--c4','--c5','--c6'];
+
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const plural = (n, one, few, many) => {
+  const a = n % 10, b = n % 100;
+  return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many;
+};
+const books = n => `${n} ${plural(n, 'книга', 'книги', 'книг')}`;
+const num = n => n.toLocaleString('ru-RU');
+const dec = (n, d) => n.toLocaleString('ru-RU', {minimumFractionDigits: d, maximumFractionDigits: d});
+const yearOf = r => r.d ? +r.d.slice(0, 4) : null;
+
+// Цвет жанра закреплён за жанром (по месту за всё время), а не за местом в выбранном периоде:
+// при смене года цвета не перескакивают. Всё, что не влезло, — «Остальное» серым.
+const GENRE_COLOR = (() => {
+  const count = {};
+  for (const b of unique(READS)) if (b.g) count[b.g] = (count[b.g] || 0) + 1;
+  const names = Object.keys(count).sort((x, y) => count[y] - count[x] || x.localeCompare(y));
+  const colored = names.length <= SLOTS.length ? names : names.slice(0, SLOTS.length - 1);
+  return Object.fromEntries(colored.map((g, i) => [g, `var(${SLOTS[i]})`]));
+})();
+
+// Одна книга — один раз (для жанров, оценок, объёма): берётся последнее прочтение
+function unique(list) {
+  const m = new Map();
+  for (const r of list) m.set(r.id, r);
+  return [...m.values()];
+}
+
+// ---------- выбор периода
+const years = [...new Set(READS.map(yearOf).filter(Boolean).concat(THIS_YEAR))].sort((a, b) => b - a);
+years.forEach(y => $('period').append(new Option(y, y)));
+$('period').append(new Option('Всё время', 'all'));
+let period = THIS_YEAR, mode = 'books';
+$('period').onchange = e => { period = e.target.value === 'all' ? 'all' : +e.target.value; draw(); };
+for (const [id, m] of [['by-books', 'books'], ['by-pages', 'pages']]) {
+  $(id).onclick = () => {
+    mode = m;
+    for (const [bid, bm] of [['by-books', 'books'], ['by-pages', 'pages']]) {
+      $(bid).classList.toggle('on', bm === m); $(bid).setAttribute('aria-pressed', bm === m);
+    }
+    drawTime();
+  };
+}
+const inPeriod = () => period === 'all' ? READS : READS.filter(r => yearOf(r) === period);
+
+// ---------- общие куски
+function coverLink(b) {
+  const a = el('a', 'cover'); a.href = `/book/${b.id}`; a.title = b.t;
+  if (b.c) { const i = el('img'); i.src = b.c; i.alt = ''; i.loading = 'lazy'; a.append(i); }
+  else a.append(el('span', 'img', b.t));
+  a.append(el('span', 't', b.t));
+  return a;
+}
+
+// Под графиком — обложки выбранного столбика; повторный клик закрывает
+function picker(box) {
+  let current = null;
+  return (key, title, list, btn) => {
+    box.parentElement.querySelectorAll('[aria-pressed="true"].mark').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    if (current === key) { current = null; box.replaceChildren(); return; }
+    current = key; btn.setAttribute('aria-pressed', 'true');
+    const row = el('div', 'row'); list.forEach(b => row.append(coverLink(b)));
+    box.replaceChildren(el('h3', '', title), row);
+  };
+}
+
+// Столбики: items = [{label, value, list, title}]. Цифра — над своим столбиком.
+function bars(chart, items, pick, unit) {
+  const max = Math.max(1, ...items.map(i => i.value));
+  chart.replaceChildren();
+  for (const it of items) {
+    const col = el('button', 'col mark'); col.type = 'button';
+    col.disabled = !it.list.length; col.setAttribute('aria-pressed', 'false');
+    col.setAttribute('aria-label', `${it.title}: ${unit(it.value)}`);
+    const track = el('span', 'track');
+    const fill = el('span', 'fill'); fill.style.height = (it.value / max * 100) + '%';
+    if (it.value) fill.append(el('span', 'val', num(it.value)));
+    track.append(fill);
+    col.append(track, el('small', '', it.label));
+    if (it.list.length) {
+      const tip = el('span', 'tip');
+      tip.append(el('strong', '', `${it.title}: ${unit(it.value)}`));
+      const ol = el('ol'); it.list.slice(0, 8).forEach(r => ol.append(el('li', '', r.t)));
+      if (it.list.length > 8) ol.append(el('li', 'muted', `и ещё ${it.list.length - 8}`));
+      tip.append(ol); col.append(tip);
+      col.onclick = () => pick(it.label, `${it.title}: ${books(it.list.length)}`, it.list, col);
+    }
+    chart.append(col);
+  }
+}
+
+function empty(chart, text = 'За этот период прочитанного нет') {
+  chart.replaceChildren(el('p', 'muted empty', text));
+}
+
+// ---------- плитки
+function drawTiles(list) {
+  const u = unique(list), rated = u.filter(b => b.r != null);
+  const pages = list.reduce((s, r) => s + r.p, 0);
+  // Темп: дней в периоде (до сегодня) на одно прочтение
+  const today = new Date(), dated = list.filter(r => r.d);
+  let days = null;
+  if (dated.length) {
+    const start = period === 'all' ? new Date(dated[0].d) : new Date(period, 0, 1);
+    const end = period === 'all' || period === THIS_YEAR ? today : new Date(period, 11, 31);
+    days = Math.max(1, Math.round((end - start) / 864e5));
+  }
+  const tiles = [
+    [num(list.length), plural(list.length, 'книга прочитана', 'книги прочитано', 'книг прочитано')],
+    [num(pages), plural(pages, 'страница', 'страницы', 'страниц')],
+    [rated.length ? dec(rated.reduce((s, b) => s + b.r, 0) / rated.length, 2) + ' ★' : '—', 'средняя оценка'],
+    [days && dated.length ? dec(days / dated.length, 1) : '—', 'дней на книгу в среднем'],
+  ];
+  $('tiles').replaceChildren(...tiles.map(([v, t]) => { const p = el('div', 'pill'); p.append(el('b', '', v), el('span', '', t)); return p; }));
+}
+
+// ---------- по месяцам / по годам
+const pickTime = picker($('time-picked'));
+function drawTime() {
+  const value = list => mode === 'books' ? list.length : list.reduce((s, r) => s + r.p, 0);
+  const unit = v => mode === 'books' ? books(v) : `${num(v)} стр.`;
+  let items;
+  if (period === 'all') {
+    $('time-title').textContent = 'По годам';
+    items = years.slice().reverse().map(y => {
+      const list = READS.filter(r => yearOf(r) === y);
+      return {label: String(y), title: `${y}`, list, value: value(list)};
+    });
+  } else {
+    $('time-title').textContent = 'По месяцам';
+    items = MONTHS.map((m, i) => {
+      const list = READS.filter(r => yearOf(r) === period && +r.d.slice(5, 7) === i + 1);
+      return {label: m, title: `${m} ${period}`, list, value: value(list)};
+    });
+  }
+  bars($('time-chart'), items, pickTime, unit);
+  $('time-picked').replaceChildren();
+  const best = items.reduce((a, b) => b.value > a.value ? b : a, items[0]);
+  $('time-lead').textContent = !best.value ? 'Пока пусто' : period === 'all'
+    ? `Больше всего — в ${best.label} году: ${unit(best.value)}`
+    : `Больше всего — в ${MONTHS_FULL[MONTHS.indexOf(best.label)]}: ${unit(best.value)}`;
+}
+
+// Таблица годы × месяцы — как в Notion; цифры видны всегда, цвет только подкрашивает
+function drawTable() {
+  const t = $('year-table');
+  const head = el('tr'); head.append(el('th', '', 'Год'));
+  MONTHS.forEach(m => head.append(el('th', '', m))); head.append(el('th', '', 'Всего'));
+  t.replaceChildren(head);
+  for (const y of years) {
+    const months = MONTHS.map((_, i) => READS.filter(r => yearOf(r) === y && +r.d.slice(5, 7) === i + 1).length);
+    const max = Math.max(1, ...months);
+    const tr = el('tr'); tr.append(el('th', '', y));
+    months.forEach(n => {
+      const td = el('td', '', n || '');
+      if (n) td.style.background = `color-mix(in oklab, var(--c1) ${15 + 50 * n / max}%, transparent)`;
+      tr.append(td);
+    });
+    tr.append(el('td', 'total', months.reduce((s, n) => s + n, 0)));
+    t.append(tr);
+  }
+}
+
+// ---------- жанры: кольцо
+const pickGenre = picker($('genre-picked'));
+function drawGenres(list) {
+  const u = unique(list), box = $('genre-chart');
+  $('genre-picked').replaceChildren();
+  if (!u.length) { $('genre-lead').textContent = ''; return empty(box); }
+  const groups = {};
+  for (const b of u) {
+    const key = b.g && GENRE_COLOR[b.g] ? b.g : (b.g ? 'Остальное' : 'Без жанра');
+    (groups[key] ??= []).push(b);
+  }
+  const rows = Object.entries(groups).map(([name, list]) => ({
+    name, list, color: GENRE_COLOR[name] || (name === 'Без жанра' ? 'var(--none)' : 'var(--other)'),
+  })).sort((a, b) => (a.color.startsWith('var(--c') ? 0 : 1) - (b.color.startsWith('var(--c') ? 0 : 1) || b.list.length - a.list.length);
+  const top = rows.find(r => GENRE_COLOR[r.name]);
+  $('genre-lead').textContent = top ? `Чаще всего — ${top.name}` : '';
+
+  // Кольцо из дуг: длина дуги = доля, между дугами зазор 2px
+  const R = 70, C = 2 * Math.PI * R, GAP = rows.length > 1 ? 3 : 0, NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 180 180'); svg.setAttribute('class', 'donut');
+  svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', rows.map(r => `${r.name}: ${books(r.list.length)}`).join(', '));
+  let offset = 0;
+  const legend = el('ul', 'legend');
+  for (const r of rows) {
+    const len = r.list.length / u.length * C;
+    const arc = document.createElementNS(NS, 'circle');
+    Object.entries({cx: 90, cy: 90, r: R, fill: 'none', 'stroke-width': 22,
+      'stroke-dasharray': `${Math.max(len - GAP, 0.5)} ${C}`, 'stroke-dashoffset': -offset,
+      transform: 'rotate(-90 90 90)'}).forEach(([k, v]) => arc.setAttribute(k, v));
+    arc.style.stroke = r.color;
+    svg.append(arc); offset += len;
+
+    const pct = Math.round(r.list.length / u.length * 100);
+    const li = el('li'); const btn = el('button', 'mark'); btn.type = 'button'; btn.setAttribute('aria-pressed', 'false');
+    const sw = el('i', 'swatch'); sw.style.background = r.color;
+    btn.append(sw, el('span', 'name', r.name), el('span', 'num', `${pct}% · ${r.list.length}`));
+    btn.onclick = () => pickGenre(r.name, `${r.name}: ${books(r.list.length)}`, r.list, btn);
+    li.append(btn); legend.append(li);
+  }
+  const center = el('div', 'donut-center');
+  center.append(el('b', '', num(u.length)), el('span', '', plural(u.length, 'книга', 'книги', 'книг')));
+  const ring = el('div', 'donut-ring'); ring.append(svg, center);
+  box.replaceChildren(ring, legend);
+}
+
+// ---------- оценки
+const pickRating = picker($('rating-picked'));
+function drawRatings(list) {
+  const u = unique(list).filter(b => b.r != null);
+  if (!u.length) { $('rating-lead').textContent = ''; return empty($('rating-chart'), 'Оценок за этот период нет'); }
+  const items = RATINGS.map(v => {
+    const l = u.filter(b => b.r === v);
+    return {label: String(v).replace('.', ','), title: `Оценка ${String(v).replace('.', ',')} ★`, list: l, value: l.length};
+  });
+  bars($('rating-chart'), items, pickRating, books);
+  $('rating-picked').replaceChildren();
+  const best = items.reduce((a, b) => b.value >= a.value ? b : a);
+  const avg = dec(u.reduce((s, b) => s + b.r, 0) / u.length, 2);
+  $('rating-lead').textContent = `Чаще всего ставишь ${best.label} ★ · в среднем ${avg}`;
+}
+
+// ---------- объём
+const pickPages = picker($('pages-picked'));
+function drawPages(list) {
+  const u = unique(list).filter(b => b.p > 0);
+  if (!u.length) { $('pages-lead').textContent = ''; return empty($('pages-chart'), 'Нет данных о страницах'); }
+  const items = PAGE_BUCKETS.map(([lo, hi]) => {
+    const l = u.filter(b => b.p >= lo && b.p <= hi);
+    const label = hi === Infinity ? '1000+' : `${lo}–${hi}`;
+    return {label, title: `${label} стр.`, list: l, value: l.length};
+  });
+  bars($('pages-chart'), items, pickPages, books);
+  $('pages-picked').replaceChildren();
+  const best = items.reduce((a, b) => b.value > a.value ? b : a);
+  const avg = Math.round(u.reduce((s, b) => s + b.p, 0) / u.length);
+  $('pages-lead').textContent = `Чаще всего ${best.label} стр. · в среднем ${num(avg)}`;
+}
+
+// ---------- авторы: топ-5 по числу разных книг
+const pickAuthor = picker($('author-picked'));
+function drawAuthors(list) {
+  const by = {};
+  for (const b of unique(list)) for (const a of (b.a || '').split(', ').filter(Boolean)) (by[a] ??= []).push(b);
+  const top = Object.entries(by).sort((x, y) => y[1].length - x[1].length || x[0].localeCompare(y[0])).slice(0, 5);
+  const box = $('author-chart'); box.replaceChildren(); $('author-picked').replaceChildren();
+  if (!top.length) { $('author-lead').textContent = ''; return empty(box); }
+  $('author-lead').textContent = `Больше всего книг — ${top[0][0]}`;
+  const max = top[0][1].length;
+  for (const [name, l] of top) {
+    const li = el('li'); const btn = el('button', 'mark'); btn.type = 'button'; btn.setAttribute('aria-pressed', 'false');
+    const bar = el('span', 'hbar'); const fill = el('i'); fill.style.width = (l.length / max * 100) + '%'; bar.append(fill);
+    btn.append(el('span', 'name', name), bar, el('span', 'num', l.length));
+    btn.onclick = () => pickAuthor(name, `${name}: ${books(l.length)}`, l, btn);
+    li.append(btn); box.append(li);
+  }
+}
+
+function draw() {
+  const list = inPeriod();
+  drawTiles(list); drawTime(); drawGenres(list); drawRatings(list); drawPages(list); drawAuthors(list);
+}
+draw(); drawTable();
+</script>
+{% endblock %}
