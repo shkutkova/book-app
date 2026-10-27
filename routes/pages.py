@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
 from starlette.concurrency import run_in_threadpool
 
-from services import catalog, ficbook, hardcover_api, library, queries
+from services import catalog, covers, ficbook, hardcover_api, library, queries
 from services.users import current_user_id
 
 router = APIRouter()
@@ -222,6 +222,26 @@ async def read_save(request: Request, book_id: int, read_id: int):
 async def book_refresh(book_id: int):
     try:
         await run_in_threadpool(catalog.refresh_from_hardcover, book_id)
+    except library.ValidationError as e:
+        return back(f"/book/{book_id}", str(e))
+    return back(f"/book/{book_id}")
+
+
+@router.get("/book/{book_id}/covers", response_class=HTMLResponse)
+def covers_page(request: Request, book_id: int):
+    """Варианты обложки из Hardcover, Open Library, Google Books — выбрать одну."""
+    b = queries.book_detail(current_user_id(), book_id)
+    if not b:
+        raise HTTPException(404, "Книга не найдена")
+    found, failed = covers.candidates(b)
+    return templates.TemplateResponse(request, "covers.html", {"b": b, "covers": found, "failed": failed})
+
+
+@router.post("/book/{book_id}/cover")
+async def cover_save(request: Request, book_id: int):
+    form = dict(await request.form())
+    try:
+        library.set_cover(book_id, form.get("cover_url"))
     except library.ValidationError as e:
         return back(f"/book/{book_id}", str(e))
     return back(f"/book/{book_id}")

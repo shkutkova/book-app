@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Обложка — {{ b.title }}{% endblock %}
+{% block content %}
+<h1>Выбрать обложку</h1>
+<p class="sub">Для «<a href="/book/{{ b.id }}">{{ b.title }}</a>»{% if b.title_ru %} ({{ b.title_ru }}){% endif %}. Нажми на понравившуюся.</p>
+{% if failed %}<p class="muted small">Не ответили: {{ failed|join(', ') }} — можно обновить страницу позже.</p>{% endif %}
+
+{% if b.cover_url %}
+<p class="small"><span class="muted">Сейчас:</span></p>
+<span class="cover" style="display:inline-block;width:110px"><img src="{{ b.cover_url }}" alt=""></span>
+{% endif %}
+
+{% if covers %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:1rem;margin-top:1rem">
+  {% for c in covers %}
+  <form method="post" action="/book/{{ b.id }}/cover" style="margin:0">
+    <input type="hidden" name="cover_url" value="{{ c.url }}">
+    <button class="link" style="display:block;width:100%;padding:0;text-align:left" title="{{ c.label }}">
+      <span class="cover" style="display:block"><img src="{{ c.url }}" alt="" loading="lazy"
+        onerror="this.closest('form').remove()"></span>
+      <span class="muted small" style="display:block;margin-top:.3rem">{{ c.source }}</span>
+      <span class="small" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.label }}</span>
+    </button>
+  </form>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted">Вариантов не нашлось. Можно вставить свою ссылку на картинку на странице книги.</p>
+{% endif %}
+<p class="muted small" style="margin-top:1rem">Open Library иногда отдаёт пустую картинку-заглушку — такие варианты пропадают сами. Своя картинка (например, с Pinterest) — поле «Своя обложка» на странице книги.</p>
+{% endblock %}

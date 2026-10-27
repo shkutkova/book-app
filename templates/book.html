@@ -3,7 +3,8 @@
 {% block title %}{{ b.title }}{% endblock %}
 {% block content %}
 <div class="book-head" style="margin-top:1rem">
-  <div>{{ cover(b, link=False) }}</div>
+  <div>{{ cover(b, link=False) }}
+    <p class="small" style="text-align:center;margin:.4rem 0 0"><a href="/book/{{ b.id }}/covers">{{ 'Другая обложка' if b.cover_url else 'Найти обложку' }}</a></p></div>
   <div>
     <h1>{{ b.title }}</h1>
     {% if b.title_ru %}<p class="sub" style="margin:0">{{ b.title_ru }}</p>{% endif %}

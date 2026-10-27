@@ -61,6 +61,15 @@ def cover_link(raw: str | None) -> str | None:
     return raw or None
 
 
+def set_cover(book_id: int, raw: str | None) -> None:
+    """Обложка, выбранная на странице «Выбрать обложку»."""
+    cover = cover_link(raw)
+    if not cover:
+        raise ValidationError("Не выбрана обложка")
+    with transaction() as conn:
+        conn.execute("update books set cover_url = %s where id = %s", (cover, book_id))
+
+
 def save_book(user_id: str, book_id: int, form: dict) -> None:
     """Сохраняет «мою» часть книги. При смене статуса автоматически ведёт прочтения:
     - стала «Читаю» → открывается прочтение с датой начала (сегодня, если не указана);
