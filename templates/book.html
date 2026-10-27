@@ -11,18 +11,37 @@
     {% for s in b.series %}
       <p><a href="/series/{{ s.id }}">{{ s.name }}</a>{% if s.sort_position is not none %}, книга {{ s.sort_position|position }}{% endif %} <span class="muted">из {{ s.books_count }}</span></p>
     {% endfor %}
+    {% if b.kind == 'fanfic' %}
+      {% set meta = b.ficbook_meta or {} %}
+      <p class="small"><span class="badge">Фанфик</span>
+        {% if b.work_status %} <span class="badge">{{ WORK_STATUS[b.work_status] }}</span>{% endif %}
+        {% if meta.get('direction') %} <span class="badge">{{ meta.direction }}</span>{% endif %}
+        {% if meta.get('rating') %} <span class="badge">{{ meta.rating }}</span>{% endif %}
+        {% if meta.get('translation') %} <span class="badge">Перевод</span>{% endif %}</p>
+      {% if b.fandoms %}<p class="small"><span class="muted">Фэндом:</span> {{ b.fandoms|join(', ') }}</p>{% endif %}
+      {% if b.pairings %}<p class="small"><span class="muted">Пейринг:</span> {{ b.pairings|join(', ') }}</p>{% endif %}
+    {% endif %}
     <p class="muted small">
       {% if b.pages %}{{ b.pages }} стр.{% endif %}
+      {% if b.words %} · {{ '{:,}'.format(b.words).replace(',', ' ') }} слов{% endif %}
+      {% if b.parts %} · частей: {{ b.parts }}{% endif %}
       {% if b.release_date %} · вышла {{ b.release_date|ru_date }}{% endif %}
     </p>
     {% if b.status %}<span class="badge {{ b.status }}">{{ STATUS[b.status] }}</span> <span class="stars">{{ b.rating|stars }}</span>{% if b.is_favorite %} ❤️{% endif %}{% endif %}
-    {% if b.source_url %}<p class="small"><a href="{{ b.source_url }}" target="_blank" rel="noopener">Где читать</a></p>{% endif %}
+    {% if b.source_url %}<p class="small"><a href="{{ b.source_url }}" target="_blank" rel="noopener">{{ 'Читать на ficbook' if 'ficbook.net' in b.source_url else 'Где читать' }}</a></p>{% endif %}
     {% if b.hardcover_slug %}<p class="small"><a href="https://hardcover.app/books/{{ b.hardcover_slug }}" target="_blank" rel="noopener">Открыть в Hardcover</a></p>{% endif %}
   </div>
 </div>
 
 {% if b.description_ru or b.description %}
 <div class="card" style="margin-top:1.2rem"><p class="desc" style="margin:0">{{ b.description_ru or b.description }}</p></div>
+{% endif %}
+
+{% if b.kind == 'fanfic' and (b.ficbook_meta or {}).get('tags') %}
+<div class="card">
+  <p style="margin:0"><strong>Метки:</strong> {{ b.ficbook_meta.tags|join(', ') }}</p>
+  {% if b.ficbook_meta.get('original_url') %}<p class="small" style="margin-bottom:0"><a href="{{ b.ficbook_meta.original_url }}" target="_blank" rel="noopener">Оригинал</a>{% if b.ficbook_meta.get('original_author') %} · {{ b.ficbook_meta.original_author }}{% endif %}</p>{% endif %}
+</div>
 {% endif %}
 
 {% set tags = b.hardcover_tags or {} %}

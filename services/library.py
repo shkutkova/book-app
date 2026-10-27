@@ -1,5 +1,6 @@
 """Всё, что меняет базу: статус, оценка, прочтения, порядок в серии.
-Правила (бизнес-логика) собраны здесь, чтобы страницы их не дублировали."""
+Правила (бизнес-логика) собраны здесь, чтобы страницы их не дублировали.
+Личные данные (library, reads, user_series...) всегда меняются только у user_id."""
 import re
 from datetime import date
 
@@ -60,7 +61,7 @@ def cover_link(raw: str | None) -> str | None:
     return raw or None
 
 
-def save_book(book_id: int, form: dict) -> None:
+def save_book(user_id: str, book_id: int, form: dict) -> None:
     """Сохраняет «мою» часть книги. При смене статуса автоматически ведёт прочтения:
     - стала «Читаю» → открывается прочтение с датой начала (сегодня, если не указана);
     - стала «Прочитано» → открытое прочтение закрывается (или создаётся новое) с датой окончания.
@@ -79,16 +80,20 @@ def save_book(book_id: int, form: dict) -> None:
     cover = cover_link(form.get("cover_url"))
 
     with transaction() as conn:
-        old = conn.execute("select status from library where book_id = %s", (book_id,)).fetchone()
+        if genre_id and not conn.execute("select 1 from my_genres where id = %s and user_id = %s",
+                                         (genre_id, user_id)).fetchone():
+            raise ValidationError("Неизвестный жанр")
+        old = conn.execute("select status from library where user_id = %s and book_id = %s",
+                           (user_id, book_id)).fetchone()
         old_status = old["status"] if old else None
         conn.execute(
-            """insert into library (book_id, status, rating, is_favorite, my_genre_id, notes)
-               values (%s, %s, %s, %s, %s, %s)
-               on conflict (book_id) do update set
+            """insert into library (user_id, book_id, status, rating, is_favorite, my_genre_id, notes)
+               values (%s, %s, %s, %s, %s, %s, %s)
+               on conflict (user_id, book_id) do update set
                  status = excluded.status, rating = excluded.rating,
                  is_favorite = excluded.is_favorite, my_genre_id = excluded.my_genre_id,
                  notes = excluded.notes""",
-            (book_id, status, rating, bool(form.get("is_favorite")), genre_id,
+            (user_id, book_id, status, rating, bool(form.get("is_favorite")), genre_id,
              (form.get("notes") or "").strip() or None))
         conn.execute("update books set title_ru = %s where id = %s",
                      ((form.get("title_ru") or "").strip() or None, book_id))
@@ -111,58 +116,61 @@ def save_book(book_id: int, form: dict) -> None:
         if status == old_status:
             return
         open_read = conn.execute(
-            """select id, started_at from reads where book_id = %s and finished_at is null
-               order by id desc limit 1""", (book_id,)).fetchone()
+            """select id, started_at from reads where user_id = %s and book_id = %s and finished_at is null
+               order by id desc limit 1""", (user_id, book_id)).fetchone()
         if status == "reading" and not open_read:
-            conn.execute("insert into reads (book_id, started_at) values (%s, %s)",
-                         (book_id, started or date.today()))
+            conn.execute("insert into reads (user_id, book_id, started_at) values (%s, %s, %s)",
+                         (user_id, book_id, started or date.today()))
         elif status == "finished":
             end = finished or date.today()
             if open_read:
                 check_dates(open_read["started_at"], end)
                 conn.execute("update reads set finished_at = %s where id = %s", (end, open_read["id"]))
             else:
-                conn.execute("insert into reads (book_id, started_at, finished_at) values (%s, %s, %s)",
-                             (book_id, started, end))
+                conn.execute("""insert into reads (user_id, book_id, started_at, finished_at)
+                                values (%s, %s, %s, %s)""", (user_id, book_id, started, end))
 
 
-def add_to_library(book_id: int) -> None:
+def add_to_library(user_id: str, book_id: int) -> None:
     with transaction() as conn:
-        conn.execute("insert into library (book_id) values (%s) on conflict do nothing", (book_id,))
+        conn.execute("insert into library (user_id, book_id) values (%s, %s) on conflict do nothing",
+                     (user_id, book_id))
 
 
-def save_read(book_id: int, read_id: int, form: dict) -> None:
+def save_read(user_id: str, book_id: int, read_id: int, form: dict) -> None:
     started = parse_date(form.get("started_at"))
     finished = parse_date(form.get("finished_at"))
     check_dates(started, finished)
     with transaction() as conn:
-        conn.execute("update reads set started_at = %s, finished_at = %s where id = %s and book_id = %s",
-                     (started, finished, read_id, book_id))
+        conn.execute("""update reads set started_at = %s, finished_at = %s
+                        where id = %s and book_id = %s and user_id = %s""",
+                     (started, finished, read_id, book_id, user_id))
 
 
-def add_read(book_id: int, form: dict) -> None:
+def add_read(user_id: str, book_id: int, form: dict) -> None:
     """Перечитывание: новое прочтение уже прочитанной книги."""
     started = parse_date(form.get("started_at"))
     finished = parse_date(form.get("finished_at"))
     if not started and not finished:
         raise ValidationError("Укажи хотя бы одну дату")
     check_dates(started, finished)
-    if not fetch_one("select 1 from library where book_id = %s", (book_id,)):
+    if not fetch_one("select 1 from library where user_id = %s and book_id = %s", (user_id, book_id)):
         raise ValidationError("Сначала добавь книгу в библиотеку")
     with transaction() as conn:
-        conn.execute("insert into reads (book_id, started_at, finished_at) values (%s, %s, %s)",
-                     (book_id, started, finished))
+        conn.execute("insert into reads (user_id, book_id, started_at, finished_at) values (%s, %s, %s, %s)",
+                     (user_id, book_id, started, finished))
 
 
-def delete_read(book_id: int, read_id: int) -> None:
+def delete_read(user_id: str, book_id: int, read_id: int) -> None:
     with transaction() as conn:
-        conn.execute("delete from reads where id = %s and book_id = %s", (read_id, book_id))
+        conn.execute("delete from reads where id = %s and book_id = %s and user_id = %s",
+                     (read_id, book_id, user_id))
 
 
 # ------------------------------------------------------------------ серия
 
-def save_series(series_id: int, form: dict) -> None:
-    """Описание, заметки, «бросила», и свой порядок книг."""
+def save_series(user_id: str, series_id: int, form: dict) -> None:
+    """Описание и русское название — общие для серии; заметки, «бросила» и свой порядок — твои."""
     my_order = bool(form.get("use_my_order"))
     positions: dict[int, float | None] = {}
     for key, raw in form.items():
@@ -181,12 +189,25 @@ def save_series(series_id: int, form: dict) -> None:
 
     with transaction() as conn:
         conn.execute(
-            """update series set name_ru = %s, description = %s, notes = %s,
-                 is_abandoned = %s, use_my_order = %s where id = %s""",
+            "update series set name_ru = %s, description = %s where id = %s",
             ((form.get("name_ru") or "").strip() or None,
-             (form.get("description") or "").strip() or None,
-             (form.get("notes") or "").strip() or None,
-             bool(form.get("is_abandoned")), my_order, series_id))
+             (form.get("description") or "").strip() or None, series_id))
+        conn.execute(
+            """insert into user_series (user_id, series_id, notes, is_abandoned, use_my_order)
+               values (%s, %s, %s, %s, %s)
+               on conflict (user_id, series_id) do update set
+                 notes = excluded.notes, is_abandoned = excluded.is_abandoned,
+                 use_my_order = excluded.use_my_order""",
+            (user_id, series_id, (form.get("notes") or "").strip() or None,
+             bool(form.get("is_abandoned")), my_order))
         for book_id, pos in positions.items():
-            conn.execute("update series_books set my_position = %s where series_id = %s and book_id = %s",
-                         (pos, series_id, book_id))
+            if pos is None:
+                conn.execute("""delete from user_series_books
+                                where user_id = %s and series_id = %s and book_id = %s""",
+                             (user_id, series_id, book_id))
+            else:
+                conn.execute(
+                    """insert into user_series_books (user_id, series_id, book_id, my_position)
+                       values (%s, %s, %s, %s)
+                       on conflict (user_id, series_id, book_id) do update set my_position = excluded.my_position""",
+                    (user_id, series_id, book_id, pos))

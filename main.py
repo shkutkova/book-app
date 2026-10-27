@@ -2,8 +2,11 @@
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from psycopg import OperationalError
+from psycopg_pool import PoolTimeout
 
 load_dotenv()  # читает DATABASE_URL и HARDCOVER_TOKEN из .env до подключения страниц
 
@@ -14,6 +17,19 @@ app = FastAPI(title="My Book App")
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 app.include_router(pages_router)
 app.include_router(search_router)
+
+
+@app.exception_handler(PoolTimeout)
+@app.exception_handler(OperationalError)
+async def no_database(request: Request, exc: Exception):
+    """Нет связи с базой — понятное сообщение вместо длинной ошибки."""
+    return HTMLResponse(
+        "<h1>Нет связи с базой</h1>"
+        "<p>Приложение запущено, но не может подключиться к Supabase.</p>"
+        "<p>Частая причина — сеть (рабочая или VPN) закрывает порты базы 5432 и 6543. "
+        "Попробуй другую сеть, например раздачу с телефона, без VPN.</p>"
+        "<p>Ещё проверь DATABASE_URL в .env: нужна строка Session pooler из Supabase.</p>",
+        status_code=503)
 
 if __name__ == "__main__":
     import uvicorn

@@ -44,6 +44,7 @@ MONTHS = {m: i for i, m in enumerate(
 # "Name (https://app.notion.com/p/Slug-<32 символа id>?pvs=21), Name2 (...)"
 LINK = re.compile(r"(?:^|,\s)(.+?) \(https://app\.notion\.com/p/[^\s)]*?([0-9a-f]{32})[^\s)]*\)")
 CYRILLIC = re.compile(r"[А-Яа-яЁё]")
+FICBOOK_ID = re.compile(r"ficbook\.net/readfic/([0-9A-Za-z-]+)")
 
 
 # --------------------------------------------------------------------- разбор
@@ -257,10 +258,18 @@ def write(data: Data, url: str) -> None:
     # prepare_threshold=None: без подготовленных запросов, иначе ломается
     # пул подключений Supabase (адрес с портом 6543).
     with psycopg.connect(url, prepare_threshold=None) as conn, conn.cursor() as cur:
-        genres = dict(cur.execute("select name, id from my_genres").fetchall())
+        # Чья это библиотека: APP_USER_ID из .env или единственный профиль в базе
+        user_id = os.getenv("APP_USER_ID")
+        if not user_id:
+            profiles = cur.execute("select id from profiles limit 2").fetchall()
+            if len(profiles) != 1:
+                sys.exit("В таблице profiles не одна запись — укажи APP_USER_ID в .env")
+            user_id = profiles[0][0]
+
+        genres = dict(cur.execute("select name, id from my_genres where user_id = %s", (user_id,)).fetchall())
         for g in {b.genre for b in data.books if b.genre} - genres.keys():
             genres[g] = cur.execute(
-                "insert into my_genres (name) values (%s) returning id", (g,)).fetchone()[0]
+                "insert into my_genres (user_id, name) values (%s, %s) returning id", (user_id, g)).fetchone()[0]
 
         authors = {}
         for nid, name in data.authors.items():
@@ -278,15 +287,19 @@ def write(data: Data, url: str) -> None:
                    returning id""", (nid, s["name"], s["name_ru"], s["notes"])).fetchone()[0]
 
         for b in data.books:
+            fic = FICBOOK_ID.search(b.source_url or "")
+            kind = "fanfic" if fic or b.genre == "Fan Fiction" else "book"
             book_id = cur.execute(
-                """insert into books (notion_id, title, title_ru, description_ru, source_url, pages)
-                   values (%s, %s, %s, %s, %s, %s)
+                """insert into books (notion_id, kind, ficbook_id, title, title_ru, description_ru, source_url, pages)
+                   values (%s, %s, %s, %s, %s, %s, %s, %s)
                    on conflict (notion_id) do update set
+                     kind = excluded.kind, ficbook_id = coalesce(books.ficbook_id, excluded.ficbook_id),
                      title = excluded.title, title_ru = excluded.title_ru,
                      description_ru = excluded.description_ru,
                      source_url = excluded.source_url, pages = excluded.pages
                    returning id""",
-                (b.notion_id, b.title, b.title_ru, b.description_ru, b.source_url, b.pages),
+                (b.notion_id, kind, fic.group(1) if fic else None, b.title, b.title_ru,
+                 b.description_ru, b.source_url, b.pages),
             ).fetchone()[0]
 
             cur.execute("""insert into book_authors (book_id, author_id) values (%s, %s)
@@ -300,18 +313,18 @@ def write(data: Data, url: str) -> None:
                     (series[b.series_id], book_id, b.position))
 
             cur.execute(
-                """insert into library (book_id, status, rating, is_favorite, my_genre_id)
-                   values (%s, %s, %s, %s, %s)
-                   on conflict (book_id) do update set
+                """insert into library (user_id, book_id, status, rating, is_favorite, my_genre_id)
+                   values (%s, %s, %s, %s, %s, %s)
+                   on conflict (user_id, book_id) do update set
                      status = excluded.status, rating = excluded.rating,
                      is_favorite = excluded.is_favorite, my_genre_id = excluded.my_genre_id""",
-                (book_id, b.status, b.rating, b.is_favorite, genres.get(b.genre)))
+                (user_id, book_id, b.status, b.rating, b.is_favorite, genres.get(b.genre)))
 
             # Прочтения из Notion перезаписываются целиком при повторном запуске.
-            cur.execute("delete from reads where book_id = %s", (book_id,))
+            cur.execute("delete from reads where user_id = %s and book_id = %s", (user_id, book_id))
             if b.status in ("finished", "reading"):
-                cur.execute("insert into reads (book_id, started_at, finished_at) values (%s, %s, %s)",
-                            (book_id, b.started, b.finished))
+                cur.execute("""insert into reads (user_id, book_id, started_at, finished_at)
+                               values (%s, %s, %s, %s)""", (user_id, book_id, b.started, b.finished))
         conn.commit()
     print("\nГотово: данные записаны в базу.")
 

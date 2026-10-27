@@ -9,7 +9,7 @@
 
 Какие книги обрабатываются:
 - ещё не связанные с Hardcover;
-- кроме фанфиков (жанр Fan Fiction или есть своя ссылка, например ficbook).
+- кроме фанфиков (тип «фанфик», жанр Fan Fiction или есть своя ссылка, например ficbook).
 Если книге на её странице вписана ссылка на Hardcover — берётся ровно эта книга, без поиска.
 
 Hardcover ограничивает частоту запросов, поэтому скрипт делает паузу между книгами
@@ -151,6 +151,7 @@ def books_to_sync() -> list[dict]:
         left join library l on l.book_id = b.id
         left join my_genres g on g.id = l.my_genre_id
         where b.hardcover_id is null
+          and b.kind = 'book'
           and b.source_url is null
           and coalesce(g.name, '') <> 'Fan Fiction'
         group by b.id

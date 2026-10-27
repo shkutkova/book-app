@@ -18,8 +18,9 @@ def pool() -> ConnectionPool:
             raise RuntimeError("Не задана переменная DATABASE_URL в .env")
         _pool = ConnectionPool(
             url, min_size=1, max_size=5, open=True,
+            timeout=10,  # не ждать по 30 секунд, если до базы не достучаться
             # без подготовленных запросов: иначе ломается пул подключений Supabase
-            kwargs={"row_factory": dict_row, "prepare_threshold": None},
+            kwargs={"row_factory": dict_row, "prepare_threshold": None, "connect_timeout": 10},
         )
     return _pool
 
