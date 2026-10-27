@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Серии{% endblock %}
 {% block content %}
 {% set DOT = {'in_progress': 'var(--p-butter)', 'to_read': 'var(--p-sky)', 'done': 'var(--p-mint)', 'abandoned': 'var(--p-pink)'} %}
@@ -14,6 +15,8 @@
   {% for key, items in groups.items() if items %}
   <button type="button" data-show="{{ key }}" aria-pressed="false">{{ SERIES_STATUS[key] }}<span class="n">{{ items|length }}</span></button>
   {% endfor %}
+  {% set favs = groups.values()|sum(start=[])|selectattr('is_favorite')|list %}
+  {% if favs %}<button type="button" data-show="fav" aria-pressed="false" class="fav-filter">{{ icon('flame', 15) }}Избранное<span class="n">{{ favs|length }}</span></button>{% endif %}
 </div>
 <input type="search" id="find" class="find" placeholder="Найти серию или автора" aria-label="Поиск">
 
@@ -22,7 +25,8 @@
   <h2 class="group-title"><i class="dot" style="background:{{ DOT[key] }}"></i>{{ SERIES_STATUS[key] }} <span class="count">{{ items|length }}</span></h2>
   <div class="series-now">
     {% for s in items %}
-    <a class="s-card soft {{ tones[s.id % 6] }}" href="/series/{{ s.id }}" data-find="{{ (s.name ~ ' ' ~ (s.name_ru or '') ~ ' ' ~ (s.authors or ''))|lower }}">
+    <a class="s-card soft {{ tones[s.id % 6] }}" href="/series/{{ s.id }}" data-find="{{ (s.name ~ ' ' ~ (s.name_ru or '') ~ ' ' ~ (s.authors or ''))|lower }}"{% if s.is_favorite %} data-fav{% endif %}>
+      {% if s.is_favorite %}<span class="fav-dot" title="Любимая">{{ icon('flame', 16) }}</span>{% endif %}
       <span class="lbl">{{ s.finished_books }} из {{ s.total_books }}{% if s.is_reading %} · читаю{% endif %}</span>
       <b>{{ s.name_ru or s.name }}</b>
       {% if s.name_ru %}<span class="meta">{{ s.name }}</span>{% endif %}

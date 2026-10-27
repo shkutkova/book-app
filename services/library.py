@@ -185,6 +185,15 @@ def delete_read(user_id: str, book_id: int, read_id: int) -> None:
 
 # ------------------------------------------------------------------ серия
 
+def set_series_favorite(user_id: str, series_id: int, favorite: bool) -> None:
+    """Огонёк «Избранное» у серии — только он, остальное в user_series не трогается."""
+    with transaction() as conn:
+        conn.execute(
+            """insert into user_series (user_id, series_id, is_favorite) values (%s, %s, %s)
+               on conflict (user_id, series_id) do update set is_favorite = excluded.is_favorite""",
+            (user_id, series_id, favorite))
+
+
 def save_series(user_id: str, series_id: int, form: dict) -> None:
     """Описание и русское название — общие для серии; «бросила» и свой порядок — твои."""
     my_order = bool(form.get("use_my_order"))

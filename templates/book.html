@@ -55,6 +55,14 @@
                 title="{{ 'Убрать из избранного' if b.is_favorite else 'В избранное' }}">{{ icon('flame', 20) }}<span>{{ 'Любимая' if b.is_favorite else 'В избранное' }}</span></button>
       </form>
 
+      {# Даты последнего прочтения — всегда в строке, между огоньком и звёздами; прочтения нет — создастся #}
+      <form method="post" action="/book/{{ b.id }}/reads{{ '/' ~ last.id if last else '' }}" class="read-dates" data-autosave>
+        {{ icon('calendar', 17) }}
+        <label>начало <input type="date" name="started_at" value="{{ last.started_at if last and last.started_at else '' }}" max="{{ today }}"></label>
+        <label>конец <input type="date" name="finished_at" value="{{ last.finished_at if last and last.finished_at else '' }}" max="{{ today }}"></label>
+        <noscript><button>Сохранить</button></noscript>
+      </form>
+
       {# Звёзды справа. Пока оценки нет — прозрачные; ставить можно прочитанной или брошенной книге #}
       {% set can_rate = b.status in ('finished', 'dnf') %}
       {% set r = b.rating|float|round|int if b.rating is not none else 0 %}
@@ -67,17 +75,6 @@
       </form>
     </div>
 
-    {# Даты текущего прочтения — отдельно под кнопками: «Читаю» — когда начала; «Прочитано» — ещё и когда дочитала #}
-    {% if last and b.status in ('reading', 'finished', 'paused', 'dnf') %}
-    <form method="post" action="/book/{{ b.id }}/reads/{{ last.id }}" class="read-dates" data-autosave>
-      {{ icon('calendar', 18) }}
-      <label>начала <input type="date" name="started_at" value="{{ last.started_at or '' }}" max="{{ today }}"></label>
-      {% if last.finished_at or b.status == 'finished' %}
-      <label>дочитала <input type="date" name="finished_at" value="{{ last.finished_at or '' }}" max="{{ today }}"></label>
-      {% else %}<input type="hidden" name="finished_at" value="">{% endif %}
-      <noscript><button>Сохранить</button></noscript>
-    </form>
-    {% endif %}
     {% endif %}
   </div>
 </section>
@@ -201,25 +198,16 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/desc.js?v={{ CSS_V }}"></script>
 <script>
 // Меню статуса закрывается по клику мимо
 document.addEventListener('click', e => document.querySelectorAll('.status-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
 
-// Даты прочтения сохраняются сразу при выборе
-document.querySelectorAll('[data-autosave] input').forEach(i => i.addEventListener('change', () => i.form.submit()));
-
-// Описание: сначала несколько строк, «Читать полностью» — если текст не влез
-const desc = document.getElementById('desc'), toggle = document.getElementById('desc-toggle');
-if (desc) desc.classList.add('clamp');
-if (desc && desc.scrollHeight <= desc.clientHeight + 4) desc.classList.remove('clamp');  // влезло — сворачивать нечего
-else if (desc) {
-  toggle.hidden = false;
-  toggle.onclick = () => {
-    const open = desc.classList.toggle('clamp') === false;
-    toggle.textContent = open ? 'Свернуть' : 'Читать полностью';
-    toggle.setAttribute('aria-expanded', open);
-  };
-}
+// Даты прочтения: календарь — по клику на дату (своего значка нет), сохраняются сразу при выборе
+document.querySelectorAll('[data-autosave] input').forEach(i => {
+  i.addEventListener('click', () => { try { i.showPicker(); } catch {} });
+  i.addEventListener('change', () => i.form.submit());
+});
 
 // Метки: «+N» показывает остальные; предупреждения размыты, пока не нажмёшь
 document.querySelectorAll('[data-more]').forEach(btn => btn.onclick = () => {

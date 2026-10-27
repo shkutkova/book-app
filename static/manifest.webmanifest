@@ -1,0 +1,16 @@
+{
+  "name": "Spooky Book Universe",
+  "short_name": "Spooky Books",
+  "description": "Мои книги, серии и фанфики",
+  "lang": "ru",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#320a68",
+  "theme_color": "#4b148f",
+  "icons": [
+    {"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "/static/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

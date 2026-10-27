@@ -73,7 +73,7 @@ templates.env.globals.update(LOGIN_ON=auth.password, STATUS=queries.STATUS_NAMES
                              WORK_STATUS=queries.WORK_STATUS_NAMES,
                              # ?v=<хеш> у стилей и скриптов: после выкладки браузер берёт новые файлы, а не из кэша
                              CSS_V=hashlib.md5(b"".join((Path(__file__).parent.parent / "static" / f).read_bytes()
-                                                        for f in ("style.css", "filters.js"))).hexdigest()[:8])
+                                                        for f in ("style.css", "filters.js", "desc.js"))).hexdigest()[:8])
 
 
 def back(url: str, error: str | None = None) -> RedirectResponse:
@@ -166,6 +166,13 @@ async def series_save(request: Request, series_id: int):
 
 
 # ------------------------------------------------------------------ книга
+
+@router.post("/series/{series_id}/favorite")
+async def series_favorite(request: Request, series_id: int):
+    form = dict(await request.form())
+    library.set_series_favorite(current_user_id(), series_id, bool(form.get("is_favorite")))
+    return back(f"/series/{series_id}")
+
 
 @router.post("/series/{series_id}/refresh")
 async def series_refresh(series_id: int):

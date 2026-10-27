@@ -126,7 +126,8 @@ def series_list(user_id: str) -> list[dict]:
     """Только серии, где у тебя есть хотя бы одна книга."""
     u = {"u": user_id}
     rows = fetch_all("""
-        select sp.*,
+        select sp.*, coalesce((select us.is_favorite from user_series us
+                                where us.user_id = sp.user_id and us.series_id = sp.id), false) as is_favorite,
                (select string_agg(distinct a.name, ', ')
                   from series_books sb
                   join book_authors ba on ba.book_id = sb.book_id
@@ -154,6 +155,7 @@ def series_detail(user_id: str, series_id: int) -> dict | None:
         select s.id, s.name, s.name_ru, s.description, s.ficbook_id, s.hardcover_id, s.is_completed,
                coalesce(us.is_abandoned, false) as is_abandoned,
                coalesce(us.use_my_order, false) as use_my_order,
+               coalesce(us.is_favorite, false) as is_favorite,
                sp.total_books, sp.finished_books, sp.skipped_books, sp.extra_books,
                sp.status as progress_status
         from series s
