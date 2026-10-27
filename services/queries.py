@@ -42,20 +42,49 @@ def home(user_id: str) -> dict:
     counts = {r["status"]: r["n"] for r in fetch_all(
         "select status, count(*) as n from library where user_id = %(u)s group by status", u)}
     reading = fetch_all(f"""
-        select {BOOK_FIELDS}
+        select {BOOK_FIELDS},
+               (select json_build_object('name', s.name, 'pos', trim_scale(o.sort_position),
+                                         'total', (select count(*) from series_books x where x.series_id = s.id))
+                  from series_books_ordered o join series s on s.id = o.series_id
+                 where o.user_id = %(u)s and o.book_id = b.id
+                 order by s.name limit 1) as series
         from library l join books b on b.id = l.book_id
         where l.user_id = %(u)s and l.status = 'reading'
         order by b.title""", u)
-    # Прочтения с датой окончания в этом году (перечитывания тоже считаются)
-    year_reads = fetch_one("""
-        select count(*) as n from reads
-        where user_id = %(u)s and finished_at >= date_trunc('year', current_date)""", u)["n"]
+    # Цифры для доски: прочтения с датой окончания (перечитывания тоже считаются)
+    board = fetch_one("""
+        select count(*) filter (where r.finished_at >= date_trunc('year', current_date)) as year_reads,
+               count(*) filter (where r.finished_at >= date_trunc('month', current_date)) as month_reads,
+               count(*) filter (where r.finished_at >= date_trunc('year', current_date)
+                                  and b.kind = 'fanfic') as year_fanfics,
+               coalesce(sum(b.pages) filter (where r.finished_at >= date_trunc('year', current_date)), 0) as year_pages,
+               (select count(*) from series_progress
+                 where user_id = %(u)s and status = 'done') as series_done
+        from reads r join books b on b.id = r.book_id
+        where r.user_id = %(u)s and r.finished_at is not null""", u)
+    # Лучший месяц этого года (номер 1–12) и сколько в нём прочитано
+    board["best_month"] = fetch_one("""
+        select extract(month from finished_at)::int as month, count(*) as n
+        from reads
+        where user_id = %(u)s and finished_at >= date_trunc('year', current_date)
+        group by 1 order by n desc, month desc limit 1""", u)
     series = fetch_all("""
-        select id, name, name_ru, total_books, finished_books
-        from series_progress
-        where user_id = %(u)s and status = 'in_progress'
-        order by is_reading desc, finished_books::float / greatest(total_books, 1) desc, name""", u)
-    return {"counts": counts, "reading": reading, "year_reads": year_reads, "series": series}
+        select sp.id, sp.name, sp.name_ru, sp.total_books, sp.finished_books, sp.is_reading,
+               (select string_agg(a.name, ', ' order by a.name) from (
+                  select distinct a.name from series_books sb
+                  join book_authors ba on ba.book_id = sb.book_id and ba.role = 'author'
+                  join authors a on a.id = ba.author_id
+                  where sb.series_id = sp.id) a) as authors,
+               -- статусы основных книг по порядку: из них рисуются корешки
+               (select array_agg(coalesce(o.status::text, 'none') order by o.sort_position nulls last)
+                  from series_books_ordered o
+                 where o.user_id = %(u)s and o.series_id = sp.id
+                   and (o.official_position is null or o.official_position = trunc(o.official_position))
+                   and o.status is distinct from 'skipped') as statuses
+        from series_progress sp
+        where sp.user_id = %(u)s and sp.status = 'in_progress'
+        order by sp.is_reading desc, sp.finished_books::float / greatest(sp.total_books, 1) desc, sp.name""", u)
+    return {"counts": counts, "reading": reading, "board": board, "series": series}
 
 
 # ------------------------------------------------------------------ статистика
@@ -136,6 +165,23 @@ def series_detail(user_id: str, series_id: int) -> dict | None:
     s["books"] = [b for b in s["books"] if is_main(b["official_position"])]
     s["pages"] = sum(b["pages"] or 0 for b in s["books"])
     return s
+
+
+# ------------------------------------------------------------------ книги
+
+def books(user_id: str) -> list[dict]:
+    """Книги (не фанфики) в твоей библиотеке: с первой серией и последним прочтением."""
+    return fetch_all(f"""
+        select {BOOK_FIELDS},
+               (select s.name || coalesce(' · ' || trim_scale(o.sort_position)::text, '')
+                  from series_books_ordered o join series s on s.id = o.series_id
+                 where o.user_id = %(u)s and o.book_id = b.id
+                 order by s.name limit 1) as series,
+               (select max(r.finished_at) from reads r
+                 where r.book_id = b.id and r.user_id = %(u)s) as finished_at
+        from library l join books b on b.id = l.book_id
+        where l.user_id = %(u)s and b.kind = 'book'
+        order by finished_at desc nulls last, coalesce(b.title_ru, b.title)""", {"u": user_id})
 
 
 # ------------------------------------------------------------------ фанфики

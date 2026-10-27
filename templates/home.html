@@ -1,34 +1,82 @@
 {% extends "base.html" %}
 {% from "_macros.html" import cover %}
+{% set MONTHS = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'] %}
+{% macro plural(n, one, few, many) -%}
+{%- set a = n % 10 -%}{%- set b = n % 100 -%}
+{{ one if a == 1 and b != 11 else (few if 2 <= a <= 4 and (b < 12 or b > 14) else many) }}
+{%- endmacro %}
 {% block content %}
-<div class="pills">
-  <div class="pill"><b>{{ counts.get('finished', 0) }}</b><span>прочитано</span></div>
-  <div class="pill"><b>{{ year_reads }}</b><span>в {{ year }} году</span></div>
-  <div class="pill"><b>{{ counts.get('reading', 0) }}</b><span>читаю сейчас</span></div>
-  <div class="pill"><b>{{ counts.get('want_to_read', 0) }}</b><span>хочу прочитать</span></div>
-</div>
+<section class="hello">
+  <div>
+    <h1>Привет! Что читаем сегодня?</h1>
+    {% set n = reading|length %}
+    <p>{% if n %}Сейчас у тебя открыто {{ n }} {{ plural(n, 'книга', 'книги', 'книг') }}.{% else %}Сейчас ничего не открыто — самое время выбрать.{% endif %}
+      {% if series %} Серий в процессе: {{ series|length }}.{% endif %}</p>
+  </div>
+  <div class="now-wrap">
+    {% for b in reading if b.cover_url %}{% if loop.index <= 3 %}<img class="blur b{{ loop.index }}" src="{{ b.cover_url }}" alt="">{% endif %}{% endfor %}
+    <div class="now">
+      {% for b in reading %}
+      <a class="now-card" href="/book/{{ b.id }}">
+        {{ cover(b, link=False) }}
+        <span>
+          {% if b.kind == 'fanfic' %}<span class="tag fanfic">фанфик</span>
+          {% elif b.series %}<span class="tag">{% if b.series.pos is not none %}книга {{ b.series.pos }} из {{ b.series.total }}{% else %}в серии{% endif %}</span>{% endif %}
+          <b>{{ b.title_ru or b.title }}</b>
+          <span class="meta">{{ b.authors or '' }}{% if b.pages %} · {{ b.pages }} стр.{% endif %}</span>
+        </span>
+      </a>
+      {% else %}
+      <a class="now-card" href="/books"><span><b>Выбрать, что читать</b><span class="meta">Список «Хочу прочитать» — во вкладке «Книги»</span></span></a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
 
-<div class="card">
-  <h2>Читаю сейчас</h2>
-  <div class="row">
-    {% for b in reading %}{{ cover(b, caption=True) }}
-    {% else %}<span class="muted">Сейчас ничего не читаешь</span>{% endfor %}
+<div class="section-head"><h2>Мой книжный год</h2><a href="/stats">Вся статистика</a></div>
+{% set bm = board.best_month %}
+<div class="board">
+  <div class="col-b">
+    <div class="tile pic t-pink"><img src="/static/img/chars/butterfly.png" alt="" loading="lazy"></div>
+    <div class="tile t-mint"><span class="lbl">В этом месяце</span><span class="big">{{ board.month_reads }}</span></div>
+  </div>
+  <div class="col-b">
+    <div class="tile t-butter" style="min-height:190px"><span class="lbl">Прочитано всего</span>
+      <span><span class="big">{{ counts.get('finished', 0) }}</span><span class="note">книг и фанфиков</span></span></div>
+    <div class="tile pic t-sky"><img src="/static/img/chars/ghost.png" alt="" loading="lazy"></div>
+  </div>
+  <div class="col-b">
+    <div class="tile pic t-lilac"><img src="/static/img/chars/star.png" alt="" loading="lazy"></div>
+    <div class="tile t-peach"><span class="lbl">Страниц за год</span><span class="big long">{{ '{:,}'.format(board.year_pages).replace(',', ' ') }}</span></div>
+  </div>
+  <div class="col-b">
+    <div class="tile dark"><span class="lbl">Серий закончено</span><span class="big">{{ board.series_done }}</span></div>
+    <div class="tile t-mint"><span class="lbl">Фанфиков за год</span><span class="big">{{ board.year_fanfics }}</span></div>
+  </div>
+  <div class="col-b">
+    {% if bm %}<div class="tile t-butter"><span class="lbl">Лучший месяц года</span>
+      <span><span class="big word">{{ MONTHS[bm.month - 1] }}</span><span class="note">{{ bm.n }} {{ plural(bm.n, 'книга', 'книги', 'книг') }}</span></span></div>{% endif %}
+    <div class="tile t-pink"><span class="lbl">В {{ year }} году</span><span class="big">{{ board.year_reads }}</span></div>
   </div>
 </div>
 
 {% if series %}
-<div class="card">
-  <h2>Серии в процессе</h2>
-  <div class="grid">
-    {% for s in series %}
-    <a href="/series/{{ s.id }}" style="color:inherit">
-      <strong>{{ s.name }}</strong> <span class="muted small">{{ s.finished_books }} из {{ s.total_books }}</span>
-      <div class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></div>
-    </a>
-    {% endfor %}
-  </div>
+<div class="section-head"><h2>Серии сейчас</h2><a href="/series">Все серии</a></div>
+<div class="series-now">
+  {% set tones = ['t-pink', 't-mint', 't-butter', 't-sky', 't-lilac', 't-peach'] %}
+  {% for s in series[:6] %}
+  {% set left = s.total_books - s.finished_books %}
+  <a class="s-card {{ tones[loop.index0 % 6] }}" href="/series/{{ s.id }}">
+    <span class="lbl">{% if s.is_reading %}Читаю книгу {{ s.finished_books + 1 }} из {{ s.total_books }}{% elif left == 1 %}Осталась одна{% else %}Прочитано {{ s.finished_books }} из {{ s.total_books }}{% endif %}</span>
+    <b>{{ s.name_ru or s.name }}</b>
+    {% if s.authors %}<span class="meta">{{ s.authors }}</span>{% endif %}
+    <span class="spines" aria-hidden="true">
+      {% for st in (s.statuses or [])[:8] %}<i class="{{ 'done' if st == 'finished' else ('now' if st == 'reading' else '') }}"></i>{% endfor %}
+      {% if (s.statuses or [])|length > 8 %}<i class="more">+{{ (s.statuses|length) - 8 }}</i>{% endif %}
+    </span>
+    <span class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></span>
+  </a>
+  {% endfor %}
 </div>
 {% endif %}
-
-<p><a href="/stats">Вся статистика</a></p>
 {% endblock %}

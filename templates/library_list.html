@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "_macros.html" import cover %}
+{# Общий список для «Книг» и «Фанфиков»: группы по статусам сворачиваются,
+   кнопки сверху оставляют одну группу, поиск — по названию и автору. #}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+{% set DOT = {'reading': 'var(--p-butter)', 'want_to_read': 'var(--p-sky)', 'finished': 'var(--p-mint)',
+              'paused': 'var(--p-peach)', 'dnf': 'var(--p-pink)', 'skipped': 'var(--p-lilac)'} %}
+<div class="list-head">
+  <h1>{{ title }}</h1>
+  <a class="btn" href="{{ add_url }}">+ Добавить {{ add_what }}</a>
+</div>
+
+{% set total = groups.values()|map('length')|sum %}
+{% if total %}
+<div class="filters" role="group" aria-label="Показать">
+  <button type="button" data-show="all" aria-pressed="true">Все<span class="n">{{ total }}</span></button>
+  {% for key, items in groups.items() if items %}
+  <button type="button" data-show="{{ key }}" aria-pressed="false">{{ STATUS[key] }}<span class="n">{{ items|length }}</span></button>
+  {% endfor %}
+</div>
+<input type="search" id="find" placeholder="Найти по названию или автору" aria-label="Поиск" style="width:min(100%,420px)">
+
+{% for key, items in groups.items() if items %}
+<details class="shelf-group" data-group="{{ key }}" {{ 'open' if key == open_group }}>
+  <summary><i class="dot" style="background:{{ DOT[key] }}"></i>{{ STATUS[key] }} <span class="count">{{ items|length }}</span></summary>
+  <div class="compact">
+    {% for b in items %}
+    <a class="item" href="/book/{{ b.id }}" data-find="{{ ((b.title_ru or '') ~ ' ' ~ b.title ~ ' ' ~ (b.authors or ''))|lower }}">
+      {{ cover(b, link=False) }}
+      <span class="body">
+        <span class="ttl">{{ b.title_ru or b.title }}</span>
+        <span class="meta">{{ b.authors or '' }}{% if b.series %} · {{ b.series }}{% endif %}{% if b.pairings %} · {{ b.pairings|join(', ') }}{% endif %}</span>
+      </span>
+      <span class="side">
+        {% if b.rating %}<span class="stars">{{ b.rating|stars }}</span><br>{% endif %}
+        {% if b.finished_at and key == 'finished' %}{{ b.finished_at|ru_date }}{% elif b.pages %}{{ b.pages }} стр.{% endif %}
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+</details>
+{% endfor %}
+<p class="empty-note" id="nothing" hidden>Ничего не нашлось. Попробуй часть названия или автора.</p>
+{% else %}
+<p class="empty-note">{{ empty_text }} <a href="{{ add_url }}">Добавить</a></p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const groups = [...document.querySelectorAll('.shelf-group')];
+const buttons = [...document.querySelectorAll('[data-show]')];
+let show = 'all';
+buttons.forEach(b => b.onclick = () => {
+  show = b.dataset.show;
+  buttons.forEach(x => x.setAttribute('aria-pressed', x === b));
+  apply();
+  if (show !== 'all') groups.find(g => g.dataset.group === show).open = true;
+});
+const find = document.getElementById('find');
+find && (find.oninput = apply);
+function apply() {
+  const q = find.value.trim().toLowerCase();
+  let any = false;
+  for (const g of groups) {
+    let n = 0;
+    for (const it of g.querySelectorAll('.item')) {
+      const hit = !q || it.dataset.find.includes(q);
+      it.hidden = !hit; n += hit;
+    }
+    g.hidden = (show !== 'all' && g.dataset.group !== show) || !n;
+    if (q && n) g.open = true;
+    g.querySelector('.count').textContent = n;
+    any ||= !g.hidden;
+  }
+  document.getElementById('nothing').hidden = any;
+}
+</script>
+{% endblock %}

@@ -307,12 +307,30 @@ async def book_link(request: Request, book_id: int):
     return back(f"/book/{book_id}")
 
 
+# Порядок групп в «Книгах» и «Фанфиках»
+LIST_ORDER = ("reading", "want_to_read", "finished", "paused", "dnf", "skipped")
+
+
+def _library_list(request: Request, rows: list[dict], **page):
+    groups = {key: [] for key in LIST_ORDER}
+    for r in rows:
+        groups[r["status"]].append(r)
+    # Открыта первая непустая группа — обычно «Читаю»
+    open_group = next((k for k, v in groups.items() if v), None)
+    return templates.TemplateResponse(request, "library_list.html",
+                                      {"groups": groups, "open_group": open_group, **page})
+
+
+@router.get("/books", response_class=HTMLResponse)
+def books_page(request: Request):
+    return _library_list(request, queries.books(current_user_id()), title="Книги",
+                         add_url="/add/book", add_what="книгу", empty_text="Книг пока нет.")
+
+
 @router.get("/fanfics", response_class=HTMLResponse)
 def fanfics_page(request: Request):
-    groups = {key: [] for key in queries.STATUS_NAMES}
-    for f in queries.fanfics(current_user_id()):
-        groups[f["status"]].append(f)
-    return templates.TemplateResponse(request, "fanfics.html", {"groups": groups})
+    return _library_list(request, queries.fanfics(current_user_id()), title="Фанфики",
+                         add_url="/add/ficbook", add_what="фанфик", empty_text="Фанфиков пока нет.")
 
 
 def _ficbook_form(request: Request, form: dict | None = None, error: str | None = None):

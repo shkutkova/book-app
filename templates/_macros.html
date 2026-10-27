@@ -1,10 +1,12 @@
-{# Обложка книги. Пока у книг из Notion нет обложек — показывается название. #}
+{# Обложка книги. Нет картинки — название на пастельном фоне (цвет от id, чтобы не менялся). #}
 {% macro cover(b, link=True, caption=False) -%}
-<a class="cover st-{{ b.status or 'none' }}" {% if link %}href="/book/{{ b.id }}"{% endif %} title="{{ b.title }}">
+{#- link=False — внутри другой ссылки: тогда <span>, вложенная <a> ломает разметку -#}
+{%- set tag = 'a' if link else 'span' -%}
+<{{ tag }} class="cover st-{{ b.status or 'none' }}" {% if link %}href="/book/{{ b.id }}"{% endif %} title="{{ b.title }}">
   {% if b.cover_url %}<img src="{{ b.cover_url }}" alt="" loading="lazy">
-  {% else %}<span class="img">{{ b.title_ru or b.title }}</span>{% endif %}
+  {% else %}<span class="img tone-{{ b.id % 6 }}">{{ b.title_ru or b.title }}</span>{% endif %}
   {% if caption %}<span class="t">{{ b.title_ru or b.title }}</span>{% endif %}
-</a>
+</{{ tag }}>
 {%- endmacro %}
 
 {% macro book_title(b) -%}

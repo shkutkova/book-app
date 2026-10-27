@@ -12,6 +12,7 @@
   <div class="card-head">
     <div><h2 id="time-title">По месяцам</h2><p class="lead" id="time-lead"></p></div>
     <div class="tools">
+      <select id="month-pick" aria-label="Показать книги месяца"></select>
       <button id="by-books" class="on" type="button" aria-pressed="true">Книги</button>
       <button id="by-pages" type="button" aria-pressed="false">Страницы</button>
     </div>
@@ -106,7 +107,7 @@ const inPeriod = () => period === 'all' ? READS : READS.filter(r => yearOf(r) ==
 function coverLink(b) {
   const a = el('a', 'cover'); a.href = `/book/${b.id}`; a.title = b.t;
   if (b.c) { const i = el('img'); i.src = b.c; i.alt = ''; i.loading = 'lazy'; a.append(i); }
-  else a.append(el('span', 'img', b.t));
+  else a.append(el('span', 'img tone-' + (b.id % 6), b.t));
   a.append(el('span', 't', b.t));
   return a;
 }
@@ -194,6 +195,15 @@ function drawTime() {
   }
   bars($('time-chart'), items, pickTime, unit);
   $('time-picked').replaceChildren();
+  // Тот же выбор, что клик по столбику, — но списком: удобно на телефоне
+  const sel = $('month-pick');
+  sel.replaceChildren(new Option(period === 'all' ? 'Показать год…' : 'Показать месяц…', ''));
+  items.forEach((it, i) => { if (it.list.length) sel.append(new Option(`${it.title} — ${books(it.list.length)}`, i)); });
+  sel.onchange = () => {
+    const i = sel.value; if (i === '') return $('time-picked').replaceChildren();
+    const col = $('time-chart').children[i], it = items[i];
+    if (col.getAttribute('aria-pressed') !== 'true') pickTime(it.label, `${it.title}: ${books(it.list.length)}`, it.list, col);
+  };
   const best = items.reduce((a, b) => b.value > a.value ? b : a, items[0]);
   $('time-lead').textContent = !best.value ? 'Пока пусто' : period === 'all'
     ? `Больше всего — в ${best.label} году: ${unit(best.value)}`

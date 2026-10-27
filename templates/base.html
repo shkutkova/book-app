@@ -3,19 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#4b148f">
 <title>{% block title %}Мои книги{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Unbounded:wght@600;700;800&display=swap">
 <link rel="stylesheet" href="/static/style.css?v={{ CSS_V }}">
 </head>
 <body>
 {% block nav %}
+{% set path = request.url.path %}
 <nav>
-  <a class="logo" href="/">📚 Мои книги</a>
-  <a href="/" class="{{ 'on' if request.url.path == '/' }}">Главная</a>
-  <a href="/series" class="{{ 'on' if request.url.path.startswith('/series') }}">Серии</a>
-  <a href="/stats" class="{{ 'on' if request.url.path.startswith('/stats') }}">Статистика</a>
-  <a href="/fanfics" class="{{ 'on' if request.url.path.startswith('/fanfics') or request.url.path.startswith('/add/ficbook') }}">Фанфики</a>
-  <a href="/add/book" class="{{ 'on' if request.url.path.startswith('/add/book') }}">+ Книга</a>
-  {% if LOGIN_ON() %}<form method="post" action="/logout" style="margin:0 0 0 auto"><button class="link">Выйти</button></form>{% endif %}
+  <a class="logo" href="/"><img src="/static/img/chars/star.png" alt="">Мои книги</a>
+  <div class="links">
+  <a href="/" class="{{ 'on' if path == '/' }}">Главная</a>
+  <a href="/books" class="{{ 'on' if path.startswith('/books') or path.startswith('/add/book') }}">Книги</a>
+  <a href="/series" class="{{ 'on' if path.startswith('/series') }}">Серии</a>
+  <a href="/fanfics" class="{{ 'on' if path.startswith('/fanfics') or path.startswith('/add/ficbook') }}">Фанфики</a>
+  <a href="/stats" class="{{ 'on' if path.startswith('/stats') }}">Статистика</a>
+  </div>
+  <details class="add-menu">
+    <summary>+ Добавить</summary>
+    <div class="menu">
+      <a href="/add/book">Книгу<span>поиск в Hardcover или вручную</span></a>
+      <a href="/add/ficbook">Фанфик<span>с ficbook — закладкой или вручную</span></a>
+    </div>
+  </details>
+  {% if LOGIN_ON() %}<form method="post" action="/logout"><button class="link">Выйти</button></form>{% endif %}
 </nav>
 {% endblock %}
 <div class="wrap">
@@ -23,6 +37,11 @@
   {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
   {% block content %}{% endblock %}
 </div>
+<script>
+// Меню «+ Добавить» закрывается по клику мимо и по Esc
+document.addEventListener('click', e => document.querySelectorAll('.add-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.add-menu[open]').forEach(d => d.open = false); });
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
