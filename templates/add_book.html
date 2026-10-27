@@ -1,12 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Добавить книгу{% endblock %}
+{% block title %}{{ 'Найти в Hardcover' if target else 'Добавить книгу' }}{% endblock %}
 {% block content %}
+{% if target %}
+<h1>Найти в Hardcover</h1>
+<p class="sub">Для «<a href="/book/{{ target.id }}">{{ target.title }}</a>». Выбери книгу — подтянутся обложка, жанры и автор{% if target.kind == 'fanfic' %}; ссылка на ficbook и описание перевода останутся{% else %}, описание и серия{% endif %}.</p>
+{% else %}
 <h1>Добавить книгу</h1>
 <p class="sub">Поиск в Hardcover. Обложка, автор, описание, страницы и вся серия подтянутся сами.</p>
+{% endif %}
 
 <form method="get" action="/add/book" class="card" style="display:flex;gap:.6rem;flex-wrap:wrap">
   <label for="q" class="sr-only" style="position:absolute;left:-9999px">Название или автор</label>
   <input id="q" name="q" value="{{ q }}" placeholder="Название, автор или и то и другое" style="flex:1;min-width:220px" autofocus>
+  {% if target %}<input type="hidden" name="link" value="{{ target.id }}">{% endif %}
   <button class="primary">Найти</button>
 </form>
 
@@ -26,7 +32,19 @@
       <span class="muted small">{{ r.authors }}{% if r.year %} · {{ r.year }}{% endif %}{% if r.pages %} · {{ r.pages }} стр.{% endif %}</span>
       {% if r.series %}<span class="small">Серия: {{ r.series }}</span>{% endif %}
       <div style="margin-top:auto;padding-top:.4rem">
-        {% if r.known and r.known.status %}
+        {% if target %}
+          {% if r.known and r.known.id == target.id %}
+            <span class="badge">уже связана</span>
+          {% elif r.known %}
+            <span class="muted small">уже связана с <a href="/book/{{ r.known.id }}">другой книгой</a></span>
+          {% else %}
+          <form method="post" action="/book/{{ target.id }}/link">
+            <input type="hidden" name="hardcover_id" value="{{ r.id }}">
+            <input type="hidden" name="q" value="{{ q }}">
+            <button class="primary">Связать</button>
+          </form>
+          {% endif %}
+        {% elif r.known and r.known.status %}
           <a class="badge {{ r.known.status }}" href="/book/{{ r.known.id }}">{{ STATUS[r.known.status] }} — открыть</a>
         {% else %}
           <form method="post" action="/add/book">
@@ -41,6 +59,6 @@
   </div>
   {% endfor %}
 </div>
-<p class="muted small">Не нашла книгу? Её может не быть в Hardcover — ручное добавление сделаем следующим шагом.</p>
+{% if not target %}<p class="muted small">Не нашла книгу? Её может не быть в Hardcover — ручное добавление сделаем следующим шагом.</p>{% endif %}
 {% endif %}
 {% endblock %}

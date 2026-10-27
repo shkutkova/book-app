@@ -131,8 +131,13 @@ async def series_refresh(series_id: int):
 # ------------------------------------------------------------------ добавить книгу
 
 @router.get("/add/book", response_class=HTMLResponse)
-def add_book_page(request: Request, q: str = "", error: str | None = None):
-    """Поиск в Hardcover. Найденные книги, которые уже есть, помечены."""
+def add_book_page(request: Request, q: str = "", error: str | None = None, link: int | None = None):
+    """Поиск в Hardcover. Найденные книги, которые уже есть, помечены.
+    link=<id книги> — поиск со страницы книги: результат не добавляется, а связывается с ней."""
+    user_id = current_user_id()
+    target = queries.book_detail(user_id, link) if link else None
+    if link and not target:
+        raise HTTPException(404, "Книга не найдена")
     results = []
     q = q.strip()
     if q:
@@ -140,10 +145,11 @@ def add_book_page(request: Request, q: str = "", error: str | None = None):
             results = hardcover_api.search(q)
         except hardcover_api.HardcoverError as e:
             error = str(e)
-        known = catalog.known(current_user_id(), [r["id"] for r in results])
+        known = catalog.known(user_id, [r["id"] for r in results])
         for r in results:
             r["known"] = known.get(r["id"])
-    return templates.TemplateResponse(request, "add_book.html", {"q": q, "results": results, "error": error})
+    return templates.TemplateResponse(request, "add_book.html",
+                                      {"q": q, "results": results, "error": error, "target": target})
 
 
 @router.post("/add/book")
@@ -205,6 +211,20 @@ async def book_refresh(book_id: int):
         await run_in_threadpool(catalog.refresh_from_hardcover, book_id)
     except library.ValidationError as e:
         return back(f"/book/{book_id}", str(e))
+    return back(f"/book/{book_id}")
+
+
+@router.post("/book/{book_id}/link")
+async def book_link(request: Request, book_id: int):
+    """Связать книгу (или фанфик) с найденной книгой Hardcover."""
+    form = dict(await request.form())
+    try:
+        await run_in_threadpool(catalog.refresh_from_hardcover, book_id, int(form["hardcover_id"]))
+    except (KeyError, ValueError):
+        return back(f"/book/{book_id}", "Не выбрана книга")
+    except library.ValidationError as e:
+        return RedirectResponse("/add/book?" + urlencode({"q": form.get("q", ""), "link": book_id,
+                                                           "error": str(e)}), status_code=303)
     return back(f"/book/{book_id}")
 
 

@@ -30,9 +30,10 @@
     {% if b.status %}<span class="badge {{ b.status }}">{{ STATUS[b.status] }}</span> <span class="stars">{{ b.rating|stars }}</span>{% if b.is_favorite %} ❤️{% endif %}{% endif %}
     {% if b.source_url %}<p class="small"><a href="{{ b.source_url }}" target="_blank" rel="noopener">{{ 'Читать на ficbook' if 'ficbook.net' in b.source_url else 'Где читать' }}</a></p>{% endif %}
     {% if b.hardcover_slug %}<p class="small"><a href="https://hardcover.app/books/{{ b.hardcover_slug }}" target="_blank" rel="noopener">Открыть в Hardcover</a></p>{% endif %}
-    {% if b.kind != 'fanfic' and b.hardcover_slug %}
-    <form method="post" action="/book/{{ b.id }}/refresh" class="small"><button class="link">Обновить из Hardcover</button> <span class="muted">— описание, обложка, жанры, вся серия</span></form>
+    {% if b.hardcover_slug %}
+    <form method="post" action="/book/{{ b.id }}/refresh" class="small"><button class="link">Обновить из Hardcover</button> <span class="muted">— {{ 'обложка, жанры' if b.kind == 'fanfic' else 'описание, обложка, жанры, вся серия' }}</span></form>
     {% endif %}
+    <p class="small"><a href="/add/book?{{ {'link': b.id, 'q': b.title}|urlencode }}">{{ 'Связать с другой книгой Hardcover' if b.hardcover_slug else 'Найти в Hardcover' }}</a>{% if not b.hardcover_slug %} <span class="muted">— {{ 'если это перевод, оттуда возьмётся обложка оригинала' if b.kind == 'fanfic' else 'обложка, описание, серия' }}</span>{% endif %}</p>
   </div>
 </div>
 
@@ -82,13 +83,13 @@
   <label class="check"><input type="checkbox" name="is_favorite" {{ 'checked' if b.is_favorite }}> ❤️ Избранное</label>
   <label for="title_ru">Название на русском</label><input id="title_ru" name="title_ru" value="{{ b.title_ru or '' }}" style="width:100%">
   <label for="notes">Заметки</label><textarea id="notes" name="notes">{{ b.notes or '' }}</textarea>
-  <details {{ 'open' if not b.hardcover_slug and not b.source_url }}>
-    <summary>Связь с Hardcover и обложка</summary>
+  <label for="cover_url">Своя обложка — ссылка на картинку</label>
+  <input id="cover_url" name="cover_url" value="{{ b.cover_url or '' }}" placeholder="https://... (Pinterest: правой кнопкой по картинке → «Копировать адрес изображения»)" style="width:100%">
+  <details>
+    <summary>Ссылка на Hardcover вручную</summary>
     <label for="hardcover_link">Ссылка на книгу в Hardcover</label>
     <input id="hardcover_link" name="hardcover_link" value="{{ 'https://hardcover.app/books/' ~ b.hardcover_slug if b.hardcover_slug else '' }}" placeholder="https://hardcover.app/books/..." style="width:100%">
-    <p class="muted small">Если книга связана не с той книгой в Hardcover или не связана вовсе — вставь ссылку, сохрани и нажми «Обновить из Hardcover».</p>
-    <label for="cover_url">Ссылка на обложку (если книги нет в Hardcover)</label>
-    <input id="cover_url" name="cover_url" value="{{ b.cover_url or '' }}" placeholder="https://..." style="width:100%">
+    <p class="muted small">Обычно проще «Найти в Hardcover» вверху. Если вставляешь ссылку сама — сохрани и нажми «Обновить из Hardcover».</p>
   </details>
   <p><button class="primary">Сохранить</button></p>
 </form>

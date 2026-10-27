@@ -59,9 +59,13 @@ def _book(conn, b: dict, full: bool) -> int:
                where id = %s""",
             (b.get("slug"), b.get("pages") or None, release, cover, book_id))
     if full:
+        # у фанфика описание с ficbook (перевод) — английское из Hardcover только если своего нет
         conn.execute(
-            "update books set description = %s, hardcover_tags = %s, synced_at = now() where id = %s",
-            (b.get("description"), json.dumps(hc.tags_of(b.get("cached_tags")), ensure_ascii=False), book_id))
+            """update books set hardcover_tags = %s, synced_at = now(),
+                 description = case when kind = 'fanfic' then coalesce(description, %s) else %s end
+               where id = %s""",
+            (json.dumps(hc.tags_of(b.get("cached_tags")), ensure_ascii=False),
+             b.get("description"), b.get("description"), book_id))
     for a in hc.authors_of(b):
         conn.execute("insert into book_authors (book_id, author_id) values (%s, %s) on conflict do nothing",
                      (book_id, _author(conn, a)))
@@ -127,31 +131,43 @@ def add_from_hardcover(user_id: str, hc_book_id: int) -> int:
     return book_id
 
 
-def refresh_from_hardcover(book_id: int) -> None:
-    """Кнопка «Обновить из Hardcover» на странице книги."""
+def refresh_from_hardcover(book_id: int, link_to: int | None = None) -> None:
+    """Кнопка «Обновить из Hardcover» на странице книги.
+    link_to — связать с этой книгой Hardcover (из поиска «Найти в Hardcover»): тогда
+    и обложка берётся из Hardcover, если она там есть.
+    Фанфик остаётся фанфиком (ссылка на ficbook, описание перевода); из Hardcover —
+    обложка, жанры, автор оригинала. Серии Hardcover к фанфику не добавляем:
+    у него свой цикл с ficbook."""
     with transaction() as conn:
         row = conn.execute("select hardcover_id, hardcover_slug, kind from books where id = %s",
                            (book_id,)).fetchone()
     if not row:
         raise ValidationError("Книга не найдена")
-    if row["kind"] == "fanfic":
-        raise ValidationError("Фанфики обновляются с ficbook, а не из Hardcover")
-    hc_id = row["hardcover_id"]
+    hc_id = link_to or row["hardcover_id"]
     try:
         if not hc_id and row["hardcover_slug"]:
             found = hc.book_by_slug(row["hardcover_slug"])
             hc_id = found and found["id"]
         if not hc_id:
-            raise ValidationError("Книга не связана с Hardcover: укажи ссылку на неё в Hardcover на странице книги")
+            raise ValidationError("Книга не связана с Hardcover: нажми «Найти в Hardcover» на странице книги")
         book, series = _load(hc_id)
     except hc.HardcoverError as e:
         raise ValidationError(str(e))
+    if row["kind"] == "fanfic":
+        series = []
     with transaction() as conn:
-        taken = conn.execute("select title from books where hardcover_id = %s and id <> %s",
-                             (hc_id, book_id)).fetchone()
+        taken = conn.execute("""select title from books where (hardcover_id = %s or hardcover_slug = %s)
+                                and id <> %s""", (hc_id, book.get("slug"), book_id)).fetchone()
         if taken:
             raise ValidationError(f"Эта книга Hardcover уже связана с «{taken['title']}»")
-        conn.execute("update books set hardcover_id = %s where id = %s and hardcover_id is null", (hc_id, book_id))
+        if link_to:
+            cover = (book.get("image") or {}).get("url")
+            conn.execute("""update books set hardcover_id = %s, hardcover_slug = %s,
+                              cover_url = coalesce(%s, cover_url) where id = %s""",
+                         (hc_id, book.get("slug"), cover, book_id))
+        else:
+            conn.execute("update books set hardcover_id = %s where id = %s and hardcover_id is null",
+                         (hc_id, book_id))
         _save(conn, book, series)
 
 
