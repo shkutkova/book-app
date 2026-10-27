@@ -1,0 +1,50 @@
+# book-app — личный книжный трекер
+
+Замена Notion «Book tracker»: книги, серии, фанфики с ficbook, статистика чтения.
+План, статус и пожелания по дизайну — в [PROJECT.md](PROJECT.md).
+
+## Запуск
+
+```bash
+# Git Bash (Windows). `python` без venv — заглушка WindowsApps, не работает
+py -m venv .venv && source .venv/Scripts/activate && pip install -r requirements.txt
+python main.py            # http://127.0.0.1:8000
+```
+
+`.env` (не коммитить, не выводить значения): `DATABASE_URL`, `HARDCOVER_TOKEN` (только чтение), `APP_USER_ID` (необязательно).
+
+## Стек и устройство
+
+FastAPI + Jinja2 (серверный рендер, без JS-фреймворка), psycopg3 + psycopg_pool, Supabase Postgres.
+
+- `main.py` — приложение, обработчики «Нет связи с базой» (503)
+- `routes/pages.py` — все страницы; фильтры шаблонов (`ru_date`, `stars`, `position`, `md`)
+- `services/queries.py` — чтение; `services/library.py` — изменения «моего» (статус, оценка, прочтения), `ValidationError`
+- `services/catalog.py` — книги из Hardcover в каталог (добавление, «Обновить», «Связать»)
+- `services/hardcover_api.py` — синхронный клиент Hardcover GraphQL; `hardcover.py`/`search.py` — старый async-клиент
+- `services/ficbook.py` + `static/ficbook_bookmarklet.js` — фанфики через закладку в браузере
+- `db/schema.sql` — схема для пустой базы; `db/migrations/NNN_*.sql` — изменения для существующей
+- `scripts/import_notion.py`, `scripts/sync_hardcover.py` — разовые скрипты
+
+## Модель данных
+
+- Каталог общий: `books`, `authors`, `series`, `series_books`. Книги и фанфики — одна таблица, `books.kind` = `book` | `fanfic`.
+- Личное — по `user_id`: `library` (PK user_id+book_id), `reads`, `my_genres`, `user_series`, `user_series_books`. Пользователь пока один: `services/users.current_user_id()`.
+- Серия: основная книга — целый номер или без номера; дробный (1.5) — «Дополнительно», в прогресс не входит (`hardcover_api.is_main`, view `series_progress`).
+
+## Подводные камни
+
+- База — только через **Session pooler** (`aws-0-eu-west-1.pooler.supabase.com:5432`); прямой `db.*` — только IPv6.
+- Рабочая сеть пользователя закрывает 5432/6543 → с базой проверяет в **GitHub Codespaces**. Отсюда к базе доступа обычно нет: SQL-изменения отдаём файлом для Supabase SQL Editor.
+- Миграции пользователь запускает сам в SQL Editor; новый код, зависящий от миграции, — предупредить «сначала миграция».
+- ficbook отдаёт серверу 403 (защита от ботов) — не обходить; данные собирает закладка в браузере и передаёт в `/add/ficbook#<json>`.
+- Hardcover `book_series` содержит переводы/сборники/переиздания: фильтр — не compilation, без canonical_id; на номер берётся featured, иначе с макс. users_count.
+- Данные из Hardcover не перетирают свои (coalesce): русские названия, описания из Notion, свою обложку; у фанфика описание перевода.
+- Notion-коннектор: SQL-режим упирается в лимит запросов; режим `view` (представление «Series» без фильтров) — работает, но текст с markdown-экранированием (`\|`, `<br />`).
+- `notion_export/`, `refs/`, `.claude/launch.json` — не коммитить.
+
+## Как работаем
+
+- Коммиты сразу в `main` и push (так решила пользователь). В сообщениях коммитов не упоминать Claude.
+- Отвечать на русском, простым языком, с разделами «Факты / Предположения / Вопросы».
+- Код — в стиле окружающего: комментарии и docstring на русском, коротко.
