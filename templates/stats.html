@@ -15,45 +15,47 @@
 </div>
 
 <div class="dash">
-  <section class="card panel wide">
-    <div class="card-head">
-      <div><h2 id="time-title">По месяцам</h2><p class="lead" id="time-lead"></p></div>
-      <div class="tools">
-        <select id="month-pick" aria-label="Показать книги месяца"></select>
-        <div class="seg small" role="group" aria-label="Что считать">
-          <button id="by-books" class="on" type="button" aria-pressed="true">Книги</button>
-          <button id="by-pages" type="button" aria-pressed="false">Страницы</button>
+  {# Две колонки: раскрытый список книг сдвигает только то, что под ним в своей колонке #}
+  <div class="dash-col main">
+    <section class="card panel">
+      <div class="card-head">
+        <div><h2 id="time-title">По месяцам</h2><p class="lead" id="time-lead"></p></div>
+        <div class="tools">
+          <select id="month-pick" aria-label="Показать книги месяца"></select>
+          <div class="seg small" role="group" aria-label="Что считать">
+            <button id="by-books" class="on" type="button" aria-pressed="true">Книги</button>
+            <button id="by-pages" type="button" aria-pressed="false">Страницы</button>
+          </div>
         </div>
       </div>
+      <div class="chart tall" id="time-chart" style="--series:var(--c1)"></div>
+      <div class="picked" id="time-picked"></div>
+    </section>
+    <div class="dash-pair">
+      <section class="card panel sm">
+        <h2>Оценки</h2><p class="lead" id="rating-lead"></p>
+        <div class="chart" id="rating-chart" style="--series:var(--c3)"></div>
+        <div class="picked" id="rating-picked"></div>
+      </section>
+      <section class="card panel sm">
+        <h2>Объём книг</h2><p class="lead" id="pages-lead"></p>
+        <div class="chart" id="pages-chart" style="--series:var(--c5)"></div>
+        <div class="picked" id="pages-picked"></div>
+      </section>
     </div>
-    <div class="chart tall" id="time-chart" style="--series:var(--c1)"></div>
-    <div class="picked" id="time-picked"></div>
-  </section>
-
-  <section class="card panel">
-    <h2>Жанры</h2><p class="lead" id="genre-lead"></p>
-    <div class="donut-wrap" id="genre-chart"></div>
-    <div class="picked" id="genre-picked"></div>
-  </section>
-
-  <section class="card panel sm">
-    <h2>Оценки</h2><p class="lead" id="rating-lead"></p>
-    <div class="chart" id="rating-chart" style="--series:var(--c3)"></div>
-    <div class="picked" id="rating-picked"></div>
-  </section>
-
-  <section class="card panel sm">
-    <h2>Объём книг</h2><p class="lead" id="pages-lead"></p>
-    <div class="chart" id="pages-chart" style="--series:var(--c5)"></div>
-    <div class="picked" id="pages-picked"></div>
-  </section>
-
-  <section class="card panel sm">
-    <h2>Любимые авторы</h2><p class="lead" id="author-lead"></p>
-    <ol class="hbars" id="author-chart" style="--series:var(--c2)"></ol>
-    <div class="picked" id="author-picked"></div>
-  </section>
-
+  </div>
+  <div class="dash-col side">
+    <section class="card panel">
+      <h2>Жанры</h2><p class="lead" id="genre-lead"></p>
+      <div class="donut-wrap" id="genre-chart"></div>
+      <div class="picked" id="genre-picked"></div>
+    </section>
+    <section class="card panel sm">
+      <h2>Любимые авторы</h2><p class="lead" id="author-lead"></p>
+      <ol class="hbars" id="author-chart" style="--series:var(--c2)"></ol>
+      <div class="picked" id="author-picked"></div>
+    </section>
+  </div>
   <section class="card panel full">
     <h2>Год за годом</h2><p class="lead">Сколько книг в каждом месяце. Чем ярче клетка — тем больше.</p>
     <div class="scroll"><div class="heat" id="year-table"></div></div>

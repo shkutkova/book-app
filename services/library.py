@@ -116,6 +116,9 @@ def save_book(user_id: str, book_id: int, form: dict) -> None:
                      (user_id, book_id))
         conn.execute("update books set title_ru = %s where id = %s",
                      ((form.get("title_ru") or "").strip() or None, book_id))
+        # Оригинальное название — только если поле было в форме и не пустое (пустым его не сделать)
+        if (form.get("title") or "").strip():
+            conn.execute("update books set title = %s where id = %s", (form["title"].strip(), book_id))
         current = conn.execute("select hardcover_slug, cover_url from books where id = %s", (book_id,)).fetchone()
         # Меняем связь только если поле было в форме: сохранение статуса из другого места
         # (без этих полей) не должно стирать обложку и связь с Hardcover

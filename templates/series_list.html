@@ -32,8 +32,8 @@
       {% if s.name_ru %}<span class="meta">{{ s.name }}</span>{% endif %}
       {% if s.authors %}<span class="meta">{{ s.authors }}</span>{% endif %}
       <span class="s-covers">
-        {% for x in s.books[:5] %}<span class="mini st-{{ x.status or 'none' }}" title="{{ x.title_ru or x.title }}">{% if x.cover_url %}<img src="{{ x.cover_url }}" alt="" loading="lazy">{% else %}<i class="tone-{{ x.id % 6 }}"></i>{% endif %}</span>{% endfor %}
-        {% if s.books|length > 5 %}<span class="more">+{{ s.books|length - 5 }}</span>{% endif %}
+        {% for x in s.books[:4] %}<span class="mini st-{{ x.status or 'none' }}" title="{{ x.title_ru or x.title }}">{% if x.cover_url %}<img src="{{ x.cover_url }}" alt="" loading="lazy">{% else %}<i class="tone-{{ x.id % 6 }}"></i>{% endif %}</span>{% endfor %}
+        {% if s.books|length > 4 %}<span class="more">+{{ s.books|length - 4 }}</span>{% endif %}
       </span>
       <span class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></span>
     </a>

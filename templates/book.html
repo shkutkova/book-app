@@ -168,6 +168,7 @@
       <div><label for="genre">Мой жанр</label>
         <select id="genre" name="my_genre_id"><option value="">—</option>
           {% for g in genres %}<option value="{{ g.id }}" {{ 'selected' if b.my_genre_id == g.id }}>{{ g.name }}</option>{% endfor %}</select></div>
+      <div><label for="title">Название в оригинале</label><input id="title" name="title" value="{{ b.title }}" required style="width:100%"></div>
       <div><label for="title_ru">Название на русском</label><input id="title_ru" name="title_ru" value="{{ b.title_ru or '' }}" style="width:100%"></div>
     </div>
     <label for="notes">Заметки</label><textarea id="notes" name="notes">{{ b.notes or '' }}</textarea>

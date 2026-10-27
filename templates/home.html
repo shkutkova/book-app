@@ -42,7 +42,7 @@
     <div class="tile t-butter"><span class="lbl">Страниц в этом месяце</span><span class="big long">{{ '{:,}'.format(board.month_pages).replace(',', ' ') }}</span></div>
   </div>
   <div class="col-b">
-    <div class="tile t-butter" style="min-height:190px"><span class="lbl">Прочитано всего</span>
+    <div class="tile t-butter" style="min-height:210px"><span class="lbl">Прочитано всего</span>
       <span><span class="big">{{ counts.get('finished', 0) }}</span><span class="note">книг и фанфиков</span></span></div>
     <div class="tile pic t-sky"><img src="/static/img/booky/1-05.webp" alt="" loading="lazy"></div>
   </div>
@@ -53,6 +53,7 @@
   <div class="col-b">
     <div class="tile dark"><span class="lbl">Серий закончено</span><span class="big">{{ board.series_done }}</span></div>
     <div class="tile t-mint"><span class="lbl">Фанфиков за год</span><span class="big">{{ board.year_fanfics }}</span></div>
+    <div class="tile pic t-lilac"><img src="/static/img/booky/1-26.webp" alt="" loading="lazy"></div>
   </div>
   <div class="col-b">
     {% if bm %}<div class="tile t-butter"><span class="lbl">Лучший месяц года</span>
