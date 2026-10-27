@@ -1,6 +1,7 @@
 """Страницы приложения. Здесь только «какой адрес что показывает»:
 данные берутся из services/queries.py, изменения — через services/library.py."""
 import asyncio
+import hashlib
 import json
 import os
 import re
@@ -69,7 +70,9 @@ def simple_md(text: str | None) -> Markup:
 
 templates.env.filters.update(ru_date=ru_date, stars=stars, position=position, md=simple_md)
 templates.env.globals.update(LOGIN_ON=auth.password, STATUS=queries.STATUS_NAMES, SERIES_STATUS=queries.SERIES_STATUS_NAMES,
-                             WORK_STATUS=queries.WORK_STATUS_NAMES)
+                             WORK_STATUS=queries.WORK_STATUS_NAMES,
+                             # ?v=<хеш> у стилей: после выкладки браузер берёт новый файл, а не старый из кэша
+                             CSS_V=hashlib.md5((Path(__file__).parent.parent / "static" / "style.css").read_bytes()).hexdigest()[:8])
 
 
 def back(url: str, error: str | None = None) -> RedirectResponse:
