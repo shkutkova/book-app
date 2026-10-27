@@ -22,7 +22,7 @@
   <h2 class="group-title"><i class="dot" style="background:{{ DOT[key] }}"></i>{{ SERIES_STATUS[key] }} <span class="count">{{ items|length }}</span></h2>
   <div class="series-now">
     {% for s in items %}
-    <a class="s-card {{ tones[s.id % 6] }}" href="/series/{{ s.id }}" data-find="{{ (s.name ~ ' ' ~ (s.name_ru or '') ~ ' ' ~ (s.authors or ''))|lower }}">
+    <a class="s-card soft {{ tones[s.id % 6] }}" href="/series/{{ s.id }}" data-find="{{ (s.name ~ ' ' ~ (s.name_ru or '') ~ ' ' ~ (s.authors or ''))|lower }}">
       <span class="lbl">{{ s.finished_books }} из {{ s.total_books }}{% if s.is_reading %} · читаю{% endif %}</span>
       <b>{{ s.name_ru or s.name }}</b>
       {% if s.name_ru %}<span class="meta">{{ s.name }}</span>{% endif %}

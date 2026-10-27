@@ -39,6 +39,7 @@
   <div class="col-b">
     <div class="tile pic t-pink"><img src="/static/img/booky/2-16.webp" alt="" loading="lazy"></div>
     <div class="tile t-mint"><span class="lbl">В этом месяце</span><span class="big">{{ board.month_reads }}</span></div>
+    <div class="tile t-butter"><span class="lbl">Страниц в этом месяце</span><span class="big long">{{ '{:,}'.format(board.month_pages).replace(',', ' ') }}</span></div>
   </div>
   <div class="col-b">
     <div class="tile t-butter" style="min-height:190px"><span class="lbl">Прочитано всего</span>

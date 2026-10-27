@@ -140,7 +140,8 @@ def stats(request: Request):
 
 @router.get("/series", response_class=HTMLResponse)
 def series_list(request: Request):
-    groups = {key: [] for key in ("in_progress", "to_read", "done", "abandoned")}
+    # «В процессе» — в конце: то, что читаешь, и так на главной
+    groups = {key: [] for key in ("to_read", "done", "abandoned", "in_progress")}
     for s in queries.series_list(current_user_id()):
         groups[s["status"]].append(s)
     return templates.TemplateResponse(request, "series_list.html", {"groups": groups})
@@ -318,8 +319,9 @@ async def book_link(request: Request, book_id: int):
     return back(f"/book/{book_id}")
 
 
-# Порядок групп в «Книгах» и «Фанфиках»
-LIST_ORDER = ("reading", "want_to_read", "finished", "paused", "dnf", "skipped")
+# Порядок групп в «Книгах» и «Фанфиках»: сначала «Хочу прочитать»,
+# «Читаю» — в конце (оно и так на главной)
+LIST_ORDER = ("want_to_read", "finished", "paused", "dnf", "skipped", "reading")
 
 
 def _library_list(request: Request, rows: list[dict], **page):

@@ -58,6 +58,7 @@ def home(user_id: str) -> dict:
                count(*) filter (where r.finished_at >= date_trunc('year', current_date)
                                   and b.kind = 'fanfic') as year_fanfics,
                coalesce(sum(b.pages) filter (where r.finished_at >= date_trunc('year', current_date)), 0) as year_pages,
+               coalesce(sum(b.pages) filter (where r.finished_at >= date_trunc('month', current_date)), 0) as month_pages,
                (select count(*) from series_progress
                  where user_id = %(u)s and status = 'done') as series_done
         from reads r join books b on b.id = r.book_id

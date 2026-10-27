@@ -6,12 +6,15 @@
                 'funny': 'смешная', 'sad': 'грустная', 'adventurous': 'приключенческая', 'challenging': 'непростая',
                 'reflective': 'вдумчивая', 'hopeful': 'обнадёживающая', 'lighthearted': 'лёгкая', 'inspiring': 'вдохновляющая',
                 'relaxing': 'спокойная', 'informative': 'познавательная'} %}
+{% set TONES = ['t-pink', 't-mint', 't-butter', 't-sky', 't-lilac', 't-peach'] %}
 {% set last = b.reads[0] if b.reads else none %}
+{% set SHOW = 3 %}{# сколько меток видно сразу, остальные — по кнопке «+N» #}
+
+{% macro more(n) -%}{% if n > 0 %}<button type="button" class="chip more" data-more aria-expanded="false">+{{ n }}</button>{% endif %}{%- endmacro %}
+
 {% block content %}
 <section class="book-hero">
-  <div class="book-cover">
-    {{ cover(b, link=False) }}
-  </div>
+  <div class="book-cover">{{ cover(b, link=False) }}</div>
 
   <div class="book-main">
     <div class="title-block">
@@ -43,11 +46,6 @@
           {% for k, v in STATUS.items() %}
           <button name="status" value="{{ k }}" class="st-{{ k }}" {{ 'aria-current=true' if b.status == k }}>{{ icon(k) }} {{ v }}</button>
           {% endfor %}
-          <div class="dates">
-            <p class="small muted">Даты — для смены статуса на «Читаю» или «Прочитано». Пусто — сегодня.</p>
-            <label>Начала <input type="date" name="started_at" max="{{ today }}"></label>
-            <label>Дочитала <input type="date" name="finished_at" max="{{ today }}"></label>
-          </div>
         </form>
       </details>
 
@@ -56,66 +54,88 @@
         <button class="fav {{ 'on' if b.is_favorite }}" aria-pressed="{{ 'true' if b.is_favorite else 'false' }}"
                 title="{{ 'Убрать из избранного' if b.is_favorite else 'В избранное' }}">{{ icon('flame', 20) }}<span>{{ 'Любимая' if b.is_favorite else 'В избранное' }}</span></button>
       </form>
+
+      {# Звёзды справа. Пока оценки нет — прозрачные; ставить можно прочитанной или брошенной книге #}
+      {% set can_rate = b.status in ('finished', 'dnf') %}
+      {% set r = b.rating|float|round|int if b.rating is not none else 0 %}
+      <form method="post" action="/book/{{ b.id }}" class="rate {{ 'empty' if not r }} {{ 'locked' if not can_rate }}" aria-label="Оценка"
+            title="{{ '' if can_rate else 'Оценку можно поставить прочитанной книге' }}">
+        {% for n in range(1, 6) %}
+        <button name="rating" value="{{ '' if r == n else n }}" class="{{ 'on' if n <= r }}" {{ 'disabled' if not can_rate }}
+                aria-label="{{ 'Убрать оценку' if r == n else n ~ ' из 5' }}">{{ icon('star', 24) }}</button>
+        {% endfor %}
+      </form>
     </div>
 
-    {% if b.status in ('finished', 'dnf') %}
-    <form method="post" action="/book/{{ b.id }}" class="rate" aria-label="Оценка">
-      {% set r = b.rating|float if b.rating is not none else 0 %}
-      {% for n in range(1, 6) %}
-      <button name="rating" value="{{ '' if r == n else n }}" class="{{ 'on' if n <= r }}" title="{{ 'Убрать оценку' if r == n else n ~ ' из 5' }}">{{ icon('star', 26) }}</button>
-      {% endfor %}
-      {% if r %}<span class="muted small">{{ '%g'|format(r) }} из 5</span>{% endif %}
+    {# Даты текущего прочтения — отдельно под кнопками: «Читаю» — когда начала; «Прочитано» — ещё и когда дочитала #}
+    {% if last and b.status in ('reading', 'finished', 'paused', 'dnf') %}
+    <form method="post" action="/book/{{ b.id }}/reads/{{ last.id }}" class="read-dates" data-autosave>
+      {{ icon('calendar', 18) }}
+      <label>начала <input type="date" name="started_at" value="{{ last.started_at or '' }}" max="{{ today }}"></label>
+      {% if last.finished_at or b.status == 'finished' %}
+      <label>дочитала <input type="date" name="finished_at" value="{{ last.finished_at or '' }}" max="{{ today }}"></label>
+      {% else %}<input type="hidden" name="finished_at" value="">{% endif %}
+      <noscript><button>Сохранить</button></noscript>
     </form>
-    {% else %}
-    <p class="muted small rate-hint">Оценку можно поставить, когда книга прочитана.</p>
-    {% endif %}
-
-    {% if last and (last.started_at or last.finished_at) %}
-    <p class="read-dates">{{ icon('calendar', 16) }}
-      {% if last.started_at %}начала {{ last.started_at|ru_date }}{% endif %}
-      {% if last.started_at and last.finished_at %} — {% endif %}
-      {% if last.finished_at %}дочитала {{ last.finished_at|ru_date }}{% endif %}
-      {% if b.reads|length > 1 %}<span class="muted">· прочтений: {{ b.reads|length }}</span>{% endif %}</p>
     {% endif %}
     {% endif %}
   </div>
 </section>
 
-{% if b.description_ru or b.description %}
+{% set text = b.description_ru or b.description %}
+{% if text %}
 <section class="card about">
-  <p class="desc">{{ b.description_ru or b.description }}</p>
+  <div class="desc" id="desc">
+    {% for par in text.split('\n') if par.strip() %}<p>{{ par.strip() }}</p>{% endfor %}
+  </div>
+  <button type="button" class="link desc-toggle" id="desc-toggle" hidden aria-expanded="false" aria-controls="desc">Читать полностью</button>
 </section>
 {% endif %}
 
 {% set tags = b.hardcover_tags or {} %}
 {% set meta = b.ficbook_meta or {} %}
-{% if tags.get('genres') or tags.get('moods') or b.fandoms or b.pairings or meta.get('tags') %}
+{% if tags.get('genres') or tags.get('moods') or tags.get('content_warnings') or b.fandoms or b.pairings or meta.get('tags') %}
 <section class="card tags-card">
   {% if b.fandoms or b.pairings or meta.get('direction') or meta.get('rating') %}
-  <div class="pill-row">
+  <div class="pill-row fic-row">
     {% for f in b.fandoms or [] %}<span class="chip t-lilac">{{ icon('tag', 14) }}{{ f }}</span>{% endfor %}
-    {% for p in b.pairings or [] %}<span class="chip t-pink">{{ p }}</span>{% endfor %}
+    {% for p in b.pairings or [] %}<span class="chip t-pink">{{ icon('m-emotional', 14) }}{{ p }}</span>{% endfor %}
     {% if meta.get('direction') %}<span class="chip t-sky">{{ meta.direction }}</span>{% endif %}
     {% if meta.get('rating') %}<span class="chip t-peach">{{ meta.rating }}</span>{% endif %}
     {% if meta.get('translation') %}<span class="chip t-mint">перевод</span>{% endif %}
   </div>
   {% endif %}
-  {% if tags.get('genres') %}
-  <h2>Жанры</h2>
-  <div class="pill-row">{% for g in tags.genres %}<span class="chip genre">{{ icon('tag', 14) }}{{ g }}</span>{% endfor %}</div>
-  {% endif %}
-  {% if tags.get('moods') %}
-  <h2>Настроение</h2>
-  {% set tones = ['t-pink', 't-mint', 't-butter', 't-sky', 't-lilac', 't-peach'] %}
-  <div class="pill-row">{% for m in tags.moods %}<span class="chip {{ tones[loop.index0 % 6] }}">{{ icon('mood', 14) }}{{ MOODS.get(m|lower, m) }}</span>{% endfor %}</div>
-  {% endif %}
-  {% if meta.get('tags') %}
-  <h2>Метки</h2>
-  <div class="pill-row">{% for t in meta.tags %}<span class="chip genre">{{ t }}</span>{% endfor %}</div>
-  {% endif %}
-  {% if tags.get('content_warnings') %}
-  <details class="warn"><summary>Предупреждения о содержимом</summary><p class="small">{{ tags.content_warnings|join(', ') }}</p></details>
-  {% endif %}
+  <div class="tag-cols">
+    {% for title, items in [('Жанры', tags.get('genres') or []), ('Метки', meta.get('tags') or [])] if items %}
+    <div class="tag-col">
+      <h2>{{ title }}</h2>
+      <div class="pill-row" data-chips>
+        {% for g in items %}<span class="chip genre g{{ loop.index0 % 6 }}" {{ 'hidden' if loop.index > SHOW }}>{{ icon('tag', 14) }}{{ g }}</span>{% endfor %}
+        {{ more(items|length - SHOW) }}
+      </div>
+    </div>
+    {% endfor %}
+    {% if tags.get('moods') %}
+    <div class="tag-col">
+      <h2>Настроение</h2>
+      <div class="pill-row" data-chips>
+        {% for m in tags.moods %}{% set key = m|lower %}
+        <span class="chip {{ TONES[loop.index0 % 6] }}" {{ 'hidden' if loop.index > SHOW }}>{{ icon('m-' ~ key if key in MOODS else 'm-other', 14) }}{{ MOODS.get(key, m) }}</span>
+        {% endfor %}
+        {{ more(tags.moods|length - SHOW) }}
+      </div>
+    </div>
+    {% endif %}
+    {% if tags.get('content_warnings') %}
+    <div class="tag-col">
+      <h2>Предупреждения</h2>
+      <div class="pill-row warnings" data-chips>
+        {% for w in tags.content_warnings %}<button type="button" class="chip warn" data-reveal title="Показать" {{ 'hidden' if loop.index > SHOW }}><span>{{ w }}</span></button>{% endfor %}
+        {{ more(tags.content_warnings|length - SHOW) }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
 </section>
 {% endif %}
 
@@ -128,13 +148,12 @@
     <a href="/book/{{ b.id }}/covers" id="find-cover">{{ icon('image', 16) }} {{ 'Другая обложка' if b.cover_url else 'Найти обложку' }}</a>
     <a href="/add/book?{{ {'link': b.id, 'q': b.title}|urlencode }}">{{ icon('link', 16) }} {{ 'Связать с другой книгой Hardcover' if b.hardcover_slug else 'Найти в Hardcover' }}</a>
     {% if b.hardcover_slug %}
-    <form method="post" action="/book/{{ b.id }}/refresh"><button class="link">{{ icon('refresh', 16) }} Обновить из Hardcover</button></form>
+    <form method="post" action="/book/{{ b.id }}/refresh"><button class="link" title="{{ 'Обложка и жанры' if b.kind == 'fanfic' else 'Описание, обложка, жанры и вся серия' }}">{{ icon('refresh', 16) }} Обновить из Hardcover</button></form>
     {% endif %}
   </div>
-  <p class="muted small">{% if b.hardcover_slug %}«Обновить» подтянет {{ 'обложку и жанры' if b.kind == 'fanfic' else 'описание, обложку, жанры и всю серию' }}.{% else %}«Найти в Hardcover» — {{ 'если это перевод, оттуда возьмётся обложка оригинала' if b.kind == 'fanfic' else 'обложка, описание, серия' }}.{% endif %}</p>
 
   {% if b.in_library %}
-  <form method="post" action="/book/{{ b.id }}">
+  <form method="post" action="/book/{{ b.id }}" class="settings-form">
     <div class="form-grid">
       <div><label for="genre">Мой жанр</label>
         <select id="genre" name="my_genre_id"><option value="">—</option>
@@ -142,38 +161,22 @@
       <div><label for="title_ru">Название на русском</label><input id="title_ru" name="title_ru" value="{{ b.title_ru or '' }}" style="width:100%"></div>
     </div>
     <label for="notes">Заметки</label><textarea id="notes" name="notes">{{ b.notes or '' }}</textarea>
-    <label for="cover_url">Своя обложка — ссылка на картинку</label>
-    <input id="cover_url" name="cover_url" value="{{ b.cover_url or '' }}" placeholder="https://... (Pinterest: правой кнопкой по картинке → «Копировать адрес изображения»)" style="width:100%">
-    <label for="hardcover_link">Ссылка на книгу в Hardcover</label>
-    <input id="hardcover_link" name="hardcover_link" value="{{ 'https://hardcover.app/books/' ~ b.hardcover_slug if b.hardcover_slug else '' }}" placeholder="https://hardcover.app/books/..." style="width:100%">
     <p><button class="primary">Сохранить</button></p>
   </form>
-
-  <h2>Прочтения</h2>
-  {% for r in b.reads %}
-  <form method="post" action="/book/{{ b.id }}/reads/{{ r.id }}" class="read-row">
-    <input type="date" name="started_at" value="{{ r.started_at or '' }}" max="{{ today }}" aria-label="Начало">
-    <span class="muted">—</span>
-    <input type="date" name="finished_at" value="{{ r.finished_at or '' }}" max="{{ today }}" aria-label="Окончание">
-    <button>Сохранить даты</button>
-    <button class="link" formaction="/book/{{ b.id }}/reads/{{ r.id }}/delete" onclick="return confirm('Удалить это прочтение?')">Удалить</button>
-  </form>
-  {% else %}<p class="muted small">Прочтений пока нет. Они появятся, когда поставишь статус «Читаю» или «Прочитано».</p>{% endfor %}
-  {% if b.status == 'finished' %}
-  <details><summary class="small">Перечитала</summary>
-    <form method="post" action="/book/{{ b.id }}/reads" class="read-row" style="margin-top:.5rem">
-      <input type="date" name="started_at" max="{{ today }}" aria-label="Начало"> <input type="date" name="finished_at" max="{{ today }}" aria-label="Окончание">
-      <button>Добавить прочтение</button>
-    </form>
-  </details>
-  {% endif %}
   {% endif %}
 </details>
 
-<div class="toast" id="toast" role="status" hidden></div>
 <dialog class="covers-dialog" id="covers">
-  <div class="dialog-head"><h2>Выбрать обложку</h2><button class="link" value="close" onclick="this.closest('dialog').close()">Закрыть</button></div>
+  <div class="dialog-head"><h2>Обложка</h2><button class="link" onclick="this.closest('dialog').close()">Закрыть</button></div>
+  <p class="muted small" id="covers-state">Ищу варианты…</p>
   <div class="covers-grid" id="covers-grid"></div>
+  <form method="post" action="/book/{{ b.id }}/cover" class="own-cover">
+    <label for="own-cover">Своя картинка — ссылка</label>
+    <div class="own-row">
+      <input id="own-cover" name="cover_url" type="url" required placeholder="https://… (Pinterest: правой кнопкой по картинке → «Копировать адрес изображения»)">
+      <button class="primary">Поставить</button>
+    </div>
+  </form>
 </dialog>
 {% endblock %}
 
@@ -182,24 +185,39 @@
 // Меню статуса закрывается по клику мимо
 document.addEventListener('click', e => document.querySelectorAll('.status-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
 
-// «Найти обложку»: сначала спрашиваем варианты; нет — подсказка на месте, есть — окно выбора
-const toast = document.getElementById('toast');
-function say(text) {
-  toast.textContent = text; toast.hidden = false;
-  clearTimeout(say.t); say.t = setTimeout(() => toast.hidden = true, 5000);
+// Даты прочтения сохраняются сразу при выборе
+document.querySelectorAll('[data-autosave] input').forEach(i => i.addEventListener('change', () => i.form.submit()));
+
+// Описание: сначала несколько строк, «Читать полностью» — если текст не влез
+const desc = document.getElementById('desc'), toggle = document.getElementById('desc-toggle');
+if (desc) desc.classList.add('clamp');
+if (desc && desc.scrollHeight <= desc.clientHeight + 4) desc.classList.remove('clamp');  // влезло — сворачивать нечего
+else if (desc) {
+  toggle.hidden = false;
+  toggle.onclick = () => {
+    const open = desc.classList.toggle('clamp') === false;
+    toggle.textContent = open ? 'Свернуть' : 'Читать полностью';
+    toggle.setAttribute('aria-expanded', open);
+  };
 }
+
+// Метки: «+N» показывает остальные; предупреждения размыты, пока не нажмёшь
+document.querySelectorAll('[data-more]').forEach(btn => btn.onclick = () => {
+  btn.closest('[data-chips]').querySelectorAll('[hidden]').forEach(c => c.hidden = false);
+  btn.remove();
+});
+document.querySelectorAll('[data-reveal]').forEach(c => c.onclick = () => { c.classList.add('shown'); c.removeAttribute('title'); });
+
+// Обложка: окно сразу; варианты подгружаются, своя ссылка — всегда внизу
+let coversLoaded = false;
 document.getElementById('find-cover').addEventListener('click', async e => {
   e.preventDefault();
-  const link = e.currentTarget; const label = link.lastChild.textContent;
-  link.lastChild.textContent = ' Ищу обложки…'; link.setAttribute('aria-busy', 'true');
+  const dlg = document.getElementById('covers'), state = document.getElementById('covers-state');
+  dlg.showModal();
+  if (coversLoaded) return;
   try {
-    const r = await fetch(`/book/{{ b.id }}/covers.json`);
-    const data = await r.json();
-    if (!data.covers.length) {
-      say('Обложка не нашлась' + (data.failed.length ? ` (не ответили: ${data.failed.join(', ')})` : '') +
-          '. Можно вставить свою ссылку на картинку ниже, в поле «Своя обложка».');
-      return;
-    }
+    const data = await (await fetch(`/book/{{ b.id }}/covers.json`)).json();
+    coversLoaded = true;
     const grid = document.getElementById('covers-grid'); grid.replaceChildren();
     for (const c of data.covers) {
       const f = document.createElement('form'); f.method = 'post'; f.action = `/book/{{ b.id }}/cover`;
@@ -209,9 +227,9 @@ document.getElementById('find-cover').addEventListener('click', async e => {
       f.querySelector('.src').textContent = c.source; f.querySelector('button').title = c.label || '';
       grid.append(f);
     }
-    document.getElementById('covers').showModal();
-  } catch { say('Не получилось спросить обложки — попробуй ещё раз чуть позже.'); }
-  finally { link.lastChild.textContent = label; link.removeAttribute('aria-busy'); }
+    state.textContent = data.covers.length ? 'Нажми на понравившуюся.'
+      : 'Вариантов не нашлось' + (data.failed.length ? ` (не ответили: ${data.failed.join(', ')})` : '') + '. Можно поставить свою картинку по ссылке.';
+  } catch { state.textContent = 'Не получилось спросить варианты — можно поставить свою картинку по ссылке.'; }
 });
 </script>
 {% endblock %}

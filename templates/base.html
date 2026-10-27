@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#4b148f">
-<title>{% block title %}Мои книги{% endblock %}</title>
+<title>{% block title %}Spooky Book Universe{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Unbounded:wght@600;700;800&display=swap">
@@ -14,12 +14,13 @@
 {% block nav %}
 {% set path = request.url.path %}
 <nav>
-  <a class="logo" href="/"><img src="/static/img/booky/2-11.webp" alt="">Мои книги</a>
+  <a class="logo" href="/"><img src="/static/img/booky/2-11.webp" alt="">Spooky Book Universe</a>
   <div class="links">
   <a href="/" class="{{ 'on' if path == '/' }}">Главная</a>
   <a href="/books" class="{{ 'on' if path.startswith('/books') or path.startswith('/add/book') }}">Книги</a>
   <a href="/series" class="{{ 'on' if path.startswith('/series') }}">Серии</a>
   <a href="/fanfics" class="{{ 'on' if path.startswith('/fanfics') or path.startswith('/add/ficbook') }}">Фанфики</a>
+  <a href="/stats" class="{{ 'on' if path.startswith('/stats') }}">Статистика</a>
   </div>
   <details class="add-menu">
     <summary>+ Добавить</summary>
