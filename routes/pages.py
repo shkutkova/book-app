@@ -42,11 +42,15 @@ def position(p) -> str:
 
 
 def simple_md(text: str | None) -> Markup:
-    """Описание из Notion: **жирный** и строки «- пункт» -> HTML. Остальное — как текст
-    (всё экранируется, поэтому HTML внутри описания не выполнится)."""
+    """Описание из Notion: **жирный**, [ссылки](https://...) и строки «- пункт» -> HTML.
+    Остальное — как текст (всё экранируется, поэтому HTML внутри описания не выполнится)."""
     out, items = [], []
     for line in (text or "").splitlines():
-        html = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", str(escape(line.strip())))
+        html = str(escape(line.strip()))
+        html = re.sub(r"\[(.+?)\]\((https?://[^)\s]+)\)",
+                      r'<a href="\2" target="_blank" rel="noopener">\1</a>', html)
+        html = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", html)
+        html = html.replace("\\[", "[").replace("\\]", "]")
         if line.strip().startswith("- "):
             items.append(f"<li>{html[2:]}</li>")
             continue
