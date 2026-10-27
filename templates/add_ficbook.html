@@ -62,6 +62,23 @@
   <p><button type="button" id="bm-copy">Скопировать</button></p>
   <p class="muted small">Адрес приложения зашит в закладку. Когда приложение переедет в интернет, закладку нужно будет обновить с этой страницы.</p>
 </details>
+
+<details class="card">
+  <summary><strong>iPhone: «Поделиться → В мои книги»</strong></summary>
+  <p class="small">Быстрая команда: на странице фанфика в Safari жмёшь «Поделиться» → «В мои книги», и открывается эта форма уже заполненной.</p>
+  <p class="small"><strong>Важно:</strong> телефон должен видеть приложение по адресу <code>{{ base }}</code>. Адрес <code>localhost</code> / <code>127.0.0.1</code> с телефона не откроется — команда заработает, когда приложение будет в интернете (хостинг) или в Codespaces с <code>APP_BASE_URL</code>.</p>
+  <ol class="small">
+    <li>Настройки iPhone → Быстрые команды → Дополнения → включи «Разрешить выполнение скриптов».</li>
+    <li>Приложение «Быстрые команды» → «+» → назови «В мои книги».</li>
+    <li>Нажми ⓘ (или «Настройки» внизу) → включи «Показывать в меню „Поделиться“» → типы: только «Веб-страницы Safari».</li>
+    <li>Добавь действие «Запустить JavaScript на веб-странице» → удали пример и вставь код ниже (кнопка «Скопировать»).</li>
+    <li>Добавь действие «Открыть URL-адреса» — оно само возьмёт результат предыдущего шага.</li>
+    <li>Готово. На странице фанфика: «Поделиться» → «В мои книги». В первый раз iPhone спросит разрешение для ficbook.net — «Разрешить всегда».</li>
+  </ol>
+  <textarea id="sc-code" readonly style="min-height:4rem;font-size:.75rem">{{ shortcut }}</textarea>
+  <p><button type="button" id="sc-copy">Скопировать</button></p>
+  <p class="muted small">Если адрес приложения поменяется — скопируй код заново и замени его в команде.</p>
+</details>
 {% endblock %}
 
 {% block scripts %}
@@ -106,6 +123,11 @@ $('bm-copy').onclick = () => {
   $('bm-code').select();
   navigator.clipboard ? navigator.clipboard.writeText($('bm-code').value) : document.execCommand('copy');
   $('bm-copy').textContent = 'Скопировано';
+};
+$('sc-copy').onclick = () => {
+  $('sc-code').select();
+  navigator.clipboard ? navigator.clipboard.writeText($('sc-code').value) : document.execCommand('copy');
+  $('sc-copy').textContent = 'Скопировано';
 };
 </script>
 {% endblock %}

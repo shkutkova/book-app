@@ -2,8 +2,12 @@
 // собирает данные со страницы и открывает /add/ficbook в приложении, где их можно
 // проверить и сохранить. Сервер приложения сам на ficbook не ходит (ficbook не пускает ботов).
 // __BASE__ заменяется на адрес приложения, когда страница /add/ficbook отдаёт закладку.
+// Тот же код работает в «Быстрой команде» iPhone (Поделиться → В мои книги): там есть
+// функция completion — отдаём ей адрес, а команда сама его открывает.
 (() => {
+  const go = url => typeof completion === 'function' ? completion(url) : (location.href = url);
   if (!/^https:\/\/ficbook\.net\/readfic\//.test(location.href)) {
+    if (typeof completion === 'function') return go('__BASE__/add/ficbook');
     alert('Открой страницу фанфика на ficbook.net и нажми закладку ещё раз');
     return;
   }
@@ -58,5 +62,5 @@
     series: series ? {id: idFrom(series.getAttribute('href')), name: text(series)} : null,
     tags: links(field['Метки']),
   };
-  location.href = '__BASE__/add/ficbook#' + encodeURIComponent(JSON.stringify(data));
+  go('__BASE__/add/ficbook#' + encodeURIComponent(JSON.stringify(data)));
 })();

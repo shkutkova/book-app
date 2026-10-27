@@ -11,7 +11,7 @@ py -m venv .venv && source .venv/Scripts/activate && pip install -r requirements
 python main.py            # http://127.0.0.1:8000
 ```
 
-`.env` (не коммитить, не выводить значения): `DATABASE_URL`, `HARDCOVER_TOKEN` (только чтение), `APP_USER_ID` (необязательно).
+`.env` (не коммитить, не выводить значения): `DATABASE_URL`, `HARDCOVER_TOKEN` (только чтение); необязательные: `APP_USER_ID`, `APP_BASE_URL` (внешний адрес — для закладки ficbook и команды iPhone), `GOOGLE_BOOKS_KEY` (без него Google Books часто отвечает 429).
 
 ## Стек и устройство
 

@@ -1,6 +1,7 @@
 """Страницы приложения. Здесь только «какой адрес что показывает»:
 данные берутся из services/queries.py, изменения — через services/library.py."""
 import json
+import os
 import re
 from datetime import date
 from pathlib import Path
@@ -272,9 +273,12 @@ def fanfics_page(request: Request):
 def _ficbook_form(request: Request, form: dict | None = None, error: str | None = None):
     code = BOOKMARKLET.read_text(encoding="utf-8")
     code = "\n".join(line for line in code.splitlines() if not line.lstrip().startswith("//"))
-    code = code.replace("__BASE__", str(request.base_url).rstrip("/"))
+    # APP_BASE_URL — внешний адрес приложения (Codespaces, хостинг): за прокси base_url бывает localhost
+    base = os.getenv("APP_BASE_URL") or str(request.base_url)
+    code = code.replace("__BASE__", base.rstrip("/"))
     return templates.TemplateResponse(request, "add_ficbook.html", {
-        "f": form or {}, "error": error, "bookmarklet": "javascript:" + quote(code, safe="")})
+        "f": form or {}, "error": error, "base": base.rstrip("/"),
+        "bookmarklet": "javascript:" + quote(code, safe=""), "shortcut": code})
 
 
 @router.get("/add/ficbook", response_class=HTMLResponse)
