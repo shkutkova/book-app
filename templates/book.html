@@ -57,6 +57,14 @@
         </form>
       </details>
 
+      {% if b.status == 'want_to_read' %}
+      <form method="post" action="/book/{{ b.id }}/next">
+        <input type="hidden" name="is_next" value="{{ '' if b.is_next else 'on' }}">
+        <button class="next-btn {{ 'on' if b.is_next }}" aria-pressed="{{ 'true' if b.is_next else 'false' }}"
+                title="{{ 'Убрать из «Следующих»' if b.is_next else 'Поставить на полку «Следующие»' }}">{{ icon('next', 18) }}{{ 'Следующая' if b.is_next else 'Читать следующей' }}</button>
+      </form>
+      {% endif %}
+
       {# Даты последнего прочтения — всегда в строке, между статусом и звёздами; прочтения нет — создастся #}
       <form method="post" action="/book/{{ b.id }}/reads{{ '/' ~ last.id if last else '' }}" class="read-dates" data-autosave>
         {{ icon('calendar', 17) }}

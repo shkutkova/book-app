@@ -27,7 +27,7 @@ WORK_STATUS_NAMES = {
 # В запросе должен быть join library l ... and l.user_id = %(u)s
 BOOK_FIELDS = """
     b.id, b.kind, b.title, b.title_ru, b.cover_url, b.pages,
-    l.status, l.rating, l.is_favorite,
+    l.status, l.rating, l.is_favorite, coalesce(l.is_next, false) as is_next,
     (select string_agg(a.name || case when ba.role = 'translator' then ' (перевод)' else '' end,
                        ', ' order by ba.role, a.name)
        from book_authors ba join authors a on a.id = ba.author_id
@@ -91,13 +91,14 @@ def home(user_id: str) -> dict:
 
 
 def shelf(user_id: str) -> dict:
-    """Полка главной: любимые (серии целиком + книги не из них), читаю, хочу прочитать.
+    """Полка главной: любимые (серии целиком + книги не из них), читаю, следующие (отметка «Следующая»).
+    Ключ третьей полки в shelf_order — 'want' (так она называлась раньше).
     Порядок — свой (shelf_order), кого не двигала — по названию в конце."""
     u = {"u": user_id}
     rows = fetch_all(f"""
         select {BOOK_FIELDS}
         from library l join books b on b.id = l.book_id
-        where l.user_id = %(u)s and (l.is_favorite or l.status in ('reading', 'want_to_read'))
+        where l.user_id = %(u)s and (l.is_favorite or l.is_next or l.status = 'reading')
         order by coalesce(b.title_ru, b.title)""", u)
     fav_series = fetch_all("""
         select s.id, coalesce(s.name_ru, s.name) as title,
@@ -120,10 +121,9 @@ def shelf(user_id: str) -> dict:
     in_series = {b["id"] for s in fav_series for b in s["books"]}
     shelves = {"fav": fav_series + [b for b in rows if b["is_favorite"] and b["id"] not in in_series],
                "reading": [b for b in rows if b["status"] == "reading"],
-               "want": [b for b in rows if b["status"] == "want_to_read" and not b["is_favorite"]]}
+               "want": [b for b in rows if b["is_next"] and b["status"] == "want_to_read"]}
     for name, items in shelves.items():
         items.sort(key=lambda x: pos.get((name, x["key"]), 10**6))  # sort устойчивый: внутри — по названию
-    shelves["want"] = shelves["want"][:24]
     return shelves
 
 

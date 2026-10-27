@@ -101,7 +101,7 @@
 </a>
 {%- endmacro %}
 
-{% set shelves = [('fav', 'Любимые', shelf.fav), ('reading', 'Читаю', shelf.reading), ('want', 'Хочу прочитать', shelf.want)] %}
+{% set shelves = [('fav', 'Любимые', shelf.fav), ('reading', 'Читаю', shelf.reading), ('want', 'Следующие', shelf.want)] %}
 {% if shelf.fav or shelf.reading or shelf.want %}
 <div class="section-head shelf-hint"><h2>Моя полка</h2><span class="muted small">корешки можно перетаскивать</span></div>
 <div class="shelf-scene">
@@ -110,11 +110,12 @@
     <img src="/static/img/booky/1-09.webp" alt="" loading="lazy">
   </div>
   <div class="bookcase">
-    {% for key, title, items in shelves if items %}
+    {% for key, title, items in shelves if items or key == 'want' %}
     <section class="shelf">
       <h3 class="shelf-label">{{ title }} <span>{{ items|length }}</span></h3>
       <div class="shelf-row" data-shelf="{{ key }}">
         {% for it in items %}{{ series_set(it) if it.is_series else spine(it) }}{% endfor %}
+        {% if not items %}<p class="shelf-empty">Пусто. На странице книги из «Хочу прочитать» нажми «Читать следующей» — она встанет сюда.</p>{% endif %}
         {% if key == 'reading' %}
         <span class="shelf-decor" aria-hidden="true">
           <span class="stack"><i class="tone-3"></i><i class="tone-2"></i><i class="tone-5"></i></span>

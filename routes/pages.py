@@ -269,6 +269,12 @@ async def book_save(request: Request, book_id: int):
     return await _book_action(request, book_id, lambda f: library.save_book(current_user_id(), book_id, f))
 
 
+@router.post("/book/{book_id}/next")
+async def book_next(request: Request, book_id: int):
+    return await _book_action(request, book_id,
+                              lambda f: library.set_next(current_user_id(), book_id, bool(f.get("is_next"))))
+
+
 @router.post("/book/{book_id}/add")
 async def book_add(request: Request, book_id: int):
     return await _book_action(request, book_id, lambda f: library.add_to_library(current_user_id(), book_id))

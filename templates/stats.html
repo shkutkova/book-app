@@ -36,19 +36,19 @@
     <div class="picked" id="genre-picked"></div>
   </section>
 
-  <section class="card panel">
+  <section class="card panel sm">
     <h2>Оценки</h2><p class="lead" id="rating-lead"></p>
     <div class="chart" id="rating-chart" style="--series:var(--c3)"></div>
     <div class="picked" id="rating-picked"></div>
   </section>
 
-  <section class="card panel">
+  <section class="card panel sm">
     <h2>Объём книг</h2><p class="lead" id="pages-lead"></p>
     <div class="chart" id="pages-chart" style="--series:var(--c5)"></div>
     <div class="picked" id="pages-picked"></div>
   </section>
 
-  <section class="card panel">
+  <section class="card panel sm">
     <h2>Любимые авторы</h2><p class="lead" id="author-lead"></p>
     <ol class="hbars" id="author-chart" style="--series:var(--c2)"></ol>
     <div class="picked" id="author-picked"></div>
@@ -73,9 +73,11 @@ const MONTHS_FULL = ['январе','феврале','марте','апреле'
 const PAGE_BUCKETS = [[1,100],[101,200],[201,300],[301,400],[401,500],[501,600],[601,1000],[1001,Infinity]];
 const RATINGS = [1, 2, 3, 4, 5];  // оценки целые: половинок нет
 const SLOTS = ['--c1','--c2','--c3','--c4','--c5','--c6'];
-// Пастель для столбиков: у каждого свой оттенок (по кругу от сиреневого), сверху светлее
-const pastel = (i, n, from = 265) => {
-  const h = (from + i * 330 / Math.max(n, 1)) % 360;
+// Пастель для столбиков: у каждого графика своя гамма [начальный оттенок, размах], внутри — плавный переход,
+// у столбика сверху светлее
+const HUES = {time: [250, 100], rating: [12, 45], pages: [150, 70]};  // сирень→роза, персик→масло, мята→голубой
+const pastel = (i, n, [from, span]) => {
+  const h = (from + i * span / Math.max(n - 1, 1)) % 360;
   return [`hsl(${h} 70% 86%)`, `hsl(${h} 48% 72%)`];
 };
 // Авторы — цвета заметно разные: пастель приложения
@@ -157,7 +159,7 @@ function picker(box) {
 }
 
 // Столбики: items = [{label, value, list, title}]. Цифра — над своим столбиком.
-function bars(chart, items, pick, unit) {
+function bars(chart, items, pick, unit, hues) {
   const max = Math.max(1, ...items.map(i => i.value));
   chart.replaceChildren();
   for (const it of items) {
@@ -166,7 +168,7 @@ function bars(chart, items, pick, unit) {
     col.setAttribute('aria-label', `${it.title}: ${unit(it.value)}`);
     const track = el('span', 'track');
     const fill = el('span', 'fill'); fill.style.height = (it.value / max * 100) + '%';
-    paint(fill, pastel(items.indexOf(it), items.length));
+    paint(fill, pastel(items.indexOf(it), items.length, hues));
     if (it.value) fill.append(el('span', 'val', num(it.value)));
     track.append(fill);
     col.append(track, el('small', '', it.label));
@@ -175,7 +177,7 @@ function bars(chart, items, pick, unit) {
       tip.append(el('strong', '', `${it.title}: ${unit(it.value)}`));
       const ol = el('ol'); it.list.slice(0, 8).forEach(r => ol.append(el('li', '', r.t)));
       if (it.list.length > 8) ol.append(el('li', 'muted', `и ещё ${it.list.length - 8}`));
-      tip.append(ol); col.append(tip);
+      tip.append(ol); fill.append(tip);
       col.onclick = () => pick(it.label, `${it.title}: ${books(it.list.length)}`, it.list, col);
     }
     chart.append(col);
@@ -225,7 +227,7 @@ function drawTime() {
       return {label: m, title: `${m} ${period}`, list, value: value(list)};
     });
   }
-  bars($('time-chart'), items, pickTime, unit);
+  bars($('time-chart'), items, pickTime, unit, HUES.time);
   $('time-picked').replaceChildren();
   // Тот же выбор, что клик по столбику, — но списком: удобно на телефоне
   const sel = $('month-pick');
@@ -297,7 +299,6 @@ function drawGenres(list) {
     const sw = el('i', 'swatch'); sw.style.background = r.color;
     btn.append(sw, el('span', 'name', r.name), el('span', 'num', `${pct}% · ${r.list.length}`));
     btn.onclick = () => pickGenre(r.name, `${r.name}: ${books(r.list.length)}`, r.list, btn);
-    arc.onclick = () => btn.click();
     li.append(btn); legend.append(li); items.push(li);
   }
   const center = el('div', 'donut-center');
@@ -311,7 +312,17 @@ function drawGenres(list) {
     if (i == null) { cNum.textContent = num(u.length); cText.textContent = plural(u.length, 'книга', 'книги', 'книг'); return; }
     cNum.textContent = Math.round(rows[i].list.length / u.length * 100) + '%'; cText.textContent = rows[i].name;
   };
-  arcs.forEach((a, i) => { a.onmouseenter = () => hot(i); a.onmouseleave = () => hot(null); });
+  const ends = []; { let acc = 0; for (const r of rows) ends.push(acc += r.list.length / u.length); }
+  const at = e => {
+    const b = svg.getBoundingClientRect(), x = e.clientX - b.left - b.width / 2, y = e.clientY - b.top - b.height / 2;
+    const d = Math.hypot(x, y) / (b.width / 180);       // в единицах viewBox
+    if (d < R - 16 || d > R + 16) return null;          // мимо кольца
+    const turn = ((Math.atan2(y, x) + Math.PI / 2) / (2 * Math.PI) + 1) % 1;  // 0 — сверху, по часовой
+    return ends.findIndex(v => turn <= v);
+  };
+  svg.onmousemove = e => hot(at(e));
+  svg.onmouseleave = () => hot(null);
+  svg.onclick = e => { const i = at(e); if (i != null) items[i].querySelector('button').click(); };
   items.forEach((l, i) => { l.onmouseenter = () => hot(i); l.onmouseleave = () => hot(null); });
   const ring = el('div', 'donut-ring'); ring.append(svg, center);
   box.replaceChildren(ring, legend);
@@ -326,7 +337,7 @@ function drawRatings(list) {
     const l = u.filter(b => Math.round(b.r) === v);
     return {label: String(v).replace('.', ','), title: `Оценка ${String(v).replace('.', ',')} ★`, list: l, value: l.length};
   });
-  bars($('rating-chart'), items, pickRating, books);
+  bars($('rating-chart'), items, pickRating, books, HUES.rating);
   $('rating-picked').replaceChildren();
   const best = items.reduce((a, b) => b.value >= a.value ? b : a);
   const avg = dec(u.reduce((s, b) => s + b.r, 0) / u.length, 1);
@@ -345,7 +356,7 @@ function drawPages(list) {
     const label = hi === Infinity ? '1000+' : lo === 1 ? `до ${hi}` : `–${hi}`;
     return {label, title: `${range} стр.`, list: l, value: l.length};
   });
-  bars($('pages-chart'), items, pickPages, books);
+  bars($('pages-chart'), items, pickPages, books, HUES.pages);
   $('pages-picked').replaceChildren();
   const best = items.reduce((a, b) => b.value > a.value ? b : a);
   const avg = Math.round(u.reduce((s, b) => s + b.p, 0) / u.length);

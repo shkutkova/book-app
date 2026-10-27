@@ -5,7 +5,9 @@
 {% block content %}
 <p class="small back"><a href="/series">← Все серии</a></p>
 
-<div class="series-top {{ 'has-about' if s.description }}">
+{# Слева — название, автор и книги; справа — полное описание серии #}
+<div class="series-layout {{ 'has-about' if s.description }}">
+<div class="series-main">
   <section class="title-block series-head">
     <div class="series-title">
       <h1>{{ s.name_ru or s.name }}</h1>
@@ -33,15 +35,6 @@
               title="{{ 'Убрать из избранного' if s.is_favorite else 'В избранное' }}">{{ icon('flame', 22) }}</button>
     </form>
   </section>
-
-  {% if s.description %}
-  <section class="card about">
-    <h2>О серии</h2>
-    <div class="desc md" id="desc">{{ s.description|md }}</div>
-    <button type="button" class="link desc-toggle" id="desc-toggle" hidden aria-expanded="false" aria-controls="desc">Читать полностью</button>
-  </section>
-  {% endif %}
-</div>
 
 {% macro rows(books) %}
     {% for b in books %}
@@ -88,6 +81,16 @@
   </div>
   {% endif %}
 </form>
+</div>
+
+{% if s.description %}
+<aside class="series-side">
+  <section class="card about">
+    <h2>О серии</h2>
+    <div class="desc md">{{ s.description|md }}</div>
+  </section>
+</aside>
+{% endif %}
+</div>
 {% endblock %}
 
-{% block scripts %}<script src="/static/desc.js?v={{ CSS_V }}"></script>{% endblock %}

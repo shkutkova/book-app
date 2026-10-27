@@ -129,6 +129,7 @@ create table library (
     -- Оценка 0.5–5 с шагом 0.5 (как звёзды в Notion, плюс половинки)
     rating       numeric(2,1) check (rating between 0.5 and 5 and rating * 2 = floor(rating * 2)),
     is_favorite  boolean not null default false,  -- избранное (🔥 в Notion)
+    is_next      boolean not null default false,  -- «Следующая»: из «Хочу прочитать», читаю следующей
     my_genre_id  bigint references my_genres(id) on delete set null,
     notes        text,
     primary key (user_id, book_id)

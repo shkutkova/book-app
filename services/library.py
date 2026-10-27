@@ -111,6 +111,9 @@ def save_book(user_id: str, book_id: int, form: dict) -> None:
                  notes = excluded.notes""",
             (user_id, book_id, status, rating, bool(form.get("is_favorite")), genre_id,
              (form.get("notes") or "").strip() or None))
+        # «Следующая» — только у книг из «Хочу прочитать»: начала читать — отметка снимается
+        conn.execute("update library set is_next = false where user_id = %s and book_id = %s and status <> 'want_to_read'",
+                     (user_id, book_id))
         conn.execute("update books set title_ru = %s where id = %s",
                      ((form.get("title_ru") or "").strip() or None, book_id))
         current = conn.execute("select hardcover_slug, cover_url from books where id = %s", (book_id,)).fetchone()
@@ -192,6 +195,16 @@ def set_series_favorite(user_id: str, series_id: int, favorite: bool) -> None:
             """insert into user_series (user_id, series_id, is_favorite) values (%s, %s, %s)
                on conflict (user_id, series_id) do update set is_favorite = excluded.is_favorite""",
             (user_id, series_id, favorite))
+
+
+def set_next(user_id: str, book_id: int, on: bool) -> None:
+    """Отметка «Следующая»: ставится только книге из «Хочу прочитать»."""
+    with transaction() as conn:
+        done = conn.execute("""update library set is_next = %s
+                               where user_id = %s and book_id = %s and (status = 'want_to_read' or not %s)""",
+                            (on, user_id, book_id, on))
+        if not done.rowcount:
+            raise ValidationError("«Следующей» можно отметить только книгу из «Хочу прочитать»")
 
 
 SHELVES = ("fav", "reading", "want")

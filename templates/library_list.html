@@ -18,6 +18,9 @@
   <button type="button" data-show="all" aria-pressed="true">Все<span class="n">{{ total }}</span></button>
   {% for key, items in groups.items() if items %}
   <button type="button" data-show="{{ key }}" aria-pressed="false">{{ STATUS[key] }}<span class="n">{{ items|length }}</span></button>
+  {% if key == 'want_to_read' %}{% set nexts = items|selectattr('is_next')|list %}
+  {% if nexts %}<button type="button" data-show="next" aria-pressed="false" class="next-filter">{{ icon('next', 15) }}Следующие<span class="n">{{ nexts|length }}</span></button>{% endif %}
+  {% endif %}
   {% endfor %}
   {% set favs = groups.values()|sum(start=[])|selectattr('is_favorite')|list %}
   {% if favs %}<button type="button" data-show="fav" aria-pressed="false" class="fav-filter">{{ icon('flame', 15) }}Избранное<span class="n">{{ favs|length }}</span></button>{% endif %}
@@ -29,7 +32,7 @@
   <h2 class="group-title"><i class="dot" style="background:{{ DOT[key] }}"></i>{{ STATUS[key] }} <span class="count">{{ items|length }}</span></h2>
   <div class="cards">
     {% for b in items %}
-    <a class="book-card" href="/book/{{ b.id }}" data-find="{{ ((b.title_ru or '') ~ ' ' ~ b.title ~ ' ' ~ (b.authors or ''))|lower }}"{% if b.is_favorite %} data-fav{% endif %}>
+    <a class="book-card" href="/book/{{ b.id }}" data-find="{{ ((b.title_ru or '') ~ ' ' ~ b.title ~ ' ' ~ (b.authors or ''))|lower }}"{% if b.is_favorite %} data-fav{% endif %}{% if b.is_next %} data-next{% endif %}>
       {{ cover(b, link=False) }}
       {% if b.is_favorite %}<span class="fav-dot" title="Любимая">{{ icon('flame', 16) }}</span>{% endif %}
       <span class="info">
