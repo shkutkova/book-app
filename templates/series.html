@@ -12,7 +12,7 @@
     <div class="series-title">
       <h1>{{ s.name_ru or s.name }}</h1>
       {% if s.name_ru %}<p class="orig">{{ s.name }}</p>{% endif %}
-      {% if s.authors %}<p class="by">{{ s.authors|join(', ') }}</p>{% endif %}
+      {% if s.authors %}<p class="by">{% for a in s.authors %}<a href="/books?{{ {'q': a}|urlencode }}">{{ a }}</a>{{ ', ' if not loop.last }}{% endfor %}</p>{% endif %}
       <p class="facts">
         <span>{{ SERIES_STATUS[s.progress_status] }}</span>
         <span>{{ s.finished_books }} из {{ s.total_books }} книг</span>

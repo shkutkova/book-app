@@ -31,5 +31,8 @@
     apply();
   });
   if (find) find.oninput = apply;
+  // ?q=Автор — пришли по клику на автора: поиск уже заполнен
+  const q = new URLSearchParams(location.search).get('q');
+  if (find && q) find.value = q;
   apply();
 })();

@@ -29,7 +29,8 @@
       {% if b.kind == 'fanfic' %}<span class="tag fanfic">фанфик</span>{% endif %}
       <h1>{{ b.title_ru or b.title }}</h1>
       {% if b.title_ru %}<p class="orig">{{ b.title }}</p>{% endif %}
-      {% if b.authors %}<p class="by">{{ b.authors }}</p>{% endif %}
+      {# автор — ссылка: список «Книги» (или «Фанфики») с поиском по этому автору #}
+      {% if b.authors %}<p class="by">{% for a in b.authors.split(', ') %}{% set name = a.replace(' (перевод)', '') %}<a href="/{{ 'fanfics' if b.kind == 'fanfic' else 'books' }}?{{ {'q': name}|urlencode }}">{{ name }}</a>{{ ' (перевод)' if name != a }}{{ ', ' if not loop.last }}{% endfor %}</p>{% endif %}
       {% for s in b.series %}
       <p class="in-series"><a href="/series/{{ s.id }}">{{ s.name_ru or s.name }}</a>{% if s.sort_position is not none %} · книга {{ s.sort_position|position }}{% endif %} из {{ s.books_count }}</p>
       {% endfor %}

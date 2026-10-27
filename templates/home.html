@@ -61,26 +61,6 @@
   </div>
 </div>
 
-{% if series %}
-<div class="section-head"><h2>Серии сейчас</h2><a href="/series">Все серии</a></div>
-<div class="series-now">
-  {% set tones = ['t-pink', 't-mint', 't-butter', 't-sky', 't-lilac', 't-peach'] %}
-  {% for s in series[:6] %}
-  {% set left = s.total_books - s.finished_books %}
-  <a class="s-card {{ tones[loop.index0 % 6] }}" href="/series/{{ s.id }}">
-    <span class="lbl">{% if s.is_reading %}Читаю книгу {{ s.finished_books + 1 }} из {{ s.total_books }}{% elif left == 1 %}Осталась одна{% else %}Прочитано {{ s.finished_books }} из {{ s.total_books }}{% endif %}</span>
-    <b>{{ s.name_ru or s.name }}</b>
-    {% if s.authors %}<span class="meta">{{ s.authors }}</span>{% endif %}
-    <span class="s-covers">
-      {% for x in (s.books or [])[:5] %}<span class="mini st-{{ x.status or 'none' }}" title="{{ x.title }}">{% if x.cover_url %}<img src="{{ x.cover_url }}" alt="" loading="lazy">{% else %}<i class="tone-{{ x.id % 6 }}"></i>{% endif %}</span>{% endfor %}
-      {% if (s.books or [])|length > 5 %}<span class="more">+{{ s.books|length - 5 }}</span>{% endif %}
-    </span>
-    <span class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></span>
-  </a>
-  {% endfor %}
-</div>
-{% endif %}
-
 {# Полка: нарисованные корешки с названиями; высота и толщина — от числа страниц, цвет — от книги.
    Любимая серия (огонёк у серии) стоит целиком, в обёртке с названием. Корешки можно перетаскивать —
    порядок сохраняется. Клик по книге — окошко с карточкой, по серии — страница серии. #}
