@@ -169,6 +169,15 @@ create table user_series_books (
     foreign key (series_id, book_id) references series_books(series_id, book_id) on delete cascade
 );
 
+-- Свой порядок на полке главной. item — 'b<id книги>' или 's<id серии>'.
+create table shelf_order (
+    user_id  uuid not null references profiles(id) on delete cascade on update cascade,
+    shelf    text not null check (shelf in ('fav', 'reading', 'want')),
+    item     text not null,
+    pos      int  not null,
+    primary key (user_id, shelf, item)
+);
+
 
 -- ---------------------------------------------------------------------
 -- 3. ЗАДЕЛ НА ПОТОМ: «что понравилось» → рекомендации из TBR
@@ -285,6 +294,7 @@ alter table library            enable row level security;
 alter table reads              enable row level security;
 alter table user_series        enable row level security;
 alter table user_series_books  enable row level security;
+alter table shelf_order        enable row level security;
 alter table liked_tags         enable row level security;
 alter table library_liked_tags enable row level security;
 

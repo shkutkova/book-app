@@ -34,8 +34,9 @@
       {% if b.is_favorite %}<span class="fav-dot" title="Любимая">{{ icon('flame', 16) }}</span>{% endif %}
       <span class="info">
         <span class="ttl">{{ b.title_ru or b.title }}</span>
-        {% if b.authors %}<span class="au">{{ b.authors }}</span>{% endif %}
-        {% if b.series %}<span class="ser">{{ b.series }}</span>{% elif b.pairings %}<span class="ser">{{ b.pairings|join(', ') }}</span>{% endif %}
+        {# строки автора и серии есть всегда (пусть пустые) — так все карточки одной высоты #}
+        <span class="au">{{ b.authors or '' }}</span>
+        <span class="ser">{% if b.series %}{{ b.series }}{% elif b.pairings %}{{ b.pairings|join(', ') }}{% endif %}</span>
         <span class="foot">
           {% if b.rating %}<span class="stars">{{ b.rating|stars }}</span>{% endif %}
           {% if b.finished_at and key == 'finished' %}<span>{{ b.finished_at|ru_date }}</span>{% elif b.pages %}<span>{{ b.pages }} стр.</span>{% endif %}

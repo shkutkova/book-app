@@ -87,16 +87,44 @@ def home(user_id: str) -> dict:
         from series_progress sp
         where sp.user_id = %(u)s and sp.status = 'in_progress'
         order by sp.is_reading desc, sp.finished_books::float / greatest(sp.total_books, 1) desc, sp.name""", u)
-    # Полка: любимые, что читаю, что хочу (пока просто первые из «Хочу прочитать»)
-    shelf_rows = fetch_all(f"""
-        select {BOOK_FIELDS}, l.is_favorite as fav
+    return {"counts": counts, "reading": reading, "board": board, "series": series, "shelf": shelf(user_id)}
+
+
+def shelf(user_id: str) -> dict:
+    """Полка главной: любимые (серии целиком + книги не из них), читаю, хочу прочитать.
+    Порядок — свой (shelf_order), кого не двигала — по названию в конце."""
+    u = {"u": user_id}
+    rows = fetch_all(f"""
+        select {BOOK_FIELDS}
         from library l join books b on b.id = l.book_id
         where l.user_id = %(u)s and (l.is_favorite or l.status in ('reading', 'want_to_read'))
         order by coalesce(b.title_ru, b.title)""", u)
-    shelf = {"fav": [b for b in shelf_rows if b["fav"]][:30],
-             "reading": [b for b in shelf_rows if b["status"] == "reading"],
-             "want": [b for b in shelf_rows if b["status"] == "want_to_read" and not b["fav"]][:16]}
-    return {"counts": counts, "reading": reading, "board": board, "series": series, "shelf": shelf}
+    fav_series = fetch_all("""
+        select s.id, coalesce(s.name_ru, s.name) as title,
+               (select json_agg(json_build_object('id', b.id, 'title', coalesce(b.title_ru, b.title),
+                                                  'cover_url', b.cover_url, 'pages', b.pages)
+                                order by o.sort_position nulls last)
+                  from series_books_ordered o join books b on b.id = o.book_id
+                 where o.user_id = %(u)s and o.series_id = s.id
+                   and (o.official_position is null or o.official_position = trunc(o.official_position))) as books
+        from user_series us join series s on s.id = us.series_id
+        where us.user_id = %(u)s and us.is_favorite
+        order by title""", u)
+    pos = {(r["shelf"], r["item"]): r["pos"] for r in fetch_all(
+        "select shelf, item, pos from shelf_order where user_id = %(u)s", u)}
+    for s in fav_series:
+        s.update(key=f"s{s['id']}", is_series=True, books=s["books"] or [])
+    for b in rows:
+        b["key"] = f"b{b['id']}"
+    # любимая книга из любимой серии уже стоит на полке в своей серии
+    in_series = {b["id"] for s in fav_series for b in s["books"]}
+    shelves = {"fav": fav_series + [b for b in rows if b["is_favorite"] and b["id"] not in in_series],
+               "reading": [b for b in rows if b["status"] == "reading"],
+               "want": [b for b in rows if b["status"] == "want_to_read" and not b["is_favorite"]]}
+    for name, items in shelves.items():
+        items.sort(key=lambda x: pos.get((name, x["key"]), 10**6))  # sort устойчивый: внутри — по названию
+    shelves["want"] = shelves["want"][:24]
+    return shelves
 
 
 # ------------------------------------------------------------------ статистика

@@ -121,6 +121,17 @@ def home(request: Request):
     return templates.TemplateResponse(request, "home.html", {**data, "year": date.today().year})
 
 
+@router.post("/shelf/order")
+async def shelf_order(request: Request):
+    """Корешок перетащили — сохраняем порядок полки. Ответ без редиректа: страница не перезагружается."""
+    data = await request.json()
+    try:
+        library.save_shelf_order(current_user_id(), data.get("shelf"), data.get("items") or [])
+    except library.ValidationError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True}
+
+
 # ------------------------------------------------------------------ статистика
 
 @router.get("/stats", response_class=HTMLResponse)

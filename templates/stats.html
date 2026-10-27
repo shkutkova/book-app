@@ -1,47 +1,62 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Статистика{% endblock %}
 {% block content %}
 <div class="stats-head">
   <h1 class="with-booky"><img src="/static/img/booky/1-03.webp" alt="">Статистика</h1>
-  <select id="period" aria-label="Период"></select>
+  <div class="seg" id="period" role="group" aria-label="Период"></div>
 </div>
 
-<div class="pills" id="tiles"></div>
+<div class="kpis">
+  <div class="kpi k1"><div><b id="k-books"></b><span id="k-books-t"></span></div>{{ icon('finished', 30) }}</div>
+  <div class="kpi k2"><div><b id="k-pages"></b><span id="k-pages-t"></span></div>{{ icon('reading', 30) }}</div>
+  <div class="kpi k3"><div><b id="k-rating"></b><span>средняя оценка</span></div>{{ icon('star', 30) }}</div>
+  <div class="kpi k4"><div><b id="k-days"></b><span>дней на книгу в среднем</span></div>{{ icon('calendar', 30) }}</div>
+</div>
 
-<section class="card">
-  <div class="card-head">
-    <div><h2 id="time-title">По месяцам</h2><p class="lead" id="time-lead"></p></div>
-    <div class="tools">
-      <select id="month-pick" aria-label="Показать книги месяца"></select>
-      <button id="by-books" class="on" type="button" aria-pressed="true">Книги</button>
-      <button id="by-pages" type="button" aria-pressed="false">Страницы</button>
+<div class="dash">
+  <section class="card panel wide">
+    <div class="card-head">
+      <div><h2 id="time-title">По месяцам</h2><p class="lead" id="time-lead"></p></div>
+      <div class="tools">
+        <select id="month-pick" aria-label="Показать книги месяца"></select>
+        <div class="seg small" role="group" aria-label="Что считать">
+          <button id="by-books" class="on" type="button" aria-pressed="true">Книги</button>
+          <button id="by-pages" type="button" aria-pressed="false">Страницы</button>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="chart" id="time-chart" style="--series:var(--c1)"></div>
-  <div class="picked" id="time-picked"></div>
-  <div class="scroll"><table class="year-table" id="year-table"></table></div>
-</section>
+    <div class="chart tall" id="time-chart" style="--series:var(--c1)"></div>
+    <div class="picked" id="time-picked"></div>
+  </section>
 
-<div class="stat-grid">
-  <section class="card">
+  <section class="card panel">
     <h2>Жанры</h2><p class="lead" id="genre-lead"></p>
     <div class="donut-wrap" id="genre-chart"></div>
     <div class="picked" id="genre-picked"></div>
   </section>
-  <section class="card">
+
+  <section class="card panel">
     <h2>Оценки</h2><p class="lead" id="rating-lead"></p>
-    <div class="chart short" id="rating-chart" style="--series:var(--c3)"></div>
+    <div class="chart" id="rating-chart" style="--series:var(--c3)"></div>
     <div class="picked" id="rating-picked"></div>
   </section>
-  <section class="card">
+
+  <section class="card panel">
     <h2>Объём книг</h2><p class="lead" id="pages-lead"></p>
-    <div class="chart short" id="pages-chart" style="--series:var(--c5)"></div>
+    <div class="chart" id="pages-chart" style="--series:var(--c5)"></div>
     <div class="picked" id="pages-picked"></div>
   </section>
-  <section class="card">
+
+  <section class="card panel">
     <h2>Любимые авторы</h2><p class="lead" id="author-lead"></p>
     <ol class="hbars" id="author-chart" style="--series:var(--c2)"></ol>
     <div class="picked" id="author-picked"></div>
+  </section>
+
+  <section class="card panel full">
+    <h2>Год за годом</h2><p class="lead">Сколько книг в каждом месяце. Чем ярче клетка — тем больше.</p>
+    <div class="scroll"><div class="heat" id="year-table"></div></div>
   </section>
 </div>
 {% endblock %}
@@ -53,6 +68,7 @@
 const READS = {{ reads_json|safe }};
 const THIS_YEAR = {{ year }};
 const MONTHS = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+const MONTHS_NAME = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const MONTHS_FULL = ['январе','феврале','марте','апреле','мае','июне','июле','августе','сентябре','октябре','ноябре','декабре'];
 const PAGE_BUCKETS = [[1,100],[101,200],[201,300],[301,400],[401,500],[501,600],[601,1000],[1001,Infinity]];
 const RATINGS = [1, 2, 3, 4, 5];  // оценки целые: половинок нет
@@ -88,10 +104,18 @@ function unique(list) {
 
 // ---------- выбор периода
 const years = [...new Set(READS.map(yearOf).filter(Boolean).concat(THIS_YEAR))].sort((a, b) => b - a);
-years.forEach(y => $('period').append(new Option(y, y)));
-$('period').append(new Option('Всё время', 'all'));
+// Год — кнопками (как фильтры в списках), «Всё время» — последней
 let period = THIS_YEAR, mode = 'books';
-$('period').onchange = e => { period = e.target.value === 'all' ? 'all' : +e.target.value; draw(); };
+for (const y of [...years, 'all']) {
+  const b = el('button', y === period ? 'on' : '', y === 'all' ? 'Всё время' : y); b.type = 'button';
+  b.setAttribute('aria-pressed', y === period);
+  b.onclick = () => {
+    period = y;
+    $('period').querySelectorAll('button').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
+    draw();
+  };
+  $('period').append(b);
+}
 for (const [id, m] of [['by-books', 'books'], ['by-pages', 'pages']]) {
   $(id).onclick = () => {
     mode = m;
@@ -165,13 +189,12 @@ function drawTiles(list) {
     const end = period === 'all' || period === THIS_YEAR ? today : new Date(period, 11, 31);
     days = Math.max(1, Math.round((end - start) / 864e5));
   }
-  const tiles = [
-    [num(list.length), plural(list.length, 'книга прочитана', 'книги прочитано', 'книг прочитано')],
-    [num(pages), plural(pages, 'страница', 'страницы', 'страниц')],
-    [rated.length ? dec(rated.reduce((s, b) => s + b.r, 0) / rated.length, 2) + ' ★' : '—', 'средняя оценка'],
-    [days && dated.length ? dec(days / dated.length, 1) : '—', 'дней на книгу в среднем'],
-  ];
-  $('tiles').replaceChildren(...tiles.map(([v, t]) => { const p = el('div', 'pill'); p.append(el('b', '', v), el('span', '', t)); return p; }));
+  $('k-books').textContent = num(list.length);
+  $('k-books-t').textContent = plural(list.length, 'книга прочитана', 'книги прочитано', 'книг прочитано');
+  $('k-pages').textContent = num(pages);
+  $('k-pages-t').textContent = plural(pages, 'страница', 'страницы', 'страниц');
+  $('k-rating').textContent = rated.length ? dec(rated.reduce((s, b) => s + b.r, 0) / rated.length, 2) : '—';
+  $('k-days').textContent = days && dated.length ? dec(days / dated.length, 1) : '—';
 }
 
 // ---------- по месяцам / по годам
@@ -197,8 +220,8 @@ function drawTime() {
   $('time-picked').replaceChildren();
   // Тот же выбор, что клик по столбику, — но списком: удобно на телефоне
   const sel = $('month-pick');
-  sel.replaceChildren(new Option(period === 'all' ? 'Показать год…' : 'Показать месяц…', ''));
-  items.forEach((it, i) => { if (it.list.length) sel.append(new Option(`${it.title} — ${books(it.list.length)}`, i)); });
+  sel.replaceChildren(new Option(period === 'all' ? 'Год' : 'Месяц', ''));
+  items.forEach((it, i) => { if (it.list.length) sel.append(new Option(period === 'all' ? it.label : MONTHS_NAME[i], i)); });
   sel.onchange = () => {
     const i = sel.value; if (i === '') return $('time-picked').replaceChildren();
     const col = $('time-chart').children[i], it = items[i];
@@ -210,23 +233,21 @@ function drawTime() {
     : `Больше всего — в ${MONTHS_FULL[MONTHS.indexOf(best.label)]}: ${unit(best.value)}`;
 }
 
-// Таблица годы × месяцы — как в Notion; цифры видны всегда, цвет только подкрашивает
+// Год за годом: клетка на месяц, цифра видна всегда, цвет только подкрашивает
 function drawTable() {
   const t = $('year-table');
-  const head = el('tr'); head.append(el('th', '', 'Год'));
-  MONTHS.forEach(m => head.append(el('th', '', m))); head.append(el('th', '', 'Всего'));
-  t.replaceChildren(head);
+  t.replaceChildren(el('span', 'h'), ...MONTHS.map(m => el('span', 'h', m)), el('span', 'h', 'Всего'));
   for (const y of years) {
     const months = MONTHS.map((_, i) => READS.filter(r => yearOf(r) === y && +r.d.slice(5, 7) === i + 1).length);
     const max = Math.max(1, ...months);
-    const tr = el('tr'); tr.append(el('th', '', y));
-    months.forEach(n => {
-      const td = el('td', '', n || '');
-      if (n) td.style.background = `color-mix(in oklab, var(--c1) ${15 + 50 * n / max}%, transparent)`;
-      tr.append(td);
+    t.append(el('span', 'y', y));
+    months.forEach((n, i) => {
+      const c = el('span', 'c' + (n ? '' : ' zero'), n || '');
+      c.title = `${MONTHS_NAME[i]} ${y}: ${books(n)}`;
+      if (n) c.style.background = `color-mix(in oklab, var(--c1) ${25 + 75 * n / max}%, #ffffff0d)`;
+      t.append(c);
     });
-    tr.append(el('td', 'total', months.reduce((s, n) => s + n, 0)));
-    t.append(tr);
+    t.append(el('span', 'total', months.reduce((s, n) => s + n, 0)));
   }
 }
 
@@ -298,14 +319,16 @@ function drawPages(list) {
   if (!u.length) { $('pages-lead').textContent = ''; return empty($('pages-chart'), 'Нет данных о страницах'); }
   const items = PAGE_BUCKETS.map(([lo, hi]) => {
     const l = u.filter(b => b.p >= lo && b.p <= hi);
-    const label = hi === Infinity ? '1000+' : `${lo}–${hi}`;
-    return {label, title: `${label} стр.`, list: l, value: l.length};
+    // подпись короткая, чтобы влезла под столбик: «до 100», «–200»…; полный диапазон — в подсказке
+    const range = hi === Infinity ? '1000+' : `${lo}–${hi}`;
+    const label = hi === Infinity ? '1000+' : lo === 1 ? `до ${hi}` : `–${hi}`;
+    return {label, title: `${range} стр.`, list: l, value: l.length};
   });
   bars($('pages-chart'), items, pickPages, books);
   $('pages-picked').replaceChildren();
   const best = items.reduce((a, b) => b.value > a.value ? b : a);
   const avg = Math.round(u.reduce((s, b) => s + b.p, 0) / u.length);
-  $('pages-lead').textContent = `Чаще всего ${best.label} стр. · в среднем ${num(avg)}`;
+  $('pages-lead').textContent = `Чаще всего ${best.title} · в среднем ${num(avg)}`;
 }
 
 // ---------- авторы: топ-5 по числу разных книг

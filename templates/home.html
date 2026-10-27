@@ -81,31 +81,52 @@
 </div>
 {% endif %}
 
-{# Полка: корешки с названиями; высота и толщина — от числа страниц, цвет — от книги.
-   Клик — окошко с карточкой книги. #}
+{# Полка: корешки из обложек (полоска обложки + название), высота и толщина — от числа страниц.
+   Любимая серия стоит целиком, в обёртке с названием. Корешки можно перетаскивать — порядок сохраняется.
+   Клик по книге — окошко с карточкой, по серии — страница серии. #}
+{% macro size(p) -%}
+{%- set p = [p or 300, 900]|min -%}--h:{{ 132 + (p * 70 / 900)|int }}px;--w:{{ 34 + (p * 16 / 900)|int }}px
+{%- endmacro %}
 {% macro spine(b) -%}
-{%- set p = [b.pages or 300, 900]|min -%}
-<button type="button" class="spine tone-{{ b.id % 6 }}" style="--h:{{ 132 + (p * 70 / 900)|int }}px;--w:{{ 34 + (p * 16 / 900)|int }}px"
+<button type="button" class="spine {{ 'cov' if b.cover_url else 'tone-' ~ b.id % 6 }}" data-key="{{ b.key }}"
+        style="{{ size(b.pages) }}{% if b.cover_url %};--cover:url('{{ b.cover_url }}'){% endif %}"
         data-book='{{ {"id": b.id, "t": b.title_ru or b.title, "a": b.authors or "", "c": b.cover_url or "", "s": STATUS[b.status],
                       "st": b.status, "r": (b.rating|float|round|int) if b.rating is not none else 0, "p": b.pages or 0, "f": b.is_favorite}|tojson }}'>
   <span>{{ b.title_ru or b.title }}</span>
 </button>
 {%- endmacro %}
+{% macro series_set(s) -%}
+<a class="spine-set" href="/series/{{ s.id }}" data-key="{{ s.key }}" title="{{ s.title }}" draggable="false">
+  {% for b in s.books[:8] %}<i class="spine mini {{ 'cov' if b.cover_url else 'tone-' ~ b.id % 6 }}"
+     style="{{ size(b.pages) }}{% if b.cover_url %};--cover:url('{{ b.cover_url }}'){% endif %}"></i>{% endfor %}
+  <span class="set-label">{{ s.title }}</span>
+</a>
+{%- endmacro %}
 
-{% set shelves = [('Любимые', shelf.fav, '/static/img/booky/2-24.webp'), ('Читаю', shelf.reading, '/static/img/booky/1-07.webp'),
-                  ('Хочу прочитать', shelf.want, '/static/img/booky/2-21.webp')] %}
+{% set shelves = [('fav', 'Любимые', shelf.fav), ('reading', 'Читаю', shelf.reading), ('want', 'Хочу прочитать', shelf.want)] %}
 {% if shelf.fav or shelf.reading or shelf.want %}
-<div class="section-head"><h2>Моя полка</h2><a href="/books#want_to_read">Все книги</a></div>
-<div class="bookcase">
-  {% for title, books, booky in shelves if books %}
-  <section class="shelf">
-    <h3 class="shelf-label">{{ title }} <span>{{ books|length }}</span></h3>
-    <div class="shelf-row">
-      {% for b in books %}{{ spine(b) }}{% endfor %}
-      <img class="shelf-booky" src="{{ booky }}" alt="" loading="lazy">
-    </div>
-  </section>
-  {% endfor %}
+<div class="section-head shelf-hint"><h2>Моя полка</h2><span class="muted small">корешки можно перетаскивать</span></div>
+<div class="shelf-scene">
+  <div class="scene-side" aria-hidden="true">
+    <img src="/static/img/booky/2-24.webp" alt="" loading="lazy">
+    <img src="/static/img/booky/1-09.webp" alt="" loading="lazy">
+  </div>
+  <div class="bookcase">
+    <img class="case-top" src="/static/img/booky/2-17.webp" alt="" loading="lazy">
+    {% for key, title, items in shelves if items %}
+    <section class="shelf">
+      <h3 class="shelf-label">{{ title }} <span>{{ items|length }}</span></h3>
+      <div class="shelf-row" data-shelf="{{ key }}">
+        {% for it in items %}{{ series_set(it) if it.is_series else spine(it) }}{% endfor %}
+        {% if key == 'reading' %}<img class="shelf-sitter" src="/static/img/booky/1-07.webp" alt="" loading="lazy">{% endif %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+  <div class="scene-side" aria-hidden="true">
+    <img src="/static/img/booky/2-13.webp" alt="" loading="lazy">
+    <img src="/static/img/booky/2-22.webp" alt="" loading="lazy">
+  </div>
 </div>
 
 <dialog class="peek" id="peek" aria-labelledby="peek-title">
@@ -128,12 +149,15 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <script>
 // Клик по корешку — карточка книги в окошке; закрыть — кнопкой, Esc или кликом мимо
 const peek = document.getElementById('peek');
 if (peek) {
   const $ = id => document.getElementById(id);
-  document.querySelectorAll('.spine').forEach(sp => sp.onclick = () => {
+  let dragged = 0;  // после перетаскивания браузер может прислать клик — его не считаем
+  document.querySelectorAll('button.spine').forEach(sp => sp.onclick = () => {
+    if (Date.now() - dragged < 400) return;
     const b = JSON.parse(sp.dataset.book);
     $('peek-title').textContent = b.t;
     $('peek-author').textContent = b.a;
@@ -148,6 +172,24 @@ if (peek) {
     peek.showModal();
   });
   peek.addEventListener('click', e => { if (e.target === peek) peek.close(); });
+  document.querySelectorAll('.spine-set').forEach(a => a.addEventListener('click', e => {
+    if (Date.now() - dragged < 400) e.preventDefault();
+  }));
+
+  // Перетаскивание корешков внутри полки; на телефоне — после короткого удержания, чтобы не мешать прокрутке
+  if (window.Sortable) document.querySelectorAll('.shelf-row').forEach(row => Sortable.create(row, {
+    draggable: '.spine:not(.mini), .spine-set', forceFallback: true, fallbackTolerance: 4,
+    delay: 220, delayOnTouchOnly: true, animation: 160, ghostClass: 'drag-ghost', chosenClass: 'drag-chosen',
+    onEnd: e => {
+      dragged = Date.now();
+      if (e.oldIndex === e.newIndex) return;
+      const items = [...row.querySelectorAll('[data-key]')].map(x => x.dataset.key);
+      fetch('/shelf/order', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                             body: JSON.stringify({shelf: row.dataset.shelf, items})})
+        .then(r => { if (!r.ok) throw r; })
+        .catch(() => alert('Не получилось сохранить порядок на полке. Обнови страницу и попробуй ещё раз.'));
+    },
+  }));
 }
 </script>
 {% endblock %}

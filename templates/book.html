@@ -18,6 +18,14 @@
 
   <div class="book-main">
     <div class="title-block">
+      {% if b.in_library %}
+      <form method="post" action="/book/{{ b.id }}" class="fav-corner">
+        <input type="hidden" name="is_favorite" value="{{ '' if b.is_favorite else 'on' }}">
+        <button class="fav-round {{ 'on' if b.is_favorite }}" aria-pressed="{{ 'true' if b.is_favorite else 'false' }}"
+                aria-label="{{ 'Убрать из избранного' if b.is_favorite else 'В избранное' }}"
+                title="{{ 'Убрать из избранного' if b.is_favorite else 'В избранное' }}">{{ icon('flame', 22) }}</button>
+      </form>
+      {% endif %}
       {% if b.kind == 'fanfic' %}<span class="tag fanfic">фанфик</span>{% endif %}
       <h1>{{ b.title_ru or b.title }}</h1>
       {% if b.title_ru %}<p class="orig">{{ b.title }}</p>{% endif %}
@@ -49,13 +57,7 @@
         </form>
       </details>
 
-      <form method="post" action="/book/{{ b.id }}">
-        <input type="hidden" name="is_favorite" value="{{ '' if b.is_favorite else 'on' }}">
-        <button class="fav {{ 'on' if b.is_favorite }}" aria-pressed="{{ 'true' if b.is_favorite else 'false' }}"
-                title="{{ 'Убрать из избранного' if b.is_favorite else 'В избранное' }}">{{ icon('flame', 20) }}<span>{{ 'Любимая' if b.is_favorite else 'В избранное' }}</span></button>
-      </form>
-
-      {# Даты последнего прочтения — всегда в строке, между огоньком и звёздами; прочтения нет — создастся #}
+      {# Даты последнего прочтения — всегда в строке, между статусом и звёздами; прочтения нет — создастся #}
       <form method="post" action="/book/{{ b.id }}/reads{{ '/' ~ last.id if last else '' }}" class="read-dates" data-autosave>
         {{ icon('calendar', 17) }}
         <label>начало <input type="date" name="started_at" value="{{ last.started_at if last and last.started_at else '' }}" max="{{ today }}"></label>

@@ -194,6 +194,23 @@ def set_series_favorite(user_id: str, series_id: int, favorite: bool) -> None:
             (user_id, series_id, favorite))
 
 
+SHELVES = ("fav", "reading", "want")
+
+
+def save_shelf_order(user_id: str, shelf: str, items: list) -> None:
+    """Порядок корешков на полке после перетаскивания: items — ключи 'b<id>' / 's<id>' слева направо."""
+    if shelf not in SHELVES:
+        raise ValidationError("Нет такой полки")
+    items = [str(i) for i in items][:200]
+    if not all(len(i) > 1 and i[0] in "bs" and i[1:].isdigit() for i in items):
+        raise ValidationError("Непонятный порядок")
+    with transaction() as conn:
+        conn.execute("delete from shelf_order where user_id = %s and shelf = %s", (user_id, shelf))
+        for n, item in enumerate(items):
+            conn.execute("insert into shelf_order (user_id, shelf, item, pos) values (%s, %s, %s, %s)",
+                         (user_id, shelf, item, n))
+
+
 def save_series(user_id: str, series_id: int, form: dict) -> None:
     """Описание и русское название — общие для серии; «бросила» и свой порядок — твои."""
     my_order = bool(form.get("use_my_order"))
