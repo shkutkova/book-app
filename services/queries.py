@@ -87,7 +87,16 @@ def home(user_id: str) -> dict:
         from series_progress sp
         where sp.user_id = %(u)s and sp.status = 'in_progress'
         order by sp.is_reading desc, sp.finished_books::float / greatest(sp.total_books, 1) desc, sp.name""", u)
-    return {"counts": counts, "reading": reading, "board": board, "series": series}
+    # Полка: любимые, что читаю, что хочу (пока просто первые из «Хочу прочитать»)
+    shelf_rows = fetch_all(f"""
+        select {BOOK_FIELDS}, l.is_favorite as fav
+        from library l join books b on b.id = l.book_id
+        where l.user_id = %(u)s and (l.is_favorite or l.status in ('reading', 'want_to_read'))
+        order by coalesce(b.title_ru, b.title)""", u)
+    shelf = {"fav": [b for b in shelf_rows if b["fav"]][:30],
+             "reading": [b for b in shelf_rows if b["status"] == "reading"],
+             "want": [b for b in shelf_rows if b["status"] == "want_to_read" and not b["fav"]][:16]}
+    return {"counts": counts, "reading": reading, "board": board, "series": series, "shelf": shelf}
 
 
 # ------------------------------------------------------------------ статистика

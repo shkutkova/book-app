@@ -192,6 +192,7 @@ details summary{cursor:pointer}
 .settings .links a:hover,.settings .links button.link:hover{text-decoration:none;background:var(--line)}
 .settings .links a[aria-busy]{opacity:.7;cursor:progress}
 .settings h2{margin-top:1.4rem}
+.reread{margin-top:.6rem}.reread summary{color:var(--link);font-weight:700;margin-bottom:.5rem}
 .read-row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;max-width:min(92vw,520px);background:#fffaff;color:var(--ink);
  border-radius:16px;padding:.8rem 1.1rem;font-weight:700;box-shadow:0 20px 40px -12px #000c}
@@ -281,6 +282,34 @@ h1.with-booky img{width:clamp(56px,8vw,84px);height:auto;margin:-.6rem 0;filter:
 .s-card.soft .more{color:var(--mut)}
 .s-covers .more{font-size:.78rem;font-weight:800;color:var(--ink-mut);align-self:center}
 .s-card .bar{background:#26113f22}.s-card .bar i{background:var(--ink)}
+
+/* полка: корешки стоят на доске, название вдоль корешка */
+.bookcase{display:grid;gap:1.4rem;background:#ffffff0a;border:1px solid #ffffff14;border-radius:28px;padding:1.2rem 1.2rem .4rem}
+.shelf-label{font-family:var(--body);font-weight:800;font-size:.95rem;margin:0 0 .5rem;color:var(--mut)}
+.shelf-label span{opacity:.7;font-weight:700;margin-left:.2rem}
+.shelf-row{position:relative;display:flex;align-items:flex-end;gap:4px;min-height:210px;padding:0 .6rem;overflow-x:auto;scrollbar-width:thin;
+ border-bottom:12px solid #3a1a6e;box-shadow:0 14px 16px -12px #000a}
+.shelf-row::after{content:"";position:sticky;right:0}
+.spine{flex:none;width:var(--w);height:var(--h);border:0;background:var(--p-lilac);border-radius:5px 5px 2px 2px;padding:.5rem 0;color:var(--ink);cursor:pointer;
+ display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;
+ box-shadow:inset -5px 0 0 #26113f1f,inset 0 7px 0 #ffffff55,inset 0 -9px 0 #26113f26;transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+.spine span{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:800;font-size:.72rem;line-height:1.1;max-height:100%;overflow:hidden;
+ text-overflow:ellipsis;white-space:nowrap;padding:0 .1rem}
+.spine:hover,.spine:focus-visible{transform:translateY(-10px)}
+.spine:nth-child(5n+3){transform:rotate(-4deg);transform-origin:bottom left;margin-left:8px}
+.spine:nth-child(5n+3):hover{transform:rotate(-4deg) translateY(-10px)}
+.shelf-booky{flex:none;width:118px;height:auto;margin-left:auto;align-self:flex-end;filter:drop-shadow(0 8px 10px #12002d80);pointer-events:none}
+.peek{border:0;border-radius:var(--r);background:var(--surface);color:var(--text);width:min(92vw,460px);padding:1.2rem;box-shadow:var(--shadow)}
+.peek::backdrop{background:#14052cb3}
+.peek-body{display:grid;grid-template-columns:120px 1fr;gap:1.1rem;align-items:start}
+.peek-cover img,.peek-cover .img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:12px;display:flex;align-items:center;justify-content:center;
+ text-align:center;font-weight:800;font-size:.8rem;padding:.5rem;color:var(--ink)}
+.peek-cover img{padding:0}
+.peek h2{margin:.5rem 0 .3rem;font-size:1.15rem}
+.peek-author{margin:0 0 .4rem;color:var(--p-lilac);font-weight:800}
+.peek .stars{margin:0 0 .3rem;font-size:1.1rem}
+.peek-actions{display:flex;justify-content:flex-end;align-items:center;gap:1rem;margin-top:1rem}
+@media (max-width:560px){.shelf-booky{width:84px}.shelf-row{min-height:190px}}
 
 /* ---------- списки книг и фанфиков */
 .list-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}

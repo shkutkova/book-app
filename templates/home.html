@@ -80,4 +80,74 @@
   {% endfor %}
 </div>
 {% endif %}
+
+{# Полка: корешки с названиями; высота и толщина — от числа страниц, цвет — от книги.
+   Клик — окошко с карточкой книги. #}
+{% macro spine(b) -%}
+{%- set p = [b.pages or 300, 900]|min -%}
+<button type="button" class="spine tone-{{ b.id % 6 }}" style="--h:{{ 132 + (p * 70 / 900)|int }}px;--w:{{ 34 + (p * 16 / 900)|int }}px"
+        data-book='{{ {"id": b.id, "t": b.title_ru or b.title, "a": b.authors or "", "c": b.cover_url or "", "s": STATUS[b.status],
+                      "st": b.status, "r": (b.rating|float|round|int) if b.rating is not none else 0, "p": b.pages or 0, "f": b.is_favorite}|tojson }}'>
+  <span>{{ b.title_ru or b.title }}</span>
+</button>
+{%- endmacro %}
+
+{% set shelves = [('Любимые', shelf.fav, '/static/img/booky/2-24.webp'), ('Читаю', shelf.reading, '/static/img/booky/1-07.webp'),
+                  ('Хочу прочитать', shelf.want, '/static/img/booky/2-21.webp')] %}
+{% if shelf.fav or shelf.reading or shelf.want %}
+<div class="section-head"><h2>Моя полка</h2><a href="/books#want_to_read">Все книги</a></div>
+<div class="bookcase">
+  {% for title, books, booky in shelves if books %}
+  <section class="shelf">
+    <h3 class="shelf-label">{{ title }} <span>{{ books|length }}</span></h3>
+    <div class="shelf-row">
+      {% for b in books %}{{ spine(b) }}{% endfor %}
+      <img class="shelf-booky" src="{{ booky }}" alt="" loading="lazy">
+    </div>
+  </section>
+  {% endfor %}
+</div>
+
+<dialog class="peek" id="peek" aria-labelledby="peek-title">
+  <div class="peek-body">
+    <div class="peek-cover" id="peek-cover"></div>
+    <div>
+      <span class="badge" id="peek-status"></span>
+      <h2 id="peek-title"></h2>
+      <p class="peek-author" id="peek-author"></p>
+      <p class="stars" id="peek-stars"></p>
+      <p class="muted small" id="peek-pages"></p>
+    </div>
+  </div>
+  <div class="peek-actions">
+    <button type="button" class="link" onclick="this.closest('dialog').close()">Закрыть</button>
+    <a class="btn" id="peek-open" href="#">Открыть книгу</a>
+  </div>
+</dialog>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Клик по корешку — карточка книги в окошке; закрыть — кнопкой, Esc или кликом мимо
+const peek = document.getElementById('peek');
+if (peek) {
+  const $ = id => document.getElementById(id);
+  document.querySelectorAll('.spine').forEach(sp => sp.onclick = () => {
+    const b = JSON.parse(sp.dataset.book);
+    $('peek-title').textContent = b.t;
+    $('peek-author').textContent = b.a;
+    $('peek-status').textContent = b.s + (b.f ? ' · любимая' : '');
+    $('peek-status').className = 'badge ' + b.st;
+    $('peek-stars').textContent = b.r ? '★'.repeat(b.r) + '☆'.repeat(5 - b.r) : '';
+    $('peek-pages').textContent = b.p ? b.p + ' стр.' : '';
+    const c = $('peek-cover'); c.replaceChildren();
+    if (b.c) { const i = new Image(); i.src = b.c; i.alt = ''; c.append(i); }
+    else { const t = document.createElement('span'); t.className = 'img tone-' + (b.id % 6); t.textContent = b.t; c.append(t); }
+    $('peek-open').href = '/book/' + b.id;
+    peek.showModal();
+  });
+  peek.addEventListener('click', e => { if (e.target === peek) peek.close(); });
+}
+</script>
 {% endblock %}

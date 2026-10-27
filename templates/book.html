@@ -163,6 +163,26 @@
     <label for="notes">Заметки</label><textarea id="notes" name="notes">{{ b.notes or '' }}</textarea>
     <p><button class="primary">Сохранить</button></p>
   </form>
+
+  <h2>История прочтений</h2>
+  {% for r in b.reads %}
+  <form method="post" action="/book/{{ b.id }}/reads/{{ r.id }}" class="read-row">
+    <input type="date" name="started_at" value="{{ r.started_at or '' }}" max="{{ today }}" aria-label="Начала">
+    <span class="muted">—</span>
+    <input type="date" name="finished_at" value="{{ r.finished_at or '' }}" max="{{ today }}" aria-label="Дочитала">
+    <button>Сохранить</button>
+    <button class="link" formaction="/book/{{ b.id }}/reads/{{ r.id }}/delete" onclick="return confirm('Удалить это прочтение?')">Удалить</button>
+  </form>
+  {% else %}<p class="muted small">Прочтений пока нет — появятся, когда поставишь «Читаю» или «Прочитано».</p>{% endfor %}
+  <details class="reread">
+    <summary>Перечитала — добавить прочтение</summary>
+    <form method="post" action="/book/{{ b.id }}/reads" class="read-row">
+      <input type="date" name="started_at" max="{{ today }}" aria-label="Начала">
+      <span class="muted">—</span>
+      <input type="date" name="finished_at" max="{{ today }}" aria-label="Дочитала">
+      <button>Добавить</button>
+    </form>
+  </details>
   {% endif %}
 </details>
 
