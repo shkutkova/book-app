@@ -10,7 +10,7 @@
 <div class="kpis">
   <div class="kpi k1"><div><b id="k-books"></b><span id="k-books-t"></span></div>{{ icon('finished', 30) }}</div>
   <div class="kpi k2"><div><b id="k-pages"></b><span id="k-pages-t"></span></div>{{ icon('reading', 30) }}</div>
-  <div class="kpi k3"><div><b id="k-rating"></b><span>средняя оценка</span></div>{{ icon('star', 30) }}</div>
+  <div class="kpi k3"><div><b id="k-rating"></b><span>средняя оценка из 5</span></div>{{ icon('star', 30) }}</div>
   <div class="kpi k4"><div><b id="k-days"></b><span>дней на книгу в среднем</span></div>{{ icon('calendar', 30) }}</div>
 </div>
 
@@ -73,6 +73,14 @@ const MONTHS_FULL = ['январе','феврале','марте','апреле'
 const PAGE_BUCKETS = [[1,100],[101,200],[201,300],[301,400],[401,500],[501,600],[601,1000],[1001,Infinity]];
 const RATINGS = [1, 2, 3, 4, 5];  // оценки целые: половинок нет
 const SLOTS = ['--c1','--c2','--c3','--c4','--c5','--c6'];
+// Пастель для столбиков: у каждого свой оттенок (по кругу от сиреневого), сверху светлее
+const pastel = (i, n, from = 265) => {
+  const h = (from + i * 330 / Math.max(n, 1)) % 360;
+  return [`hsl(${h} 70% 86%)`, `hsl(${h} 48% 72%)`];
+};
+// Авторы — цвета заметно разные: пастель приложения
+const AUTHOR_COLORS = [['#e6dbff','#a98bff'],['#ffd9e8','#ff86b4'],['#fff0c2','#f2b93f'],['#d5f5e8','#47c99b'],['#d6ecff','#5aa9ff']];
+const paint = (e, [top, base]) => { e.style.setProperty('--top', top); e.style.setProperty('--series', base); };
 
 const $ = id => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -158,6 +166,7 @@ function bars(chart, items, pick, unit) {
     col.setAttribute('aria-label', `${it.title}: ${unit(it.value)}`);
     const track = el('span', 'track');
     const fill = el('span', 'fill'); fill.style.height = (it.value / max * 100) + '%';
+    paint(fill, pastel(items.indexOf(it), items.length));
     if (it.value) fill.append(el('span', 'val', num(it.value)));
     track.append(fill);
     col.append(track, el('small', '', it.label));
@@ -193,7 +202,7 @@ function drawTiles(list) {
   $('k-books-t').textContent = plural(list.length, 'книга прочитана', 'книги прочитано', 'книг прочитано');
   $('k-pages').textContent = num(pages);
   $('k-pages-t').textContent = plural(pages, 'страница', 'страницы', 'страниц');
-  $('k-rating').textContent = rated.length ? dec(rated.reduce((s, b) => s + b.r, 0) / rated.length, 2) : '—';
+  $('k-rating').textContent = rated.length ? dec(rated.reduce((s, b) => s + b.r, 0) / rated.length, 1) : '—';
   $('k-days').textContent = days && dated.length ? dec(days / dated.length, 1) : '—';
 }
 
@@ -210,7 +219,7 @@ function drawTime() {
       return {label: String(y), title: `${y}`, list, value: value(list)};
     });
   } else {
-    $('time-title').textContent = 'По месяцам';
+    $('time-title').textContent = `По месяцам · ${period}`;
     items = MONTHS.map((m, i) => {
       const list = READS.filter(r => yearOf(r) === period && +r.d.slice(5, 7) === i + 1);
       return {label: m, title: `${m} ${period}`, list, value: value(list)};
@@ -273,7 +282,7 @@ function drawGenres(list) {
   const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 180 180'); svg.setAttribute('class', 'donut');
   svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', rows.map(r => `${r.name}: ${books(r.list.length)}`).join(', '));
   let offset = 0;
-  const legend = el('ul', 'legend');
+  const legend = el('ul', 'legend'), arcs = [], items = [];
   for (const r of rows) {
     const len = r.list.length / u.length * C;
     const arc = document.createElementNS(NS, 'circle');
@@ -281,17 +290,29 @@ function drawGenres(list) {
       'stroke-dasharray': `${Math.max(len - GAP, 0.5)} ${C}`, 'stroke-dashoffset': -offset,
       transform: 'rotate(-90 90 90)'}).forEach(([k, v]) => arc.setAttribute(k, v));
     arc.style.stroke = r.color;
-    svg.append(arc); offset += len;
+    svg.append(arc); arcs.push(arc); offset += len;
 
     const pct = Math.round(r.list.length / u.length * 100);
     const li = el('li'); const btn = el('button', 'mark'); btn.type = 'button'; btn.setAttribute('aria-pressed', 'false');
     const sw = el('i', 'swatch'); sw.style.background = r.color;
     btn.append(sw, el('span', 'name', r.name), el('span', 'num', `${pct}% · ${r.list.length}`));
     btn.onclick = () => pickGenre(r.name, `${r.name}: ${books(r.list.length)}`, r.list, btn);
-    li.append(btn); legend.append(li);
+    arc.onclick = () => btn.click();
+    li.append(btn); legend.append(li); items.push(li);
   }
   const center = el('div', 'donut-center');
-  center.append(el('b', '', num(u.length)), el('span', '', plural(u.length, 'книга', 'книги', 'книг')));
+  const cNum = el('b', '', num(u.length)), cText = el('span', '', plural(u.length, 'книга', 'книги', 'книг'));
+  center.append(cNum, cText);
+  // Наведение на дугу или строку легенды: этот жанр ярче, остальные гаснут, в центре — название и доля
+  const hot = i => {
+    box.classList.toggle('hovering', i != null);
+    arcs.forEach((a, j) => a.classList.toggle('hot', j === i));
+    items.forEach((l, j) => l.classList.toggle('hot', j === i));
+    if (i == null) { cNum.textContent = num(u.length); cText.textContent = plural(u.length, 'книга', 'книги', 'книг'); return; }
+    cNum.textContent = Math.round(rows[i].list.length / u.length * 100) + '%'; cText.textContent = rows[i].name;
+  };
+  arcs.forEach((a, i) => { a.onmouseenter = () => hot(i); a.onmouseleave = () => hot(null); });
+  items.forEach((l, i) => { l.onmouseenter = () => hot(i); l.onmouseleave = () => hot(null); });
   const ring = el('div', 'donut-ring'); ring.append(svg, center);
   box.replaceChildren(ring, legend);
 }
@@ -308,7 +329,7 @@ function drawRatings(list) {
   bars($('rating-chart'), items, pickRating, books);
   $('rating-picked').replaceChildren();
   const best = items.reduce((a, b) => b.value >= a.value ? b : a);
-  const avg = dec(u.reduce((s, b) => s + b.r, 0) / u.length, 2);
+  const avg = dec(u.reduce((s, b) => s + b.r, 0) / u.length, 1);
   $('rating-lead').textContent = `Чаще всего ставишь ${best.label} ★ · в среднем ${avg}`;
 }
 
@@ -344,6 +365,7 @@ function drawAuthors(list) {
   for (const [name, l] of top) {
     const li = el('li'); const btn = el('button', 'mark'); btn.type = 'button'; btn.setAttribute('aria-pressed', 'false');
     const bar = el('span', 'hbar'); const fill = el('i'); fill.style.width = (l.length / max * 100) + '%'; bar.append(fill);
+    paint(fill, AUTHOR_COLORS[top.findIndex(t => t[0] === name) % AUTHOR_COLORS.length]);
     btn.append(el('span', 'name', name), bar, el('span', 'num', l.length));
     btn.onclick = () => pickAuthor(name, `${name}: ${books(l.length)}`, l, btn);
     li.append(btn); box.append(li);

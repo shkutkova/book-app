@@ -60,8 +60,10 @@
       {# Даты последнего прочтения — всегда в строке, между статусом и звёздами; прочтения нет — создастся #}
       <form method="post" action="/book/{{ b.id }}/reads{{ '/' ~ last.id if last else '' }}" class="read-dates" data-autosave>
         {{ icon('calendar', 17) }}
-        <label>начало <input type="date" name="started_at" value="{{ last.started_at if last and last.started_at else '' }}" max="{{ today }}"></label>
-        <label>конец <input type="date" name="finished_at" value="{{ last.finished_at if last and last.finished_at else '' }}" max="{{ today }}"></label>
+        {# пустая дата — прочерк вместо «дд.мм.гггг» #}
+        {% for name, title in [('started_at', 'начало'), ('finished_at', 'конец')] %}{% set v = last[name] if last and last[name] else '' %}
+        <label>{{ title }} <span class="dt {{ 'blank' if not v }}"><input type="date" name="{{ name }}" value="{{ v }}" max="{{ today }}"></span></label>
+        {% endfor %}
         <noscript><button>Сохранить</button></noscript>
       </form>
 
@@ -129,7 +131,7 @@
     <div class="tag-col">
       <h2>Предупреждения</h2>
       <div class="pill-row warnings" data-chips>
-        {% for w in tags.content_warnings %}<button type="button" class="chip warn" data-reveal title="Показать" {{ 'hidden' if loop.index > SHOW }}><span>{{ w }}</span></button>{% endfor %}
+        {% for w in tags.content_warnings %}<span class="chip warn" {{ 'hidden' if loop.index > SHOW }}>{{ icon('warn', 14) }}{{ w }}</span>{% endfor %}
         {{ more(tags.content_warnings|length - SHOW) }}
       </div>
     </div>
@@ -210,13 +212,17 @@ document.querySelectorAll('[data-autosave] input').forEach(i => {
   i.addEventListener('click', () => { try { i.showPicker(); } catch {} });
   i.addEventListener('change', () => i.form.submit());
 });
+// Любая пустая дата на странице: без «дд.мм.гггг» (текст прозрачный, пока поле не в фокусе)
+document.querySelectorAll('input[type=date]').forEach(i => {
+  const mark = () => { i.classList.toggle('blank', !i.value); i.closest('.dt')?.classList.toggle('blank', !i.value); };
+  i.addEventListener('input', mark); mark();
+});
 
-// Метки: «+N» показывает остальные; предупреждения размыты, пока не нажмёшь
+// Метки: «+N» показывает остальные
 document.querySelectorAll('[data-more]').forEach(btn => btn.onclick = () => {
   btn.closest('[data-chips]').querySelectorAll('[hidden]').forEach(c => c.hidden = false);
   btn.remove();
 });
-document.querySelectorAll('[data-reveal]').forEach(c => c.onclick = () => { c.classList.add('shown'); c.removeAttribute('title'); });
 
 // Обложка: окно сразу; варианты подгружаются, своя ссылка — всегда внизу
 let coversLoaded = false;

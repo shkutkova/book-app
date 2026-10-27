@@ -5,27 +5,43 @@
 {% block content %}
 <p class="small back"><a href="/series">← Все серии</a></p>
 
-<section class="title-block series-head">
-  <div class="series-title">
-    <h1>{{ s.name_ru or s.name }}</h1>
-    {% if s.name_ru %}<p class="orig">{{ s.name }}</p>{% endif %}
-    {% if s.authors %}<p class="by">{{ s.authors|join(', ') }}</p>{% endif %}
-    <p class="facts">
-      <span>{{ SERIES_STATUS[s.progress_status] }}</span>
-      <span>{{ s.finished_books }} из {{ s.total_books }} книг</span>
-      {% if s.skipped_books %}<span>пропускаю {{ s.skipped_books }}</span>{% endif %}
-      {% if s.pages %}<span>{{ s.pages }} стр.</span>{% endif %}
-      {% if s.is_completed %}<span>серия завершена</span>{% elif s.is_completed is sameas false %}<span>серия ещё выходит</span>{% endif %}
-    </p>
-    <div class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></div>
-  </div>
-  <form method="post" action="/series/{{ s.id }}/favorite" class="fav-corner">
-    <input type="hidden" name="is_favorite" value="{{ '' if s.is_favorite else 'on' }}">
-    <button class="fav-round {{ 'on' if s.is_favorite }}" aria-pressed="{{ 'true' if s.is_favorite else 'false' }}"
-            aria-label="{{ 'Убрать из избранного' if s.is_favorite else 'В избранное' }}"
-            title="{{ 'Убрать из избранного' if s.is_favorite else 'В избранное' }}">{{ icon('flame', 22) }}</button>
-  </form>
-</section>
+<div class="series-top {{ 'has-about' if s.description }}">
+  <section class="title-block series-head">
+    <div class="series-title">
+      <h1>{{ s.name_ru or s.name }}</h1>
+      {% if s.name_ru %}<p class="orig">{{ s.name }}</p>{% endif %}
+      {% if s.authors %}<p class="by">{{ s.authors|join(', ') }}</p>{% endif %}
+      <p class="facts">
+        <span>{{ SERIES_STATUS[s.progress_status] }}</span>
+        <span>{{ s.finished_books }} из {{ s.total_books }} книг</span>
+        {% if s.skipped_books %}<span>пропускаю {{ s.skipped_books }}</span>{% endif %}
+        {% if s.pages %}<span>{{ s.pages }} стр.</span>{% endif %}
+        {% if s.is_completed %}<span>серия завершена</span>{% elif s.is_completed is sameas false %}<span>серия ещё выходит</span>{% endif %}
+      </p>
+      <div class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></div>
+      <div class="side-links">
+        {% if not edit %}<a href="?edit=1">{{ icon('pencil', 16) }} Изменить серию</a>{% endif %}
+        {% if s.hardcover_id %}
+        <form method="post" action="/series/{{ s.id }}/refresh"><button class="link">{{ icon('refresh', 16) }} Обновить из Hardcover</button></form>
+        {% endif %}
+      </div>
+    </div>
+    <form method="post" action="/series/{{ s.id }}/favorite" class="fav-corner">
+      <input type="hidden" name="is_favorite" value="{{ '' if s.is_favorite else 'on' }}">
+      <button class="fav-round {{ 'on' if s.is_favorite }}" aria-pressed="{{ 'true' if s.is_favorite else 'false' }}"
+              aria-label="{{ 'Убрать из избранного' if s.is_favorite else 'В избранное' }}"
+              title="{{ 'Убрать из избранного' if s.is_favorite else 'В избранное' }}">{{ icon('flame', 22) }}</button>
+    </form>
+  </section>
+
+  {% if s.description %}
+  <section class="card about">
+    <h2>О серии</h2>
+    <div class="desc md" id="desc">{{ s.description|md }}</div>
+    <button type="button" class="link desc-toggle" id="desc-toggle" hidden aria-expanded="false" aria-controls="desc">Читать полностью</button>
+  </section>
+  {% endif %}
+</div>
 
 {% macro rows(books) %}
     {% for b in books %}
@@ -45,51 +61,33 @@
     {% endfor %}
 {% endmacro %}
 
-<div class="series-layout">
-  <form method="post" action="/series/{{ s.id }}" class="series-books">
-    <div class="card">
-      <h2>Книги {% if s.use_my_order %}<span class="badge">мой порядок</span>{% endif %}</h2>
-      <table class="books">{{ rows(s.books) }}</table>
-    </div>
-    {% if s.extras %}
-    <div class="card">
-      <h2>Дополнительно <span class="muted small">повести и рассказы — в прогресс не входят</span></h2>
-      <table class="books">{{ rows(s.extras) }}</table>
-    </div>
-    {% endif %}
+<form method="post" action="/series/{{ s.id }}" class="series-books">
+  <div class="card">
+    <h2>Книги {% if s.use_my_order %}<span class="badge">мой порядок</span>{% endif %}</h2>
+    <table class="books">{{ rows(s.books) }}</table>
+  </div>
+  {% if s.extras %}
+  <div class="card">
+    <h2>Дополнительно <span class="muted small">повести и рассказы — в прогресс не входят</span></h2>
+    <table class="books">{{ rows(s.extras) }}</table>
+  </div>
+  {% endif %}
 
-    {% if edit %}
-    <div class="card">
-      <h2>Изменить серию</h2>
-      <label class="check"><input type="checkbox" name="use_my_order" {{ 'checked' if s.use_my_order }}> Показывать в моём порядке (номера — в колонке справа у книг)</label>
-      <label for="name_ru">Название на русском</label>
-      <input id="name_ru" name="name_ru" value="{{ s.name_ru or '' }}" style="width:100%">
-      <label for="description">О серии</label>
-      <textarea id="description" name="description" rows="8">{{ s.description or '' }}</textarea>
-      <label class="check"><input type="checkbox" name="is_abandoned" {{ 'checked' if s.is_abandoned }}> Бросила серию</label>
-      <p style="display:flex;gap:.8rem;align-items:center">
-        <button class="primary">Сохранить серию</button> <a href="/series/{{ s.id }}">Отмена</a>
-      </p>
-    </div>
-    {% endif %}
-  </form>
-
-  <aside class="series-side">
-    {% if s.description %}
-    <section class="card about">
-      <h2>О серии</h2>
-      <div class="desc md" id="desc">{{ s.description|md }}</div>
-      <button type="button" class="link desc-toggle" id="desc-toggle" hidden aria-expanded="false" aria-controls="desc">Читать полностью</button>
-    </section>
-    {% endif %}
-    <div class="side-links">
-      {% if not edit %}<a href="?edit=1">{{ icon('pencil', 16) }} Изменить серию</a>{% endif %}
-      {% if s.hardcover_id %}
-      <form method="post" action="/series/{{ s.id }}/refresh"><button class="link">{{ icon('refresh', 16) }} Обновить состав из Hardcover</button></form>
-      {% endif %}
-    </div>
-  </aside>
-</div>
+  {% if edit %}
+  <div class="card">
+    <h2>Изменить серию</h2>
+    <label class="check"><input type="checkbox" name="use_my_order" {{ 'checked' if s.use_my_order }}> Показывать в моём порядке (номера — в колонке справа у книг)</label>
+    <label for="name_ru">Название на русском</label>
+    <input id="name_ru" name="name_ru" value="{{ s.name_ru or '' }}" style="width:100%">
+    <label for="description">О серии</label>
+    <textarea id="description" name="description" rows="8">{{ s.description or '' }}</textarea>
+    <label class="check"><input type="checkbox" name="is_abandoned" {{ 'checked' if s.is_abandoned }}> Бросила серию</label>
+    <p style="display:flex;gap:.8rem;align-items:center">
+      <button class="primary">Сохранить серию</button> <a href="/series/{{ s.id }}">Отмена</a>
+    </p>
+  </div>
+  {% endif %}
+</form>
 {% endblock %}
 
 {% block scripts %}<script src="/static/desc.js?v={{ CSS_V }}"></script>{% endblock %}

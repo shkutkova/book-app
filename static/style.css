@@ -164,6 +164,10 @@ details summary{cursor:pointer}
 .read-dates input{width:6.1rem;padding:.15rem .1rem;font-size:.85rem;font-weight:700;background:transparent;border:0;border-bottom:1.5px dashed #ffffff40;border-radius:0;color:var(--text);cursor:pointer}
 .read-dates input:focus-visible{outline:none;border-bottom-color:var(--accent)}
 .read-dates input::-webkit-calendar-picker-indicator{display:none}
+input[type=date].blank:not(:focus){color:transparent}
+.read-dates .dt{position:relative;display:inline-flex}
+.read-dates .dt.blank:not(:focus-within) input{width:3rem}
+.read-dates .dt.blank:not(:focus-within)::after{content:"—";position:absolute;left:.3rem;top:50%;transform:translateY(-50%);color:var(--mut);pointer-events:none}
 @media (max-width:560px){.read-dates{padding:.3rem .6rem;gap:.3rem}.read-dates>.ic{display:none}.read-dates label{font-size:.74rem}.read-dates input{width:5.6rem;font-size:.8rem}}
 .desc p{margin:0 0 .5rem;text-indent:1.6em}
 .desc{text-align:justify;hyphens:auto;-webkit-hyphens:auto}
@@ -181,9 +185,8 @@ details summary{cursor:pointer}
 .g0{--gc:var(--p-pink)}.g1{--gc:var(--p-mint)}.g2{--gc:var(--p-butter)}.g3{--gc:var(--p-sky)}.g4{--gc:var(--p-lilac)}.g5{--gc:var(--p-peach)}
 .chip.more{background:var(--surface-2);color:var(--text);cursor:pointer;font-family:var(--body)}
 .chip.more:hover{background:var(--line)}
-.chip.warn{background:var(--p-butter);cursor:pointer;font-family:var(--body)}
-.chip.warn span{filter:blur(4px);transition:filter .2s}
-.chip.warn.shown span{filter:none}.chip.warn.shown{cursor:default}
+.chip.warn{background:#ff6b6b1a;color:#ffb3a7;border:1.5px dashed #ff8a7a99;font-weight:700}
+.chip.warn .ic{color:#ff8a7a}
 .settings>summary{list-style:none;display:flex;align-items:center;gap:.5rem;font-family:var(--display);font-weight:600;cursor:pointer}
 .settings>summary::-webkit-details-marker{display:none}
 .settings[open]>summary{margin-bottom:1rem}
@@ -214,12 +217,15 @@ details summary{cursor:pointer}
 
 /* страница серии */
 .back{margin:.6rem 0 0}
-.series-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin:.8rem 0 1.2rem}
+.series-top{display:grid;grid-template-columns:minmax(0,1fr);gap:1.1rem;align-items:start;margin:.8rem 0 1.2rem}
+.series-top.has-about{grid-template-columns:minmax(0,1fr) minmax(0,1.6fr)}
+.series-top .about{margin:0}
+.series-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin:0}
 .series-title{flex:1;min-width:0}
-.series-title h1{margin:.1rem 0 .3rem;font-size:clamp(1.4rem,1rem + 1.6vw,2.2rem)}
-.series-title .bar{max-width:420px;margin-top:.8rem}
-.series-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:1.1rem;align-items:start}
-.series-side{position:sticky;top:1rem;display:grid;gap:.8rem}
+.series-title h1{margin:.1rem 0 .3rem;font-size:clamp(1.2rem,1rem + 1vw,1.7rem)}
+.series-title .by{font-size:.95rem}
+.series-title .side-links{margin-top:1rem}
+.series-title .bar{margin-top:.8rem}
 .side-links{display:flex;flex-wrap:wrap;gap:.5rem}
 .side-links form{margin:0}
 .side-links a,.side-links button.link{display:inline-flex;align-items:center;gap:.4rem;background:var(--surface);border-radius:999px;padding:.4rem .85rem;color:var(--text);font-weight:700;font-size:.88rem}
@@ -228,7 +234,7 @@ details summary{cursor:pointer}
 .books .right{text-align:right;white-space:nowrap}
 .fav-mini{color:#ff9a5a}
 .s-card{position:relative}
-@media (max-width:820px){.series-layout{grid-template-columns:1fr}.series-side{position:static;order:-1}}
+@media (max-width:820px){.series-top.has-about{grid-template-columns:minmax(0,1fr)}}
 
 /* приведение-талисман у заголовка страницы */
 h1.with-booky{display:flex;align-items:center;gap:.7rem}
@@ -302,52 +308,46 @@ h1.with-booky img{width:clamp(56px,8vw,84px);height:auto;margin:-.6rem 0;filter:
 .s-covers .more{font-size:.78rem;font-weight:800;color:var(--ink-mut);align-self:center}
 .s-card .bar{background:#26113f22}.s-card .bar i{background:var(--ink)}
 
-/* полка: шкаф с досками; корешки переносятся на следующую доску и не вылезают за шкаф.
-   Каждый корешок занимает ровно одну «строку» высотой --line: доска нарисована фоном через каждые --line */
+/* полка: три доски, на каждой корешки в один ряд; не влезли — прокрутка внутри полки, за рамку ничего не вылезает */
 .shelf-scene{display:grid;grid-template-columns:120px minmax(0,1fr) 120px;gap:.8rem;align-items:stretch}
 .scene-side{display:flex;flex-direction:column;justify-content:space-around;align-items:center;gap:1rem;pointer-events:none}
 .scene-side img{width:112px;height:auto;filter:drop-shadow(0 8px 10px #12002d80)}
 .scene-side:first-child img:nth-child(2){transform:rotate(-6deg) translateX(-6px)}
 .scene-side:last-child img:nth-child(1){transform:rotate(5deg)}
-.bookcase{--line:222px;--board:12px;position:relative;display:grid;gap:.9rem;min-width:0;
- background:linear-gradient(180deg,#1d0840 0,#2a0f55 100%);border:10px solid #3a1a6e;border-top-width:16px;border-radius:20px;
- padding:1rem .9rem .3rem;box-shadow:inset 0 0 50px #0007,0 24px 40px -24px #000c}
-.case-top{position:absolute;right:6%;bottom:100%;width:118px;margin-bottom:6px;filter:drop-shadow(0 6px 8px #12002d80);pointer-events:none}
-.shelf-label{font-family:var(--body);font-weight:800;font-size:.95rem;margin:0 0 .3rem;color:var(--mut)}
+.bookcase{display:grid;gap:1.4rem;min-width:0;background:#ffffff0a;border:1px solid #ffffff14;border-radius:28px;padding:1.2rem 1.2rem .4rem}
+.shelf{min-width:0}
+.shelf-label{font-family:var(--body);font-weight:800;font-size:.95rem;margin:0 0 .5rem;color:var(--mut)}
 .shelf-label span{opacity:.7;font-weight:700;margin-left:.2rem}
-.shelf-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:0 4px;padding:0 .4rem;min-width:0;
- background:linear-gradient(to bottom,transparent calc(var(--line) - var(--board)),#5a2ba0 calc(var(--line) - var(--board)),
-   #5a2ba0 calc(var(--line) - var(--board) + 3px),#3a1a6e calc(var(--line) - var(--board) + 3px)) 0 0/100% var(--line);
- margin:0 -.4rem}
-.spine,.spine-set,.shelf-sitter{margin:calc(var(--line) - var(--board) - var(--h,150px)) 0 var(--board)}
-.spine{flex:none;width:var(--w);height:var(--h);border:0;background:var(--p-lilac);border-radius:4px 4px 2px 2px;padding:.5rem 0;color:var(--ink);cursor:grab;
+.shelf-row{position:relative;display:flex;align-items:flex-end;gap:4px;min-height:210px;padding:12px .6rem 0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;
+ border-bottom:12px solid #3a1a6e;box-shadow:0 14px 16px -12px #000a}
+.spine{flex:none;width:var(--w);height:var(--h);border:0;background:var(--p-lilac);border-radius:5px 5px 2px 2px;padding:.5rem 0;color:var(--ink);cursor:grab;
  display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;
  box-shadow:inset -5px 0 0 #26113f1f,inset 0 7px 0 #ffffff55,inset 0 -9px 0 #26113f26;transition:transform .2s cubic-bezier(.2,.8,.2,1)}
-.spine span{position:relative;writing-mode:vertical-rl;transform:rotate(180deg);font-weight:800;font-size:.72rem;line-height:1.1;max-height:100%;overflow:hidden;
+.spine span{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:800;font-size:.72rem;line-height:1.1;max-height:100%;overflow:hidden;
  text-overflow:ellipsis;white-space:nowrap;padding:0 .1rem}
-/* корешок из обложки: вертикальная полоска самой обложки + блик и тень, как у настоящей книги */
-.spine.cov{background:var(--cover) 14% 50%/auto 100% no-repeat,var(--p-lilac);color:#fff}
-.spine.cov::before{content:"";position:absolute;inset:0;
- background:linear-gradient(90deg,#000a 0,#0000 20%,#ffffff2e 45%,#0000 60%,#0008 100%),linear-gradient(#0000 70%,#0006)}
-.spine.cov span{background:#14052ca6;border-radius:4px;padding:.45rem .12rem;max-height:86%;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
-button.spine:hover,button.spine:focus-visible{transform:translateY(-8px)}
-.shelf-row>.spine:nth-child(7n+4){transform:rotate(-3deg);transform-origin:bottom left;margin-left:6px}
-.shelf-row>.spine:nth-child(7n+4):hover{transform:rotate(-3deg) translateY(-8px)}
-/* любимая серия: книги вплотную в обёртке, название — на ленте */
-.spine-set{--h:206px;position:relative;flex:none;display:flex;align-items:flex-end;gap:1px;height:var(--h);padding:0 4px 4px;
- border-radius:8px;background:#ff9a5a26;outline:2px solid #ff9a5a88;outline-offset:-1px;cursor:grab}
-.spine-set:hover{text-decoration:none;background:#ff9a5a3d}
-.spine.mini{height:calc(var(--h) - 12px);width:calc(var(--w) - 8px);margin:0;padding:0;cursor:inherit}
+button.spine:hover,button.spine:focus-visible{transform:translateY(-10px)}
+.shelf-row>.spine:nth-child(5n+3){transform:rotate(-4deg);transform-origin:bottom left;margin-left:8px}
+.shelf-row>.spine:nth-child(5n+3):hover{transform:rotate(-4deg) translateY(-10px)}
+/* любимая серия: её книги вплотную, название — на ленте поперёк */
+.spine-set{position:relative;flex:none;display:flex;align-items:flex-end;gap:1px;height:206px;padding:0 4px 4px;
+ border-radius:8px;background:#ff9a5a1f;outline:2px solid #ff9a5a88;outline-offset:-1px;cursor:grab}
+.spine-set:hover{text-decoration:none;background:#ff9a5a33}
+.spine.mini{height:calc(var(--h) - 4px);width:calc(var(--w) - 8px);padding:0;cursor:inherit}
 .set-label{position:absolute;left:-4px;right:-4px;top:38%;background:linear-gradient(160deg,#ff9a5a,#ff5f8a);color:#fff;font-weight:800;
  font-size:.72rem;line-height:1.2;text-align:center;padding:.3rem .4rem;border-radius:4px;box-shadow:0 6px 12px -6px #000a;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.shelf-sitter{--h:150px;flex:none;width:auto;height:var(--h);margin-left:auto;filter:drop-shadow(0 8px 10px #12002d80);pointer-events:none}
-.shelf-hint{justify-content:flex-start;align-items:baseline;gap:.8rem}
+/* «Читаю» обычно короткая: стопка лежащих книг и приведения */
+.shelf-decor{display:flex;align-items:flex-end;gap:.4rem;margin-left:auto;flex:none;pointer-events:none}
+.shelf-decor img{height:140px;width:auto;filter:drop-shadow(0 8px 10px #12002d80)}
+.shelf-decor img:first-of-type{height:96px}
+.stack{display:flex;flex-direction:column;align-items:center;gap:2px;margin-right:.6rem}
+.stack i{display:block;height:22px;border-radius:3px;box-shadow:inset 0 -5px 0 #26113f26,inset 6px 0 0 #ffffff55}
+.stack i:nth-child(1){width:96px;transform:translateX(6px)}.stack i:nth-child(2){width:112px}.stack i:nth-child(3){width:104px;transform:translateX(-4px)}
 .drag-ghost{opacity:.35}
-.drag-chosen{cursor:grabbing}
 .sortable-fallback{transform:rotate(4deg)!important;box-shadow:0 18px 30px -10px #000c!important}
+.shelf-hint{justify-content:flex-start;align-items:baseline;gap:.8rem}
 @media (max-width:900px){.shelf-scene{grid-template-columns:minmax(0,1fr)}.scene-side{display:none}}
-@media (max-width:560px){.bookcase{border-width:8px;border-top-width:12px;padding:.8rem .6rem .2rem}.shelf-sitter{--h:120px}.case-top{width:90px}}
+@media (max-width:560px){.bookcase{padding:1rem .7rem .3rem}.shelf-decor img{height:104px}.shelf-decor img:first-of-type{display:none}.stack{display:none}}
 .peek{border:0;border-radius:var(--r);background:var(--surface);color:var(--text);width:min(92vw,460px);padding:1.2rem;box-shadow:var(--shadow)}
 .peek::backdrop{background:#14052cb3}
 .peek-body{display:grid;grid-template-columns:120px 1fr;gap:1.1rem;align-items:start}
@@ -427,7 +427,7 @@ button.spine:hover,button.spine:focus-visible{transform:translateY(-8px)}
 .track{position:relative;flex:1;width:100%;padding-top:1.4rem;display:flex;align-items:flex-end;justify-content:center}
 .track::before{content:"";position:absolute;top:1.4rem;bottom:0;left:50%;transform:translateX(-50%);width:var(--bw);border-radius:12px 12px 6px 6px;background:#ffffff0b}
 .fill{position:relative;width:var(--bw);border-radius:12px 12px 6px 6px;transition:filter .15s;
- background:linear-gradient(180deg,color-mix(in oklab,var(--series) 55%,#fff),var(--series))}
+ background:linear-gradient(180deg,var(--top,color-mix(in oklab,var(--series) 55%,#fff)),var(--series))}
 .val{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);padding-bottom:4px;font-size:.78rem;font-weight:800;font-variant-numeric:tabular-nums}
 .col small{color:var(--mut);font-size:.72rem;margin-top:.45rem;white-space:nowrap;font-weight:700}
 .col:not(:disabled):hover .fill,.col[aria-pressed="true"] .fill{filter:brightness(1.15) saturate(1.1)}
@@ -441,6 +441,11 @@ button.spine:hover,button.spine:focus-visible{transform:translateY(-8px)}
 .donut-wrap{display:flex;flex-direction:column;gap:1rem;align-items:stretch}
 .donut-ring{position:relative;width:180px;margin:0 auto;flex:none}
 .donut{display:block;width:100%}
+.donut circle{cursor:pointer;transition:opacity .15s,stroke-width .15s}
+.hovering .donut circle{opacity:.25}.hovering .donut circle.hot{opacity:1;stroke-width:28}
+.hovering .legend li{opacity:.45;transition:opacity .15s}.hovering .legend li.hot{opacity:1}
+.legend li.hot button{background:var(--surface-2)}
+.donut-center span{max-width:110px;text-align:center;line-height:1.2}
 .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .donut-center b{font-family:var(--display);font-size:1.7rem;line-height:1}.donut-center span{color:var(--mut);font-size:.8rem}
 .legend,.hbars{list-style:none;margin:0;padding:0;flex:1;min-width:0}
@@ -453,7 +458,7 @@ button.spine:hover,button.spine:focus-visible{transform:translateY(-8px)}
 .hbars button{flex-wrap:wrap;gap:.3rem .6rem;padding:.45rem .5rem}
 .hbars .name{flex:1 1 auto}
 .hbar{flex:1 0 100%;order:3;height:12px;border-radius:999px;background:#ffffff0b}
-.hbar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--series),color-mix(in oklab,var(--series) 55%,#fff))}
+.hbar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--series),var(--top,color-mix(in oklab,var(--series) 55%,#fff)))}
 /* год за годом: клетки фиксированного размера, не растягиваются на всю ширину */
 .heat{display:grid;grid-template-columns:3.2rem repeat(12,40px) 3.4rem;gap:5px;width:max-content;font-variant-numeric:tabular-nums}
 .heat span{display:flex;align-items:center;justify-content:center;height:36px;border-radius:10px;font-size:.88rem;font-weight:800}

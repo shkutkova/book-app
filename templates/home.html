@@ -81,15 +81,14 @@
 </div>
 {% endif %}
 
-{# Полка: корешки из обложек (полоска обложки + название), высота и толщина — от числа страниц.
-   Любимая серия стоит целиком, в обёртке с названием. Корешки можно перетаскивать — порядок сохраняется.
-   Клик по книге — окошко с карточкой, по серии — страница серии. #}
+{# Полка: нарисованные корешки с названиями; высота и толщина — от числа страниц, цвет — от книги.
+   Любимая серия (огонёк у серии) стоит целиком, в обёртке с названием. Корешки можно перетаскивать —
+   порядок сохраняется. Клик по книге — окошко с карточкой, по серии — страница серии. #}
 {% macro size(p) -%}
 {%- set p = [p or 300, 900]|min -%}--h:{{ 132 + (p * 70 / 900)|int }}px;--w:{{ 34 + (p * 16 / 900)|int }}px
 {%- endmacro %}
 {% macro spine(b) -%}
-<button type="button" class="spine {{ 'cov' if b.cover_url else 'tone-' ~ b.id % 6 }}" data-key="{{ b.key }}"
-        style="{{ size(b.pages) }}{% if b.cover_url %};--cover:url('{{ b.cover_url }}'){% endif %}"
+<button type="button" class="spine tone-{{ b.id % 6 }}" data-key="{{ b.key }}" style="{{ size(b.pages) }}"
         data-book='{{ {"id": b.id, "t": b.title_ru or b.title, "a": b.authors or "", "c": b.cover_url or "", "s": STATUS[b.status],
                       "st": b.status, "r": (b.rating|float|round|int) if b.rating is not none else 0, "p": b.pages or 0, "f": b.is_favorite}|tojson }}'>
   <span>{{ b.title_ru or b.title }}</span>
@@ -97,8 +96,7 @@
 {%- endmacro %}
 {% macro series_set(s) -%}
 <a class="spine-set" href="/series/{{ s.id }}" data-key="{{ s.key }}" title="{{ s.title }}" draggable="false">
-  {% for b in s.books[:8] %}<i class="spine mini {{ 'cov' if b.cover_url else 'tone-' ~ b.id % 6 }}"
-     style="{{ size(b.pages) }}{% if b.cover_url %};--cover:url('{{ b.cover_url }}'){% endif %}"></i>{% endfor %}
+  {% for b in s.books[:8] %}<i class="spine mini tone-{{ b.id % 6 }}" style="{{ size(b.pages) }}"></i>{% endfor %}
   <span class="set-label">{{ s.title }}</span>
 </a>
 {%- endmacro %}
@@ -112,20 +110,25 @@
     <img src="/static/img/booky/1-09.webp" alt="" loading="lazy">
   </div>
   <div class="bookcase">
-    <img class="case-top" src="/static/img/booky/2-17.webp" alt="" loading="lazy">
     {% for key, title, items in shelves if items %}
     <section class="shelf">
       <h3 class="shelf-label">{{ title }} <span>{{ items|length }}</span></h3>
       <div class="shelf-row" data-shelf="{{ key }}">
         {% for it in items %}{{ series_set(it) if it.is_series else spine(it) }}{% endfor %}
-        {% if key == 'reading' %}<img class="shelf-sitter" src="/static/img/booky/1-07.webp" alt="" loading="lazy">{% endif %}
+        {% if key == 'reading' %}
+        <span class="shelf-decor" aria-hidden="true">
+          <span class="stack"><i class="tone-3"></i><i class="tone-2"></i><i class="tone-5"></i></span>
+          <img src="/static/img/booky/2-23.webp" alt="" loading="lazy">
+          <img src="/static/img/booky/1-07.webp" alt="" loading="lazy">
+        </span>
+        {% endif %}
       </div>
     </section>
     {% endfor %}
   </div>
   <div class="scene-side" aria-hidden="true">
     <img src="/static/img/booky/2-13.webp" alt="" loading="lazy">
-    <img src="/static/img/booky/2-22.webp" alt="" loading="lazy">
+    <img src="/static/img/booky/2-21.webp" alt="" loading="lazy">
   </div>
 </div>
 
