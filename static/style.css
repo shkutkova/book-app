@@ -384,8 +384,8 @@ button.spine:hover,button.spine:focus-visible{transform:translateY(-10px)}
 .book-card{position:relative;display:flex;flex-direction:column;justify-content:flex-start;gap:.45rem;color:var(--text);background:var(--surface);border-radius:18px;padding:.5rem .5rem .6rem;
  box-shadow:0 12px 24px -16px #12002d;transition:background .15s}
 .book-card:hover{text-decoration:none;background:var(--surface-2)}
-/* обложка почти во всю ширину карточки, пропорции 2:3 — не растягивается */
-.book-card .cv{position:relative;display:block;width:90%;margin:0 auto}
+/* обложка во всю ширину карточки, пропорции 2:3 — не растягивается */
+.book-card .cv{position:relative;display:block;width:100%;margin:0 auto}
 .book-card .cover{display:block;width:100%;flex:none}.book-card .cover .t{display:none}
 .book-card .cover img,.book-card .cover .img{border-radius:10px}
 .book-card .cover .img{font-size:.8rem;padding:.7rem}
