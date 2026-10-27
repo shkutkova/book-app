@@ -75,12 +75,14 @@ def home(user_id: str) -> dict:
                   join book_authors ba on ba.book_id = sb.book_id and ba.role = 'author'
                   join authors a on a.id = ba.author_id
                   where sb.series_id = sp.id) a) as authors,
-               -- статусы основных книг по порядку: из них рисуются корешки
-               (select array_agg(coalesce(o.status::text, 'none') order by o.sort_position nulls last)
-                  from series_books_ordered o
+               -- основные книги по порядку: обложки в карточке серии
+               (select json_agg(json_build_object('id', b.id, 'title', coalesce(b.title_ru, b.title),
+                                                  'cover_url', b.cover_url, 'status', o.status)
+                                order by o.sort_position nulls last)
+                  from series_books_ordered o join books b on b.id = o.book_id
                  where o.user_id = %(u)s and o.series_id = sp.id
                    and (o.official_position is null or o.official_position = trunc(o.official_position))
-                   and o.status is distinct from 'skipped') as statuses
+                   and o.status is distinct from 'skipped') as books
         from series_progress sp
         where sp.user_id = %(u)s and sp.status = 'in_progress'
         order by sp.is_reading desc, sp.finished_books::float / greatest(sp.total_books, 1) desc, sp.name""", u)

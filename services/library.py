@@ -74,7 +74,14 @@ def save_book(user_id: str, book_id: int, form: dict) -> None:
     """Сохраняет «мою» часть книги. При смене статуса автоматически ведёт прочтения:
     - стала «Читаю» → открывается прочтение с датой начала (сегодня, если не указана);
     - стала «Прочитано» → открытое прочтение закрывается (или создаётся новое) с датой окончания.
-    Просто изменить оценку у прочитанной книги — новое прочтение НЕ создаётся."""
+    Просто изменить оценку у прочитанной книги — новое прочтение НЕ создаётся.
+    Поля, которых нет в форме, не меняются: на странице книги статус, «избранное»
+    и настройки — отдельные формы."""
+    keep = fetch_one("""select l.status, l.rating, l.is_favorite, l.my_genre_id, l.notes, b.title_ru
+                        from books b left join library l on l.book_id = b.id and l.user_id = %s
+                        where b.id = %s""", (user_id, book_id)) or {}
+    form = {**{k: ("on" if v is True else "" if v in (None, False) else str(v))
+                for k, v in keep.items() if k not in form}, **form}
     status = form.get("status")
     if status not in STATUSES:
         raise ValidationError("Неизвестный статус")

@@ -14,13 +14,12 @@
 {% block nav %}
 {% set path = request.url.path %}
 <nav>
-  <a class="logo" href="/"><img src="/static/img/chars/star.png" alt="">Мои книги</a>
+  <a class="logo" href="/"><img src="/static/img/booky/2-11.webp" alt="">Мои книги</a>
   <div class="links">
   <a href="/" class="{{ 'on' if path == '/' }}">Главная</a>
   <a href="/books" class="{{ 'on' if path.startswith('/books') or path.startswith('/add/book') }}">Книги</a>
   <a href="/series" class="{{ 'on' if path.startswith('/series') }}">Серии</a>
   <a href="/fanfics" class="{{ 'on' if path.startswith('/fanfics') or path.startswith('/add/ficbook') }}">Фанфики</a>
-  <a href="/stats" class="{{ 'on' if path.startswith('/stats') }}">Статистика</a>
   </div>
   <details class="add-menu">
     <summary>+ Добавить</summary>

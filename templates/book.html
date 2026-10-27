@@ -1,119 +1,217 @@
 {% extends "base.html" %}
 {% from "_macros.html" import cover %}
-{% block title %}{{ b.title }}{% endblock %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ b.title_ru or b.title }}{% endblock %}
+{% set MOODS = {'dark': 'мрачная', 'emotional': 'эмоциональная', 'tense': 'напряжённая', 'mysterious': 'загадочная',
+                'funny': 'смешная', 'sad': 'грустная', 'adventurous': 'приключенческая', 'challenging': 'непростая',
+                'reflective': 'вдумчивая', 'hopeful': 'обнадёживающая', 'lighthearted': 'лёгкая', 'inspiring': 'вдохновляющая',
+                'relaxing': 'спокойная', 'informative': 'познавательная'} %}
+{% set last = b.reads[0] if b.reads else none %}
 {% block content %}
-<div class="book-head" style="margin-top:1rem">
-  <div>{{ cover(b, link=False) }}
-    <p class="small" style="text-align:center;margin:.4rem 0 0"><a href="/book/{{ b.id }}/covers">{{ 'Другая обложка' if b.cover_url else 'Найти обложку' }}</a></p></div>
-  <div>
-    <h1>{{ b.title }}</h1>
-    {% if b.title_ru %}<p class="sub" style="margin:0">{{ b.title_ru }}</p>{% endif %}
-    <p>{{ b.authors or '' }}</p>
-    {% for s in b.series %}
-      <p><a href="/series/{{ s.id }}">{{ s.name }}</a>{% if s.sort_position is not none %}, книга {{ s.sort_position|position }}{% endif %} <span class="muted">из {{ s.books_count }}</span></p>
-    {% endfor %}
-    {% if b.kind == 'fanfic' %}
-      {% set meta = b.ficbook_meta or {} %}
-      <p class="small"><span class="badge">Фанфик</span>
-        {% if b.work_status %} <span class="badge">{{ WORK_STATUS[b.work_status] }}</span>{% endif %}
-        {% if meta.get('direction') %} <span class="badge">{{ meta.direction }}</span>{% endif %}
-        {% if meta.get('rating') %} <span class="badge">{{ meta.rating }}</span>{% endif %}
-        {% if meta.get('translation') %} <span class="badge">Перевод</span>{% endif %}</p>
-      {% if b.fandoms %}<p class="small"><span class="muted">Фэндом:</span> {{ b.fandoms|join(', ') }}</p>{% endif %}
-      {% if b.pairings %}<p class="small"><span class="muted">Пейринг:</span> {{ b.pairings|join(', ') }}</p>{% endif %}
-    {% endif %}
-    <p class="muted small">
-      {% if b.pages %}{{ b.pages }} стр.{% endif %}
-      {% if b.words %} · {{ '{:,}'.format(b.words).replace(',', ' ') }} слов{% endif %}
-      {% if b.parts %} · частей: {{ b.parts }}{% endif %}
-      {% if b.release_date %} · вышла {{ b.release_date|ru_date }}{% endif %}
-    </p>
-    {% if b.status %}<span class="badge {{ b.status }}">{{ STATUS[b.status] }}</span> <span class="stars">{{ b.rating|stars }}</span>{% if b.is_favorite %} ❤️{% endif %}{% endif %}
-    {% if b.source_url %}<p class="small"><a href="{{ b.source_url }}" target="_blank" rel="noopener">{{ 'Читать на ficbook' if 'ficbook.net' in b.source_url else 'Где читать' }}</a></p>{% endif %}
-    {% if b.hardcover_slug %}<p class="small"><a href="https://hardcover.app/books/{{ b.hardcover_slug }}" target="_blank" rel="noopener">Открыть в Hardcover</a></p>{% endif %}
-    {% if b.hardcover_slug %}
-    <form method="post" action="/book/{{ b.id }}/refresh" class="small"><button class="link">Обновить из Hardcover</button> <span class="muted">— {{ 'обложка, жанры' if b.kind == 'fanfic' else 'описание, обложка, жанры, вся серия' }}</span></form>
-    {% endif %}
-    <p class="small"><a href="/add/book?{{ {'link': b.id, 'q': b.title}|urlencode }}">{{ 'Связать с другой книгой Hardcover' if b.hardcover_slug else 'Найти в Hardcover' }}</a>{% if not b.hardcover_slug %} <span class="muted">— {{ 'если это перевод, оттуда возьмётся обложка оригинала' if b.kind == 'fanfic' else 'обложка, описание, серия' }}</span>{% endif %}</p>
+<section class="book-hero">
+  <div class="book-cover">
+    {{ cover(b, link=False) }}
   </div>
-</div>
+
+  <div class="book-main">
+    <div class="title-block">
+      {% if b.kind == 'fanfic' %}<span class="tag fanfic">фанфик</span>{% endif %}
+      <h1>{{ b.title_ru or b.title }}</h1>
+      {% if b.title_ru %}<p class="orig">{{ b.title }}</p>{% endif %}
+      {% if b.authors %}<p class="by">{{ b.authors }}</p>{% endif %}
+      {% for s in b.series %}
+      <p class="in-series"><a href="/series/{{ s.id }}">{{ s.name_ru or s.name }}</a>{% if s.sort_position is not none %} · книга {{ s.sort_position|position }}{% endif %} из {{ s.books_count }}</p>
+      {% endfor %}
+      <p class="facts">
+        {% if b.pages %}<span>{{ b.pages }} стр.</span>{% endif %}
+        {% if b.words %}<span>{{ '{:,}'.format(b.words).replace(',', ' ') }} слов</span>{% endif %}
+        {% if b.parts %}<span>частей: {{ b.parts }}</span>{% endif %}
+        {% if b.release_date %}<span>вышла {{ b.release_date|ru_date }}</span>{% endif %}
+        {% if b.work_status %}<span>{{ WORK_STATUS[b.work_status] }}</span>{% endif %}
+      </p>
+    </div>
+
+    {% if not b.in_library %}
+    <form method="post" action="/book/{{ b.id }}/add" class="actions">
+      <button class="primary">{{ icon('want_to_read') }} Добавить в «Хочу прочитать»</button>
+    </form>
+    {% else %}
+    <div class="actions">
+      <details class="status-menu st-{{ b.status }}">
+        <summary>{{ icon(b.status) }} {{ STATUS[b.status] }} {{ icon('chevron', 16) }}</summary>
+        <form method="post" action="/book/{{ b.id }}" class="menu">
+          {% for k, v in STATUS.items() %}
+          <button name="status" value="{{ k }}" class="st-{{ k }}" {{ 'aria-current=true' if b.status == k }}>{{ icon(k) }} {{ v }}</button>
+          {% endfor %}
+          <div class="dates">
+            <p class="small muted">Даты — для смены статуса на «Читаю» или «Прочитано». Пусто — сегодня.</p>
+            <label>Начала <input type="date" name="started_at" max="{{ today }}"></label>
+            <label>Дочитала <input type="date" name="finished_at" max="{{ today }}"></label>
+          </div>
+        </form>
+      </details>
+
+      <form method="post" action="/book/{{ b.id }}">
+        <input type="hidden" name="is_favorite" value="{{ '' if b.is_favorite else 'on' }}">
+        <button class="fav {{ 'on' if b.is_favorite }}" aria-pressed="{{ 'true' if b.is_favorite else 'false' }}"
+                title="{{ 'Убрать из избранного' if b.is_favorite else 'В избранное' }}">{{ icon('flame', 20) }}<span>{{ 'Любимая' if b.is_favorite else 'В избранное' }}</span></button>
+      </form>
+    </div>
+
+    {% if b.status in ('finished', 'dnf') %}
+    <form method="post" action="/book/{{ b.id }}" class="rate" aria-label="Оценка">
+      {% set r = b.rating|float if b.rating is not none else 0 %}
+      {% for n in range(1, 6) %}
+      <button name="rating" value="{{ '' if r == n else n }}" class="{{ 'on' if n <= r }}" title="{{ 'Убрать оценку' if r == n else n ~ ' из 5' }}">{{ icon('star', 26) }}</button>
+      {% endfor %}
+      {% if r %}<span class="muted small">{{ '%g'|format(r) }} из 5</span>{% endif %}
+    </form>
+    {% else %}
+    <p class="muted small rate-hint">Оценку можно поставить, когда книга прочитана.</p>
+    {% endif %}
+
+    {% if last and (last.started_at or last.finished_at) %}
+    <p class="read-dates">{{ icon('calendar', 16) }}
+      {% if last.started_at %}начала {{ last.started_at|ru_date }}{% endif %}
+      {% if last.started_at and last.finished_at %} — {% endif %}
+      {% if last.finished_at %}дочитала {{ last.finished_at|ru_date }}{% endif %}
+      {% if b.reads|length > 1 %}<span class="muted">· прочтений: {{ b.reads|length }}</span>{% endif %}</p>
+    {% endif %}
+    {% endif %}
+  </div>
+</section>
 
 {% if b.description_ru or b.description %}
-<div class="card" style="margin-top:1.2rem"><p class="desc" style="margin:0">{{ b.description_ru or b.description }}</p></div>
-{% endif %}
-
-{% if b.kind == 'fanfic' and (b.ficbook_meta or {}).get('tags') %}
-<div class="card">
-  <p style="margin:0"><strong>Метки:</strong> {{ b.ficbook_meta.tags|join(', ') }}</p>
-  {% if b.ficbook_meta.get('original_url') %}<p class="small" style="margin-bottom:0"><a href="{{ b.ficbook_meta.original_url }}" target="_blank" rel="noopener">Оригинал</a>{% if b.ficbook_meta.get('original_author') %} · {{ b.ficbook_meta.original_author }}{% endif %}</p>{% endif %}
-</div>
+<section class="card about">
+  <p class="desc">{{ b.description_ru or b.description }}</p>
+</section>
 {% endif %}
 
 {% set tags = b.hardcover_tags or {} %}
-{% if tags.get('genres') or tags.get('moods') %}
-<div class="card">
-  {% if tags.get('genres') %}<p><strong>Жанры:</strong> {{ tags.genres|join(', ') }}</p>{% endif %}
-  {% if tags.get('moods') %}<p><strong>Настроение:</strong> {{ tags.moods|join(', ') }}</p>{% endif %}
-  {% if tags.get('content_warnings') %}<details><summary>Предупреждения о содержимом</summary><p>{{ tags.content_warnings|join(', ') }}</p></details>{% endif %}
-</div>
+{% set meta = b.ficbook_meta or {} %}
+{% if tags.get('genres') or tags.get('moods') or b.fandoms or b.pairings or meta.get('tags') %}
+<section class="card tags-card">
+  {% if b.fandoms or b.pairings or meta.get('direction') or meta.get('rating') %}
+  <div class="pill-row">
+    {% for f in b.fandoms or [] %}<span class="chip t-lilac">{{ icon('tag', 14) }}{{ f }}</span>{% endfor %}
+    {% for p in b.pairings or [] %}<span class="chip t-pink">{{ p }}</span>{% endfor %}
+    {% if meta.get('direction') %}<span class="chip t-sky">{{ meta.direction }}</span>{% endif %}
+    {% if meta.get('rating') %}<span class="chip t-peach">{{ meta.rating }}</span>{% endif %}
+    {% if meta.get('translation') %}<span class="chip t-mint">перевод</span>{% endif %}
+  </div>
+  {% endif %}
+  {% if tags.get('genres') %}
+  <h2>Жанры</h2>
+  <div class="pill-row">{% for g in tags.genres %}<span class="chip genre">{{ icon('tag', 14) }}{{ g }}</span>{% endfor %}</div>
+  {% endif %}
+  {% if tags.get('moods') %}
+  <h2>Настроение</h2>
+  {% set tones = ['t-pink', 't-mint', 't-butter', 't-sky', 't-lilac', 't-peach'] %}
+  <div class="pill-row">{% for m in tags.moods %}<span class="chip {{ tones[loop.index0 % 6] }}">{{ icon('mood', 14) }}{{ MOODS.get(m|lower, m) }}</span>{% endfor %}</div>
+  {% endif %}
+  {% if meta.get('tags') %}
+  <h2>Метки</h2>
+  <div class="pill-row">{% for t in meta.tags %}<span class="chip genre">{{ t }}</span>{% endfor %}</div>
+  {% endif %}
+  {% if tags.get('content_warnings') %}
+  <details class="warn"><summary>Предупреждения о содержимом</summary><p class="small">{{ tags.content_warnings|join(', ') }}</p></details>
+  {% endif %}
+</section>
 {% endif %}
 
-{% if not b.in_library %}
-<form method="post" action="/book/{{ b.id }}/add" class="card">
-  <p>Этой книги нет в твоей библиотеке.</p>
-  <button class="primary">Добавить в «Хочу прочитать»</button>
-</form>
-{% else %}
-<form method="post" action="/book/{{ b.id }}" class="card">
-  <h2>Моё</h2>
-  <div class="form-grid">
-    <div><label for="status">Статус</label>
-      <select id="status" name="status">{% for k, v in STATUS.items() %}<option value="{{ k }}" {{ 'selected' if b.status == k }}>{{ v }}</option>{% endfor %}</select></div>
-    <div><label for="rating">Оценка</label>
-      <select id="rating" name="rating"><option value="">—</option>
-        {% for r in [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5] %}<option value="{{ r }}" {{ 'selected' if b.rating is not none and b.rating|float == r }}>{{ r|stars }} {{ r }}</option>{% endfor %}</select></div>
-    <div><label for="genre">Мой жанр</label>
-      <select id="genre" name="my_genre_id"><option value="">—</option>
-        {% for g in genres %}<option value="{{ g.id }}" {{ 'selected' if b.my_genre_id == g.id }}>{{ g.name }}</option>{% endfor %}</select></div>
+<details class="card settings">
+  <summary>{{ icon('gear') }} Настройки книги</summary>
+  <div class="links">
+    {% if b.source_url %}<a href="{{ b.source_url }}" target="_blank" rel="noopener">{{ icon('link', 16) }} {{ 'Читать на ficbook' if 'ficbook.net' in b.source_url else 'Где читать' }}</a>{% endif %}
+    {% if meta.get('original_url') %}<a href="{{ meta.original_url }}" target="_blank" rel="noopener">{{ icon('link', 16) }} Оригинал{% if meta.get('original_author') %} · {{ meta.original_author }}{% endif %}</a>{% endif %}
+    {% if b.hardcover_slug %}<a href="https://hardcover.app/books/{{ b.hardcover_slug }}" target="_blank" rel="noopener">{{ icon('link', 16) }} Открыть в Hardcover</a>{% endif %}
+    <a href="/book/{{ b.id }}/covers" id="find-cover">{{ icon('image', 16) }} {{ 'Другая обложка' if b.cover_url else 'Найти обложку' }}</a>
+    <a href="/add/book?{{ {'link': b.id, 'q': b.title}|urlencode }}">{{ icon('link', 16) }} {{ 'Связать с другой книгой Hardcover' if b.hardcover_slug else 'Найти в Hardcover' }}</a>
+    {% if b.hardcover_slug %}
+    <form method="post" action="/book/{{ b.id }}/refresh"><button class="link">{{ icon('refresh', 16) }} Обновить из Hardcover</button></form>
+    {% endif %}
   </div>
-  <div class="form-grid">
-    <div><label for="started_at">Начала читать</label><input type="date" id="started_at" name="started_at" max="{{ today }}"></div>
-    <div><label for="finished_at">Дочитала</label><input type="date" id="finished_at" name="finished_at" max="{{ today }}"></div>
-  </div>
-  <p class="muted small">Даты нужны, только когда меняешь статус на «Читаю» или «Прочитано». Если не указать — будет сегодняшняя.</p>
-  <label class="check"><input type="checkbox" name="is_favorite" {{ 'checked' if b.is_favorite }}> ❤️ Избранное</label>
-  <label for="title_ru">Название на русском</label><input id="title_ru" name="title_ru" value="{{ b.title_ru or '' }}" style="width:100%">
-  <label for="notes">Заметки</label><textarea id="notes" name="notes">{{ b.notes or '' }}</textarea>
-  <label for="cover_url">Своя обложка — ссылка на картинку</label>
-  <input id="cover_url" name="cover_url" value="{{ b.cover_url or '' }}" placeholder="https://... (Pinterest: правой кнопкой по картинке → «Копировать адрес изображения»)" style="width:100%">
-  <details>
-    <summary>Ссылка на Hardcover вручную</summary>
+  <p class="muted small">{% if b.hardcover_slug %}«Обновить» подтянет {{ 'обложку и жанры' if b.kind == 'fanfic' else 'описание, обложку, жанры и всю серию' }}.{% else %}«Найти в Hardcover» — {{ 'если это перевод, оттуда возьмётся обложка оригинала' if b.kind == 'fanfic' else 'обложка, описание, серия' }}.{% endif %}</p>
+
+  {% if b.in_library %}
+  <form method="post" action="/book/{{ b.id }}">
+    <div class="form-grid">
+      <div><label for="genre">Мой жанр</label>
+        <select id="genre" name="my_genre_id"><option value="">—</option>
+          {% for g in genres %}<option value="{{ g.id }}" {{ 'selected' if b.my_genre_id == g.id }}>{{ g.name }}</option>{% endfor %}</select></div>
+      <div><label for="title_ru">Название на русском</label><input id="title_ru" name="title_ru" value="{{ b.title_ru or '' }}" style="width:100%"></div>
+    </div>
+    <label for="notes">Заметки</label><textarea id="notes" name="notes">{{ b.notes or '' }}</textarea>
+    <label for="cover_url">Своя обложка — ссылка на картинку</label>
+    <input id="cover_url" name="cover_url" value="{{ b.cover_url or '' }}" placeholder="https://... (Pinterest: правой кнопкой по картинке → «Копировать адрес изображения»)" style="width:100%">
     <label for="hardcover_link">Ссылка на книгу в Hardcover</label>
     <input id="hardcover_link" name="hardcover_link" value="{{ 'https://hardcover.app/books/' ~ b.hardcover_slug if b.hardcover_slug else '' }}" placeholder="https://hardcover.app/books/..." style="width:100%">
-    <p class="muted small">Обычно проще «Найти в Hardcover» вверху. Если вставляешь ссылку сама — сохрани и нажми «Обновить из Hardcover».</p>
-  </details>
-  <p><button class="primary">Сохранить</button></p>
-</form>
+    <p><button class="primary">Сохранить</button></p>
+  </form>
 
-<div class="card">
   <h2>Прочтения</h2>
   {% for r in b.reads %}
-  <form method="post" action="/book/{{ b.id }}/reads/{{ r.id }}" style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem">
+  <form method="post" action="/book/{{ b.id }}/reads/{{ r.id }}" class="read-row">
     <input type="date" name="started_at" value="{{ r.started_at or '' }}" max="{{ today }}" aria-label="Начало">
     <span class="muted">—</span>
     <input type="date" name="finished_at" value="{{ r.finished_at or '' }}" max="{{ today }}" aria-label="Окончание">
     <button>Сохранить даты</button>
     <button class="link" formaction="/book/{{ b.id }}/reads/{{ r.id }}/delete" onclick="return confirm('Удалить это прочтение?')">Удалить</button>
   </form>
-  {% else %}<p class="muted">Прочтений пока нет. Они появятся, когда поставишь статус «Читаю» или «Прочитано».</p>{% endfor %}
+  {% else %}<p class="muted small">Прочтений пока нет. Они появятся, когда поставишь статус «Читаю» или «Прочитано».</p>{% endfor %}
   {% if b.status == 'finished' %}
-  <details><summary>Перечитала</summary>
-    <form method="post" action="/book/{{ b.id }}/reads" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem">
+  <details><summary class="small">Перечитала</summary>
+    <form method="post" action="/book/{{ b.id }}/reads" class="read-row" style="margin-top:.5rem">
       <input type="date" name="started_at" max="{{ today }}" aria-label="Начало"> <input type="date" name="finished_at" max="{{ today }}" aria-label="Окончание">
       <button>Добавить прочтение</button>
     </form>
   </details>
   {% endif %}
-</div>
-{% endif %}
+  {% endif %}
+</details>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<dialog class="covers-dialog" id="covers">
+  <div class="dialog-head"><h2>Выбрать обложку</h2><button class="link" value="close" onclick="this.closest('dialog').close()">Закрыть</button></div>
+  <div class="covers-grid" id="covers-grid"></div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Меню статуса закрывается по клику мимо
+document.addEventListener('click', e => document.querySelectorAll('.status-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
+
+// «Найти обложку»: сначала спрашиваем варианты; нет — подсказка на месте, есть — окно выбора
+const toast = document.getElementById('toast');
+function say(text) {
+  toast.textContent = text; toast.hidden = false;
+  clearTimeout(say.t); say.t = setTimeout(() => toast.hidden = true, 5000);
+}
+document.getElementById('find-cover').addEventListener('click', async e => {
+  e.preventDefault();
+  const link = e.currentTarget; const label = link.lastChild.textContent;
+  link.lastChild.textContent = ' Ищу обложки…'; link.setAttribute('aria-busy', 'true');
+  try {
+    const r = await fetch(`/book/{{ b.id }}/covers.json`);
+    const data = await r.json();
+    if (!data.covers.length) {
+      say('Обложка не нашлась' + (data.failed.length ? ` (не ответили: ${data.failed.join(', ')})` : '') +
+          '. Можно вставить свою ссылку на картинку ниже, в поле «Своя обложка».');
+      return;
+    }
+    const grid = document.getElementById('covers-grid'); grid.replaceChildren();
+    for (const c of data.covers) {
+      const f = document.createElement('form'); f.method = 'post'; f.action = `/book/{{ b.id }}/cover`;
+      f.innerHTML = '<input type="hidden" name="cover_url"><button class="pick"><img alt="" loading="lazy"><span class="src"></span></button>';
+      f.querySelector('input').value = c.url; f.querySelector('img').src = c.url;
+      f.querySelector('img').onerror = () => f.remove();
+      f.querySelector('.src').textContent = c.source; f.querySelector('button').title = c.label || '';
+      grid.append(f);
+    }
+    document.getElementById('covers').showModal();
+  } catch { say('Не получилось спросить обложки — попробуй ещё раз чуть позже.'); }
+  finally { link.lastChild.textContent = label; link.removeAttribute('aria-busy'); }
+});
+</script>
 {% endblock %}

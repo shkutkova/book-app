@@ -2,7 +2,7 @@
 {% block title %}Статистика{% endblock %}
 {% block content %}
 <div class="stats-head">
-  <h1>Статистика</h1>
+  <h1 class="with-booky"><img src="/static/img/booky/1-03.webp" alt="">Статистика</h1>
   <select id="period" aria-label="Период"></select>
 </div>
 
@@ -55,7 +55,7 @@ const THIS_YEAR = {{ year }};
 const MONTHS = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
 const MONTHS_FULL = ['январе','феврале','марте','апреле','мае','июне','июле','августе','сентябре','октябре','ноябре','декабре'];
 const PAGE_BUCKETS = [[1,100],[101,200],[201,300],[301,400],[401,500],[501,600],[601,1000],[1001,Infinity]];
-const RATINGS = [0.5,1,1.5,2,2.5,3,3.5,4,4.5,5];
+const RATINGS = [1, 2, 3, 4, 5];  // оценки целые: половинок нет
 const SLOTS = ['--c1','--c2','--c3','--c4','--c5','--c6'];
 
 const $ = id => document.getElementById(id);
@@ -281,7 +281,7 @@ function drawRatings(list) {
   const u = unique(list).filter(b => b.r != null);
   if (!u.length) { $('rating-lead').textContent = ''; return empty($('rating-chart'), 'Оценок за этот период нет'); }
   const items = RATINGS.map(v => {
-    const l = u.filter(b => b.r === v);
+    const l = u.filter(b => Math.round(b.r) === v);
     return {label: String(v).replace('.', ','), title: `Оценка ${String(v).replace('.', ',')} ★`, list: l, value: l.length};
   });
   bars($('rating-chart'), items, pickRating, books);

@@ -71,8 +71,9 @@ def simple_md(text: str | None) -> Markup:
 templates.env.filters.update(ru_date=ru_date, stars=stars, position=position, md=simple_md)
 templates.env.globals.update(LOGIN_ON=auth.password, STATUS=queries.STATUS_NAMES, SERIES_STATUS=queries.SERIES_STATUS_NAMES,
                              WORK_STATUS=queries.WORK_STATUS_NAMES,
-                             # ?v=<хеш> у стилей: после выкладки браузер берёт новый файл, а не старый из кэша
-                             CSS_V=hashlib.md5((Path(__file__).parent.parent / "static" / "style.css").read_bytes()).hexdigest()[:8])
+                             # ?v=<хеш> у стилей и скриптов: после выкладки браузер берёт новые файлы, а не из кэша
+                             CSS_V=hashlib.md5(b"".join((Path(__file__).parent.parent / "static" / f).read_bytes()
+                                                        for f in ("style.css", "filters.js"))).hexdigest()[:8])
 
 
 def back(url: str, error: str | None = None) -> RedirectResponse:
@@ -283,6 +284,16 @@ def covers_page(request: Request, book_id: int):
     return templates.TemplateResponse(request, "covers.html", {"b": b, "covers": found, "failed": failed})
 
 
+@router.get("/book/{book_id}/covers.json")
+def covers_json(book_id: int):
+    """То же для окна выбора на странице книги: нет вариантов — страница покажет подсказку на месте."""
+    b = queries.book_detail(current_user_id(), book_id)
+    if not b:
+        raise HTTPException(404, "Книга не найдена")
+    found, failed = covers.candidates(b)
+    return {"covers": found, "failed": failed}
+
+
 @router.post("/book/{book_id}/cover")
 async def cover_save(request: Request, book_id: int):
     form = dict(await request.form())
@@ -323,13 +334,13 @@ def _library_list(request: Request, rows: list[dict], **page):
 
 @router.get("/books", response_class=HTMLResponse)
 def books_page(request: Request):
-    return _library_list(request, queries.books(current_user_id()), title="Книги",
+    return _library_list(request, queries.books(current_user_id()), title="Книги", booky="/static/img/booky/1-02.webp",
                          add_url="/add/book", add_what="книгу", empty_text="Книг пока нет.")
 
 
 @router.get("/fanfics", response_class=HTMLResponse)
 def fanfics_page(request: Request):
-    return _library_list(request, queries.fanfics(current_user_id()), title="Фанфики",
+    return _library_list(request, queries.fanfics(current_user_id()), title="Фанфики", booky="/static/img/booky/2-18.webp",
                          add_url="/add/ficbook", add_what="фанфик", empty_text="Фанфиков пока нет.")
 
 

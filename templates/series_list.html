@@ -1,25 +1,46 @@
 {% extends "base.html" %}
-{% from "_macros.html" import cover %}
 {% block title %}Серии{% endblock %}
 {% block content %}
-<h1>Серии</h1>
+{% set DOT = {'in_progress': 'var(--p-butter)', 'to_read': 'var(--p-sky)', 'done': 'var(--p-mint)', 'abandoned': 'var(--p-pink)'} %}
+{% set tones = ['t-pink', 't-mint', 't-butter', 't-sky', 't-lilac', 't-peach'] %}
+<div class="list-head">
+  <h1 class="with-booky"><img src="/static/img/booky/2-19.webp" alt="">Серии</h1>
+</div>
+
+{% set total = groups.values()|map('length')|sum %}
+{% if total %}
+<div class="filters" role="group" aria-label="Показать">
+  <button type="button" data-show="all" aria-pressed="true">Все<span class="n">{{ total }}</span></button>
+  {% for key, items in groups.items() if items %}
+  <button type="button" data-show="{{ key }}" aria-pressed="false">{{ SERIES_STATUS[key] }}<span class="n">{{ items|length }}</span></button>
+  {% endfor %}
+</div>
+<input type="search" id="find" class="find" placeholder="Найти серию или автора" aria-label="Поиск">
+
 {% for key, items in groups.items() if items %}
-<section>
-  <h2 style="margin-top:1.4rem">{{ SERIES_STATUS[key] }} <span class="muted">{{ items|length }}</span></h2>
-  <div class="grid">
+<section class="group" data-group="{{ key }}">
+  <h2 class="group-title"><i class="dot" style="background:{{ DOT[key] }}"></i>{{ SERIES_STATUS[key] }} <span class="count">{{ items|length }}</span></h2>
+  <div class="series-now">
     {% for s in items %}
-    <div class="card series-card">
-      <h3><a href="/series/{{ s.id }}">{{ s.name }}</a></h3>
-      {% if s.name_ru %}<div class="muted small">{{ s.name_ru }}</div>{% endif %}
-      <div class="muted small">{{ s.authors or '' }}</div>
-      <div class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></div>
-      <div class="small muted">{{ s.finished_books }} из {{ s.total_books }}{% if s.is_reading %} · читаю{% endif %}</div>
-      <div class="row">{% for b in s.books %}{{ cover(b) }}{% endfor %}</div>
-    </div>
+    <a class="s-card {{ tones[s.id % 6] }}" href="/series/{{ s.id }}" data-find="{{ (s.name ~ ' ' ~ (s.name_ru or '') ~ ' ' ~ (s.authors or ''))|lower }}">
+      <span class="lbl">{{ s.finished_books }} из {{ s.total_books }}{% if s.is_reading %} · читаю{% endif %}</span>
+      <b>{{ s.name_ru or s.name }}</b>
+      {% if s.name_ru %}<span class="meta">{{ s.name }}</span>{% endif %}
+      {% if s.authors %}<span class="meta">{{ s.authors }}</span>{% endif %}
+      <span class="s-covers">
+        {% for x in s.books[:5] %}<span class="mini st-{{ x.status or 'none' }}" title="{{ x.title_ru or x.title }}">{% if x.cover_url %}<img src="{{ x.cover_url }}" alt="" loading="lazy">{% else %}<i class="tone-{{ x.id % 6 }}"></i>{% endif %}</span>{% endfor %}
+        {% if s.books|length > 5 %}<span class="more">+{{ s.books|length - 5 }}</span>{% endif %}
+      </span>
+      <span class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></span>
+    </a>
     {% endfor %}
   </div>
 </section>
-{% else %}
-<p class="muted">Серий пока нет. Они появятся, когда ты добавишь книгу из серии.</p>
 {% endfor %}
+<p class="empty-note" id="nothing" hidden>Ничего не нашлось.</p>
+{% else %}
+<p class="empty-note">Серий пока нет. Они появятся, когда ты добавишь книгу из серии.</p>
+{% endif %}
 {% endblock %}
+
+{% block scripts %}<script src="/static/filters.js?v={{ CSS_V }}"></script>{% endblock %}

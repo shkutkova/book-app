@@ -7,11 +7,11 @@
 {%- endmacro %}
 {% block content %}
 <section class="hello">
-  <div>
-    <h1>Привет! Что читаем сегодня?</h1>
+  <div class="hello-text">
+    <img class="hello-booky" src="/static/img/booky/1-00.webp" alt="">
+    <h1>Читаю сейчас</h1>
     {% set n = reading|length %}
-    <p>{% if n %}Сейчас у тебя открыто {{ n }} {{ plural(n, 'книга', 'книги', 'книг') }}.{% else %}Сейчас ничего не открыто — самое время выбрать.{% endif %}
-      {% if series %} Серий в процессе: {{ series|length }}.{% endif %}</p>
+    <p>{% if n %}Открыто {{ n }} {{ plural(n, 'книга', 'книги', 'книг') }}{% if series %}, серий в процессе — {{ series|length }}{% endif %}.{% else %}Сейчас ничего не открыто — загляни в «Хочу прочитать».{% endif %}</p>
   </div>
   <div class="now-wrap">
     {% for b in reading if b.cover_url %}{% if loop.index <= 3 %}<img class="blur b{{ loop.index }}" src="{{ b.cover_url }}" alt="">{% endif %}{% endfor %}
@@ -37,16 +37,16 @@
 {% set bm = board.best_month %}
 <div class="board">
   <div class="col-b">
-    <div class="tile pic t-pink"><img src="/static/img/chars/butterfly.png" alt="" loading="lazy"></div>
+    <div class="tile pic t-pink"><img src="/static/img/booky/2-16.webp" alt="" loading="lazy"></div>
     <div class="tile t-mint"><span class="lbl">В этом месяце</span><span class="big">{{ board.month_reads }}</span></div>
   </div>
   <div class="col-b">
     <div class="tile t-butter" style="min-height:190px"><span class="lbl">Прочитано всего</span>
       <span><span class="big">{{ counts.get('finished', 0) }}</span><span class="note">книг и фанфиков</span></span></div>
-    <div class="tile pic t-sky"><img src="/static/img/chars/ghost.png" alt="" loading="lazy"></div>
+    <div class="tile pic t-sky"><img src="/static/img/booky/1-05.webp" alt="" loading="lazy"></div>
   </div>
   <div class="col-b">
-    <div class="tile pic t-lilac"><img src="/static/img/chars/star.png" alt="" loading="lazy"></div>
+    <div class="tile pic t-lilac"><img src="/static/img/booky/2-15.webp" alt="" loading="lazy"></div>
     <div class="tile t-peach"><span class="lbl">Страниц за год</span><span class="big long">{{ '{:,}'.format(board.year_pages).replace(',', ' ') }}</span></div>
   </div>
   <div class="col-b">
@@ -56,7 +56,7 @@
   <div class="col-b">
     {% if bm %}<div class="tile t-butter"><span class="lbl">Лучший месяц года</span>
       <span><span class="big word">{{ MONTHS[bm.month - 1] }}</span><span class="note">{{ bm.n }} {{ plural(bm.n, 'книга', 'книги', 'книг') }}</span></span></div>{% endif %}
-    <div class="tile t-pink"><span class="lbl">В {{ year }} году</span><span class="big">{{ board.year_reads }}</span></div>
+    <div class="tile pic t-peach"><img src="/static/img/booky/1-08.webp" alt="" loading="lazy"></div>
   </div>
 </div>
 
@@ -70,9 +70,9 @@
     <span class="lbl">{% if s.is_reading %}Читаю книгу {{ s.finished_books + 1 }} из {{ s.total_books }}{% elif left == 1 %}Осталась одна{% else %}Прочитано {{ s.finished_books }} из {{ s.total_books }}{% endif %}</span>
     <b>{{ s.name_ru or s.name }}</b>
     {% if s.authors %}<span class="meta">{{ s.authors }}</span>{% endif %}
-    <span class="spines" aria-hidden="true">
-      {% for st in (s.statuses or [])[:8] %}<i class="{{ 'done' if st == 'finished' else ('now' if st == 'reading' else '') }}"></i>{% endfor %}
-      {% if (s.statuses or [])|length > 8 %}<i class="more">+{{ (s.statuses|length) - 8 }}</i>{% endif %}
+    <span class="s-covers">
+      {% for x in (s.books or [])[:5] %}<span class="mini st-{{ x.status or 'none' }}" title="{{ x.title }}">{% if x.cover_url %}<img src="{{ x.cover_url }}" alt="" loading="lazy">{% else %}<i class="tone-{{ x.id % 6 }}"></i>{% endif %}</span>{% endfor %}
+      {% if (s.books or [])|length > 5 %}<span class="more">+{{ s.books|length - 5 }}</span>{% endif %}
     </span>
     <span class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></span>
   </a>
