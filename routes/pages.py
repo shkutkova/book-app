@@ -1,6 +1,7 @@
 """Страницы приложения. Здесь только «какой адрес что показывает»:
 данные берутся из services/queries.py, изменения — через services/library.py."""
 import json
+import re
 from datetime import date
 from pathlib import Path
 from urllib.parse import quote, urlencode
@@ -8,6 +9,7 @@ from urllib.parse import quote, urlencode
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup, escape
 
 from services import ficbook, library, queries
 from services.users import current_user_id
@@ -39,7 +41,26 @@ def position(p) -> str:
     return "" if p is None else f"{float(p):g}"
 
 
-templates.env.filters.update(ru_date=ru_date, stars=stars, position=position)
+def simple_md(text: str | None) -> Markup:
+    """Описание из Notion: **жирный** и строки «- пункт» -> HTML. Остальное — как текст
+    (всё экранируется, поэтому HTML внутри описания не выполнится)."""
+    out, items = [], []
+    for line in (text or "").splitlines():
+        html = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", str(escape(line.strip())))
+        if line.strip().startswith("- "):
+            items.append(f"<li>{html[2:]}</li>")
+            continue
+        if items:
+            out.append("<ul>" + "".join(items) + "</ul>")
+            items = []
+        if html:
+            out.append(f"<p>{html}</p>")
+    if items:
+        out.append("<ul>" + "".join(items) + "</ul>")
+    return Markup("".join(out))
+
+
+templates.env.filters.update(ru_date=ru_date, stars=stars, position=position, md=simple_md)
 templates.env.globals.update(STATUS=queries.STATUS_NAMES, SERIES_STATUS=queries.SERIES_STATUS_NAMES,
                              WORK_STATUS=queries.WORK_STATUS_NAMES)
 
@@ -130,6 +151,14 @@ async def read_add(request: Request, book_id: int):
 @router.post("/book/{book_id}/reads/{read_id}")
 async def read_save(request: Request, book_id: int, read_id: int):
     return await _book_action(request, book_id, lambda f: library.save_read(current_user_id(), book_id, read_id, f))
+
+
+@router.get("/fanfics", response_class=HTMLResponse)
+def fanfics_page(request: Request):
+    groups = {key: [] for key in queries.STATUS_NAMES}
+    for f in queries.fanfics(current_user_id()):
+        groups[f["status"]].append(f)
+    return templates.TemplateResponse(request, "fanfics.html", {"groups": groups})
 
 
 def _ficbook_form(request: Request, form: dict | None = None, error: str | None = None):

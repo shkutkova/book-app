@@ -92,7 +92,6 @@ def series_detail(user_id: str, series_id: int) -> dict | None:
     p = {"u": user_id, "s": series_id}
     s = fetch_one("""
         select s.id, s.name, s.name_ru, s.description, s.ficbook_id,
-               us.notes,
                coalesce(us.is_abandoned, false) as is_abandoned,
                coalesce(us.use_my_order, false) as use_my_order,
                sp.total_books, sp.finished_books, sp.skipped_books, sp.status as progress_status
@@ -114,6 +113,19 @@ def series_detail(user_id: str, series_id: int) -> dict | None:
     s["authors"] = sorted({a for b in s["books"] if b["authors"] for a in b["authors"].split(", ")})
     s["pages"] = sum(b["pages"] or 0 for b in s["books"])
     return s
+
+
+# ------------------------------------------------------------------ фанфики
+
+def fanfics(user_id: str) -> list[dict]:
+    """Фанфики в твоей библиотеке: сначала те, что читаешь, потом по названию."""
+    return fetch_all(f"""
+        select {BOOK_FIELDS}, b.work_status, b.pairings,
+               (select max(r.finished_at) from reads r
+                 where r.book_id = b.id and r.user_id = %(u)s) as finished_at
+        from library l join books b on b.id = l.book_id
+        where l.user_id = %(u)s and b.kind = 'fanfic'
+        order by l.status = 'reading' desc, coalesce(b.title_ru, b.title)""", {"u": user_id})
 
 
 # ------------------------------------------------------------------ книга

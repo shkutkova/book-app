@@ -15,8 +15,7 @@
     <span class="muted">{{ s.finished_books }} из {{ s.total_books }} книг{% if s.skipped_books %} · пропускаю {{ s.skipped_books }}{% endif %}{% if s.pages %} · {{ s.pages }} стр.{% endif %}</span>
   </div>
   <div class="bar"><i style="width:{{ (100 * s.finished_books / (s.total_books or 1))|round }}%"></i></div>
-  {% if s.description %}<p class="desc">{{ s.description }}</p>{% endif %}
-  {% if s.notes %}<p class="desc muted"><strong>Заметки:</strong> {{ s.notes }}</p>{% endif %}
+  {% if s.description %}<div class="desc">{{ s.description|md }}</div>{% endif %}
   {% if not edit %}<p><a href="?edit=1">Изменить серию</a></p>{% endif %}
 </div>
 
@@ -49,8 +48,6 @@
   <input id="name_ru" name="name_ru" value="{{ s.name_ru or '' }}" style="width:100%">
   <label for="description">О серии</label>
   <textarea id="description" name="description">{{ s.description or '' }}</textarea>
-  <label for="notes">Заметки</label>
-  <textarea id="notes" name="notes">{{ s.notes or '' }}</textarea>
   <label class="check"><input type="checkbox" name="is_abandoned" {{ 'checked' if s.is_abandoned }}> Бросила серию</label>
   <p style="display:flex;gap:.8rem;align-items:center">
     <button class="primary">Сохранить серию</button> <a href="/series/{{ s.id }}">Отмена</a>

@@ -152,27 +152,13 @@ def load(folder: Path) -> Data:
         for name, nid in links(row.get("Author")):
             data.authors[nid] = name
 
-    # Серии: id берём из ссылки в книге, остальное — из таблицы Series.
-    series_by_name = {r["Name"].strip(): r for r in series_rows if r.get("Name")}
-    # Запасной поиск: строка Series, в которой перечислена эта книга
-    # (на случай, если название серии в таблице Series испорчено).
-    series_by_book = {nid: r for r in series_rows for _, nid in links(r.get("Book"))}
+    # Серии: id и название берём из ссылки в книге.
+    # Колонку Comment из таблицы Series не переносим — она не нужна.
     for row in db:
         for name, nid in links(row.get("Series")):
-            if nid in data.series:
-                continue
-            src = series_by_name.get(name)
-            if not src:
-                ids = book_ids.get(row["Title"].strip(), set())
-                src = next((series_by_book[i] for i in ids if i in series_by_book), {})
-                if src:
-                    data.warnings.append(
-                        f"Серия «{name}»: в таблице Series у неё другое название "
-                        f"({src.get('Name')!r}) — взяла название из книги")
-                else:
-                    data.warnings.append(f"Серия «{name}» не найдена в таблице Series — создам без комментария")
-            title, title_ru = split_title(name)
-            data.series[nid] = {"name": title, "name_ru": title_ru, "notes": src.get("Comment")}
+            if nid not in data.series:
+                title, title_ru = split_title(name)
+                data.series[nid] = {"name": title, "name_ru": title_ru}
 
     for row in db:
         raw_title = row["Title"]
@@ -281,10 +267,10 @@ def write(data: Data, url: str) -> None:
         series = {}
         for nid, s in data.series.items():
             series[nid] = cur.execute(
-                """insert into series (notion_id, name, name_ru, notes) values (%s, %s, %s, %s)
+                """insert into series (notion_id, name, name_ru) values (%s, %s, %s)
                    on conflict (notion_id) do update
-                   set name = excluded.name, name_ru = excluded.name_ru, notes = excluded.notes
-                   returning id""", (nid, s["name"], s["name_ru"], s["notes"])).fetchone()[0]
+                   set name = excluded.name, name_ru = excluded.name_ru
+                   returning id""", (nid, s["name"], s["name_ru"])).fetchone()[0]
 
         for b in data.books:
             fic = FICBOOK_ID.search(b.source_url or "")

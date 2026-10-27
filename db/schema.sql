@@ -147,12 +147,11 @@ create table reads (
         on delete cascade on update cascade
 );
 
--- Твоё отношение к серии: заметки, «бросила», свой порядок книг.
+-- Твоё отношение к серии: «бросила», свой порядок книг.
 -- Строки нет — значит, ничего не менялось (не брошена, порядок официальный).
 create table user_series (
     user_id       uuid not null references profiles(id) on delete cascade on update cascade,
     series_id     bigint not null references series(id) on delete cascade,
-    notes         text,                    -- порядок чтения, «есть ещё третья книга»
     is_abandoned  boolean not null default false,  -- «бросила серию» — единственный ручной статус
     use_my_order  boolean not null default false,  -- показывать книги в моём порядке, а не официальном
     primary key (user_id, series_id)

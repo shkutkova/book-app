@@ -11,7 +11,7 @@
   <a class="logo" href="/">📚 Мои книги</a>
   <a href="/" class="{{ 'on' if request.url.path == '/' }}">Главная</a>
   <a href="/series" class="{{ 'on' if request.url.path.startswith('/series') }}">Серии</a>
-  <a href="/add/ficbook" class="{{ 'on' if request.url.path.startswith('/add') }}">+ Фанфик</a>
+  <a href="/fanfics" class="{{ 'on' if request.url.path.startswith('/fanfics') or request.url.path.startswith('/add') }}">Фанфики</a>
 </nav>
 <div class="wrap">
   {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
