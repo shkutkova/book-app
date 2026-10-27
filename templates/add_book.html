@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Добавить книгу{% endblock %}
+{% block content %}
+<h1>Добавить книгу</h1>
+<p class="sub">Поиск в Hardcover. Обложка, автор, описание, страницы и вся серия подтянутся сами.</p>
+
+<form method="get" action="/add/book" class="card" style="display:flex;gap:.6rem;flex-wrap:wrap">
+  <label for="q" class="sr-only" style="position:absolute;left:-9999px">Название или автор</label>
+  <input id="q" name="q" value="{{ q }}" placeholder="Название, автор или и то и другое" style="flex:1;min-width:220px" autofocus>
+  <button class="primary">Найти</button>
+</form>
+
+{% if q and not results and not error %}
+<p class="muted">Ничего не нашлось. Попробуй название на английском или добавь автора.</p>
+{% endif %}
+
+{% if results %}
+<div class="grid">
+  {% for r in results %}
+  <div class="card" style="display:flex;gap:.9rem;margin:0">
+    <span class="cover" style="flex:0 0 72px;width:72px">
+      {% if r.cover %}<img src="{{ r.cover }}" alt="" loading="lazy">{% else %}<span class="img">{{ r.title }}</span>{% endif %}
+    </span>
+    <div style="min-width:0;display:flex;flex-direction:column;gap:.2rem">
+      <strong>{{ r.title }}</strong>
+      <span class="muted small">{{ r.authors }}{% if r.year %} · {{ r.year }}{% endif %}{% if r.pages %} · {{ r.pages }} стр.{% endif %}</span>
+      {% if r.series %}<span class="small">Серия: {{ r.series }}</span>{% endif %}
+      <div style="margin-top:auto;padding-top:.4rem">
+        {% if r.known and r.known.status %}
+          <a class="badge {{ r.known.status }}" href="/book/{{ r.known.id }}">{{ STATUS[r.known.status] }} — открыть</a>
+        {% else %}
+          <form method="post" action="/add/book">
+            <input type="hidden" name="hardcover_id" value="{{ r.id }}">
+            <input type="hidden" name="q" value="{{ q }}">
+            <button class="primary">{{ 'Добавить к себе' if r.known else 'Добавить' }}</button>
+          </form>
+          {% if r.known %}<span class="muted small">уже в каталоге (из серии)</span>{% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<p class="muted small">Не нашла книгу? Её может не быть в Hardcover — ручное добавление сделаем следующим шагом.</p>
+{% endif %}
+{% endblock %}

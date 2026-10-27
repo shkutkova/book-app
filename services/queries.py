@@ -1,6 +1,7 @@
 """Чтение данных для страниц. Только SELECT: всё, что меняет базу, — в library.py.
 Каждая функция получает user_id: библиотека, оценки и прочтения у каждого свои."""
 from db import fetch_all, fetch_one
+from services.hardcover_api import is_main
 
 STATUS_NAMES = {
     "want_to_read": "Хочу прочитать",
@@ -91,10 +92,11 @@ def series_list(user_id: str) -> list[dict]:
 def series_detail(user_id: str, series_id: int) -> dict | None:
     p = {"u": user_id, "s": series_id}
     s = fetch_one("""
-        select s.id, s.name, s.name_ru, s.description, s.ficbook_id,
+        select s.id, s.name, s.name_ru, s.description, s.ficbook_id, s.hardcover_id, s.is_completed,
                coalesce(us.is_abandoned, false) as is_abandoned,
                coalesce(us.use_my_order, false) as use_my_order,
-               sp.total_books, sp.finished_books, sp.skipped_books, sp.status as progress_status
+               sp.total_books, sp.finished_books, sp.skipped_books, sp.extra_books,
+               sp.status as progress_status
         from series s
         join series_progress sp on sp.id = s.id and sp.user_id = %(u)s
         left join user_series us on us.series_id = s.id and us.user_id = %(u)s
@@ -111,6 +113,9 @@ def series_detail(user_id: str, series_id: int) -> dict | None:
         where o.user_id = %(u)s and o.series_id = %(s)s
         order by o.sort_position nulls last, b.title""", p)
     s["authors"] = sorted({a for b in s["books"] if b["authors"] for a in b["authors"].split(", ")})
+    # Основные (номер 1, 2, 3 или без номера) и дополнительные (1.5 — повести, рассказы)
+    s["extras"] = [b for b in s["books"] if not is_main(b["official_position"])]
+    s["books"] = [b for b in s["books"] if is_main(b["official_position"])]
     s["pages"] = sum(b["pages"] or 0 for b in s["books"])
     return s
 

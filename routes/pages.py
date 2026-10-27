@@ -10,8 +10,9 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
+from starlette.concurrency import run_in_threadpool
 
-from services import ficbook, library, queries
+from services import catalog, ficbook, hardcover_api, library, queries
 from services.users import current_user_id
 
 router = APIRouter()
@@ -118,6 +119,47 @@ async def series_save(request: Request, series_id: int):
 
 # ------------------------------------------------------------------ книга
 
+@router.post("/series/{series_id}/refresh")
+async def series_refresh(series_id: int):
+    try:
+        await run_in_threadpool(catalog.refresh_series, series_id)
+    except library.ValidationError as e:
+        return back(f"/series/{series_id}", str(e))
+    return back(f"/series/{series_id}")
+
+
+# ------------------------------------------------------------------ добавить книгу
+
+@router.get("/add/book", response_class=HTMLResponse)
+def add_book_page(request: Request, q: str = "", error: str | None = None):
+    """Поиск в Hardcover. Найденные книги, которые уже есть, помечены."""
+    results = []
+    q = q.strip()
+    if q:
+        try:
+            results = hardcover_api.search(q)
+        except hardcover_api.HardcoverError as e:
+            error = str(e)
+        known = catalog.known(current_user_id(), [r["id"] for r in results])
+        for r in results:
+            r["known"] = known.get(r["id"])
+    return templates.TemplateResponse(request, "add_book.html", {"q": q, "results": results, "error": error})
+
+
+@router.post("/add/book")
+async def add_book(request: Request):
+    form = dict(await request.form())
+    try:
+        book_id = await run_in_threadpool(catalog.add_from_hardcover, current_user_id(), int(form["hardcover_id"]))
+    except (KeyError, ValueError):
+        return back("/add/book", "Не выбрана книга")
+    except library.ValidationError as e:
+        # возвращаемся к тем же результатам поиска
+        return RedirectResponse("/add/book?" + urlencode({"q": form.get("q", ""), "error": str(e)}),
+                                status_code=303)
+    return back(f"/book/{book_id}")
+
+
 @router.get("/book/{book_id}", response_class=HTMLResponse)
 def book_page(request: Request, book_id: int, error: str | None = None):
     user_id = current_user_id()
@@ -155,6 +197,15 @@ async def read_add(request: Request, book_id: int):
 @router.post("/book/{book_id}/reads/{read_id}")
 async def read_save(request: Request, book_id: int, read_id: int):
     return await _book_action(request, book_id, lambda f: library.save_read(current_user_id(), book_id, read_id, f))
+
+
+@router.post("/book/{book_id}/refresh")
+async def book_refresh(book_id: int):
+    try:
+        await run_in_threadpool(catalog.refresh_from_hardcover, book_id)
+    except library.ValidationError as e:
+        return back(f"/book/{book_id}", str(e))
+    return back(f"/book/{book_id}")
 
 
 @router.get("/fanfics", response_class=HTMLResponse)
