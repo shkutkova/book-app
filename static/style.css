@@ -107,6 +107,10 @@ button.on{background:var(--p-lilac);border-color:var(--p-lilac);color:var(--ink)
 textarea{width:100%;min-height:5rem}
 label{display:block;font-size:.86rem;color:var(--mut);margin:.7rem 0 .25rem;font-weight:700}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0 1rem}
+.tags-grid textarea{width:100%;font-size:.88rem}
+.danger-zone{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-top:1.4rem;padding-top:1rem;border-top:1px solid var(--line)}
+button.danger{background:transparent;color:#ff8a7a;border:1.5px solid #ff8a7a99;border-radius:999px;padding:.5rem 1rem;font-weight:800}
+button.danger:hover{background:#ff6b6b1f}
 .check{display:flex;gap:.5rem;align-items:center;color:var(--text);font-size:1rem}
 .check input{width:auto}
 details summary{cursor:pointer}

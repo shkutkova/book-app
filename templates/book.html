@@ -194,6 +194,32 @@
       <button>Добавить</button>
     </form>
   </details>
+
+  {# Метки — по одной на строку: лишнее стереть, своё дописать #}
+  <h2>Метки</h2>
+  <form method="post" action="/book/{{ b.id }}/tags" class="settings-form">
+    <div class="form-grid tags-grid">
+      {% if b.kind == 'fanfic' %}
+      {% set fields = [('fandoms', 'Фандомы', b.fandoms or []), ('pairings', 'Пейринги', b.pairings or []), ('tags', 'Метки', meta.get('tags') or [])] %}
+      {% else %}
+      {% set fields = [('genres', 'Жанры', tags.get('genres') or []), ('moods', 'Настроение', tags.get('moods') or []), ('content_warnings', 'Предупреждения', tags.get('content_warnings') or [])] %}
+      {% endif %}
+      {% for name, title, items in fields %}
+      <div><label for="t-{{ name }}">{{ title }}</label><textarea id="t-{{ name }}" name="{{ name }}" rows="5">{{ items|join('
+') }}</textarea></div>
+      {% endfor %}
+    </div>
+    <p class="muted small">По одной на строку. {% if b.kind != 'fanfic' %}«Обновить из Hardcover» вернёт метки из Hardcover.{% endif %}</p>
+    <p><button class="primary">Сохранить метки</button></p>
+  </form>
+  {% endif %}
+
+  {% if b.in_library %}
+  <form method="post" action="/book/{{ b.id }}/delete" class="danger-zone"
+        onsubmit="return confirm('Удалить «{{ (b.title_ru or b.title)|replace("'", "’") }}»? Статус, оценка, прочтения и заметки сотрутся. Отменить нельзя.')">
+    <button class="danger">Удалить {{ 'фанфик' if b.kind == 'fanfic' else 'книгу' }}</button>
+    <span class="muted small">Сотрётся всё твоё по ней: статус, оценка, прочтения, заметки.</span>
+  </form>
   {% endif %}
 </details>
 

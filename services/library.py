@@ -191,6 +191,52 @@ def delete_read(user_id: str, book_id: int, read_id: int) -> None:
 
 # ------------------------------------------------------------------ серия
 
+def _lines(raw: str | None) -> list[str]:
+    """Поле «по одному на строку» -> список без пустых и без запятых по краям."""
+    return [x.strip().strip(",").strip() for x in (raw or "").splitlines() if x.strip().strip(",").strip()]
+
+
+def save_tags(book_id: int, form: dict) -> None:
+    """Метки со страницы книги: у фанфика — фандомы, пейринги, метки ficbook;
+    у книги — жанры, настроения, предупреждения (как из Hardcover, «Обновить из Hardcover» вернёт их)."""
+    with transaction() as conn:
+        b = conn.execute("select kind from books where id = %s", (book_id,)).fetchone()
+        if not b:
+            raise ValidationError("Книга не найдена")
+        if b["kind"] == "fanfic":
+            conn.execute("""update books set fandoms = %s, pairings = %s,
+                              ficbook_meta = jsonb_set(ficbook_meta, '{tags}', to_jsonb(%s::text[]))
+                            where id = %s""",
+                         (_lines(form.get("fandoms")), _lines(form.get("pairings")), _lines(form.get("tags")), book_id))
+        else:
+            conn.execute("""update books set hardcover_tags = hardcover_tags
+                              || jsonb_build_object('genres', to_jsonb(%s::text[]), 'moods', to_jsonb(%s::text[]),
+                                                    'content_warnings', to_jsonb(%s::text[]))
+                            where id = %s""",
+                         (_lines(form.get("genres")), _lines(form.get("moods")), _lines(form.get("content_warnings")), book_id))
+
+
+def delete_book(user_id: str, book_id: int) -> str:
+    """Убрать книгу из своих: статус, оценка, прочтения, заметки — всё стирается.
+    Из общего каталога книга удаляется, если её больше ни у кого нет и она не стоит в серии
+    (иначе серия стала бы неполной). Возвращает kind — куда вернуться после удаления."""
+    with transaction() as conn:
+        b = conn.execute("select kind from books where id = %s", (book_id,)).fetchone()
+        if not b:
+            raise ValidationError("Книга не найдена")
+        authors = [r["author_id"] for r in conn.execute(
+            "select author_id from book_authors where book_id = %s", (book_id,)).fetchall()]
+        conn.execute("delete from shelf_order where user_id = %s and item = %s", (user_id, f"b{book_id}"))
+        conn.execute("delete from library where user_id = %s and book_id = %s", (user_id, book_id))  # прочтения — каскадом
+        conn.execute("""delete from books b where b.id = %s
+                          and not exists (select 1 from library l where l.book_id = b.id)
+                          and not exists (select 1 from series_books sb where sb.book_id = b.id)""", (book_id,))
+        # авторы этой книги, у которых не осталось ни одной книги
+        conn.execute("""delete from authors a where a.id = any(%s::bigint[])
+                          and not exists (select 1 from book_authors ba where ba.author_id = a.id)""", (authors,))
+    return b["kind"]
+
+
 def set_series_favorite(user_id: str, series_id: int, favorite: bool) -> None:
     """Огонёк «Избранное» у серии — только он, остальное в user_series не трогается."""
     with transaction() as conn:

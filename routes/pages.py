@@ -269,6 +269,20 @@ async def book_save(request: Request, book_id: int):
     return await _book_action(request, book_id, lambda f: library.save_book(current_user_id(), book_id, f))
 
 
+@router.post("/book/{book_id}/tags")
+async def book_tags(request: Request, book_id: int):
+    return await _book_action(request, book_id, lambda f: library.save_tags(book_id, f))
+
+
+@router.post("/book/{book_id}/delete")
+async def book_delete(book_id: int):
+    try:
+        kind = library.delete_book(current_user_id(), book_id)
+    except library.ValidationError as e:
+        return back(f"/book/{book_id}", str(e))
+    return back("/fanfics" if kind == "fanfic" else "/books")
+
+
 @router.post("/book/{book_id}/next")
 async def book_next(request: Request, book_id: int):
     return await _book_action(request, book_id,

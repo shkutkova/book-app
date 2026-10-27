@@ -33,8 +33,8 @@ def ficbook_id(raw: str | None) -> str:
 
 
 def lines(raw: str | None) -> list[str]:
-    """Поле «по одному на строку» -> список без пустых."""
-    return [x.strip() for x in (raw or "").splitlines() if x.strip()]
+    """Поле «по одному на строку» -> список без пустых и без запятых по краям («А/Б,» -> «А/Б»)."""
+    return [x.strip().strip(",").strip() for x in (raw or "").splitlines() if x.strip().strip(",").strip()]
 
 
 def names(raw: str | None) -> list[str]:
