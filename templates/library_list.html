@@ -33,13 +33,14 @@
   <div class="cards">
     {% for b in items %}
     <a class="book-card" href="/book/{{ b.id }}" data-find="{{ ((b.title_ru or '') ~ ' ' ~ b.title ~ ' ' ~ (b.authors or ''))|lower }}"{% if b.is_favorite %} data-fav{% endif %}{% if b.is_next %} data-next{% endif %}>
-      {{ cover(b, link=False) }}
+      {# серия (у фанфика — пейринг) — плашкой на обложке: так под обложкой меньше текста, а обложка крупнее #}
+      {% set ser = b.series or (b.pairings|join(', ') if b.pairings else '') %}
+      <span class="cv">{{ cover(b, link=False) }}{% if ser %}<span class="ser" title="{{ ser }}">{{ ser }}</span>{% endif %}</span>
       {% if b.is_favorite %}<span class="fav-dot" title="Любимая">{{ icon('flame', 16) }}</span>{% endif %}
       <span class="info">
         <span class="ttl">{{ b.title_ru or b.title }}</span>
-        {# строки автора и серии есть всегда (пусть пустые) — так все карточки одной высоты #}
+        {# строка автора есть всегда (пусть пустая) — так все карточки одной высоты #}
         <span class="au">{{ b.authors or '' }}</span>
-        <span class="ser">{% if b.series %}{{ b.series }}{% elif b.pairings %}{{ b.pairings|join(', ') }}{% endif %}</span>
         <span class="foot">
           {% if b.rating %}<span class="stars">{{ b.rating|stars }}</span>{% endif %}
           {% if b.finished_at and key == 'finished' %}<span>{{ b.finished_at|ru_date }}</span>{% elif b.pages %}<span>{{ b.pages }} стр.</span>{% endif %}
