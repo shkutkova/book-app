@@ -107,16 +107,8 @@
    У фанфика, пока жанры не правила, — метки с ficbook вместо жанров #}
 {% set tags = b.hardcover_tags or {} %}
 {% if b.kind == 'fanfic' and 'genres' not in tags and meta.get('tags') %}{% set tags = dict(tags, genres=meta.tags) %}{% endif %}
-{% if tags.get('genres') or tags.get('moods') or tags.get('content_warnings') or b.fandoms or meta.get('direction') or meta.get('rating') %}
+{% if tags.get('genres') or tags.get('moods') or tags.get('content_warnings') %}
 <section class="card tags-card">
-  {% if b.fandoms or meta.get('direction') or meta.get('rating') %}
-  <div class="pill-row fic-row">
-    {% for f in b.fandoms or [] %}<span class="chip t-lilac">{{ icon('tag', 14) }}{{ f }}</span>{% endfor %}
-    {% if meta.get('direction') %}<span class="chip t-sky">{{ meta.direction }}</span>{% endif %}
-    {% if meta.get('rating') %}<span class="chip t-peach">{{ meta.rating }}</span>{% endif %}
-    {% if meta.get('translation') %}<span class="chip t-mint">перевод</span>{% endif %}
-  </div>
-  {% endif %}
   <div class="tag-cols">
     {% for title, items in [('Жанры', tags.get('genres') or [])] if items %}
     <div class="tag-col">
