@@ -185,7 +185,7 @@
     <label for="notes">Заметки</label><textarea id="notes" name="notes">{{ b.notes or '' }}</textarea>
     <label for="my_description">Подробнее <span class="muted small">— своё описание, видно вкладкой рядом с аннотацией</span></label>
     <textarea id="my_description" name="my_description" rows="8">{{ b.my_description or '' }}</textarea>
-    {# черновик от Gemini — в поле; сохраняется только кнопкой «Сохранить», после проверки #}
+    {# черновик от ИИ — в поле; сохраняется только кнопкой «Сохранить», после проверки #}
     <p class="ai-row"><button type="button" class="link" id="ai-write">{{ icon('sparkle', 16) }} Написать с ИИ</button>
       <span class="muted small" id="ai-state" aria-live="polite"></span></p>
     <p><button class="primary">Сохранить</button></p>
@@ -272,11 +272,11 @@ document.querySelectorAll('[data-more]').forEach(btn => btn.onclick = () => {
   btn.remove();
 });
 
-// «Написать с ИИ»: черновик «Подробнее» от Gemini (ищет книгу в Google, до минуты) — в поле, сохраняешь сама
+// «Написать с ИИ»: черновик «Подробнее» (до минуты) — в поле, сохраняешь сама
 document.getElementById('ai-write')?.addEventListener('click', async e => {
   const btn = e.currentTarget, field = document.getElementById('my_description'), state = document.getElementById('ai-state');
   if (field.value.trim() && !confirm('Заменить текст в «Подробнее» черновиком от ИИ?')) return;
-  btn.disabled = true; state.textContent = 'ИИ ищет книгу и пишет — до минуты…';
+  btn.disabled = true; state.textContent = 'ИИ пишет — до минуты…';
   try {
     const data = await (await fetch(`/book/{{ b.id }}/ai-description`, {method: 'POST'})).json();
     if (data.error) { state.textContent = data.error; return; }
