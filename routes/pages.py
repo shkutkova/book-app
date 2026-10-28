@@ -46,7 +46,7 @@ def position(p) -> str:
 
 
 def simple_md(text: str | None) -> Markup:
-    """Описание из Notion: **жирный**, [ссылки](https://...) и строки «- пункт» -> HTML.
+    """Описание из Notion или от ИИ: **жирный**, [ссылки](https://...) и строки «- пункт» («• », «* ») -> HTML.
     Остальное — как текст (всё экранируется, поэтому HTML внутри описания не выполнится)."""
     out, items = [], []
     for line in (text or "").splitlines():
@@ -55,7 +55,7 @@ def simple_md(text: str | None) -> Markup:
                       r'<a href="\2" target="_blank" rel="noopener">\1</a>', html)
         html = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", html)
         html = html.replace("\\[", "[").replace("\\]", "]")
-        if line.strip().startswith("- "):
+        if line.strip()[:2] in ("- ", "• ", "* "):
             items.append(f"<li>{html[2:]}</li>")
             continue
         if items:
@@ -69,6 +69,7 @@ def simple_md(text: str | None) -> Markup:
 
 
 templates.env.filters.update(ru_date=ru_date, stars=stars, position=position, md=simple_md)
+templates.env.globals.update(ai=ai)  # «Спросить Google ИИ» / «Написать с ИИ» на странице книги
 templates.env.globals.update(LOGIN_ON=auth.password, STATUS=queries.STATUS_NAMES, SERIES_STATUS=queries.SERIES_STATUS_NAMES,
                              WORK_STATUS=queries.WORK_STATUS_NAMES,
                              # ?v=<хеш> у стилей и скриптов: после выкладки браузер берёт новые файлы, а не из кэша
@@ -365,7 +366,7 @@ def covers_json(book_id: int):
 
 @router.post("/book/{book_id}/ai-description")
 def ai_description(book_id: int):
-    """Черновик «Подробнее» от ИИ (OpenRouter или Gemini): кнопка в настройках вставляет его в поле, сохраняешь сама."""
+    """Черновик «Подробнее» от Gemini: кнопка в настройках вставляет его в поле, сохраняешь сама."""
     b = queries.book_detail(current_user_id(), book_id)
     if not b:
         raise HTTPException(404, "Книга не найдена")

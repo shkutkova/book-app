@@ -186,8 +186,10 @@
     <label for="my_description">Подробнее <span class="muted small">— своё описание, видно вкладкой рядом с аннотацией</span></label>
     <textarea id="my_description" name="my_description" rows="8">{{ b.my_description or '' }}</textarea>
     {# черновик от ИИ — в поле; сохраняется только кнопкой «Сохранить», после проверки #}
-    <p class="ai-row"><button type="button" class="link" id="ai-write">{{ icon('sparkle', 16) }} Написать с ИИ</button>
-      <span class="muted small" id="ai-state" aria-live="polite"></span></p>
+    {# Google ИИ: вкладка с готовым запросом из карточки — ответ копируешь сюда #}
+    <p class="ai-row"><a class="link" href="{{ ai.ask_url(b) }}" target="_blank" rel="noopener">{{ icon('sparkle', 16) }} Спросить Google ИИ</a>
+      {% if ai.enabled() %}<button type="button" class="link" id="ai-write">{{ icon('sparkle', 16) }} Написать с ИИ</button>{% endif %}
+      <span class="muted small" id="ai-state" aria-live="polite">{{ '' if ai.enabled() else 'Откроется Google с готовым запросом — скопируй ответ сюда и нажми «Сохранить».' }}</span></p>
     <p><button class="primary">Сохранить</button></p>
   </form>
 

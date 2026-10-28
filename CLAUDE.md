@@ -15,7 +15,7 @@ python main.py            # http://127.0.0.1:8000
 К базе с рабочей сети не подключиться, поэтому вёрстку проверяем через `scripts/dev_fake.py`
 (подменяет `queries.*` и изменения в `library`). Новое поле в запросе → дописать его и туда.
 
-`.env` (не коммитить, не выводить значения): `DATABASE_URL`, `HARDCOVER_TOKEN` (только чтение); необязательные: `APP_PASSWORD` (вход; без него вход выключен и висит предупреждение), `SESSION_SECRET`, `APP_USER_ID`, `APP_BASE_URL` (внешний адрес — для закладки ficbook и команды iPhone; на Render берётся `RENDER_EXTERNAL_URL`), `GOOGLE_BOOKS_KEY` (без него Google Books часто отвечает 429), `OPENROUTER_API_KEY` или `GEMINI_API_KEY` (кнопка «Написать с ИИ» — черновик «Подробнее»; модели — `OPENROUTER_MODEL` / `GEMINI_MODEL`). Gemini из России не создать (регион).
+`.env` (не коммитить, не выводить значения): `DATABASE_URL`, `HARDCOVER_TOKEN` (только чтение); необязательные: `APP_PASSWORD` (вход; без него вход выключен и висит предупреждение), `SESSION_SECRET`, `APP_USER_ID`, `APP_BASE_URL` (внешний адрес — для закладки ficbook и команды iPhone; на Render берётся `RENDER_EXTERNAL_URL`), `GOOGLE_BOOKS_KEY` (без него Google Books часто отвечает 429), `GEMINI_API_KEY` (кнопка «Написать с ИИ»; модель — `GEMINI_MODEL`; из России ключ не создать — страна аккаунта). Без ключа — «Спросить Google ИИ»: ссылка в режим ИИ Google с запросом из карточки.
 
 Хостинг — Render, `render.yaml` (free, автодеплой из `main`, засыпает через 15 мин).
 После отката (Rollback) Render сам выключает Auto-Deploy — включить: Settings → Build & Deploy → Auto-Deploy → On Commit. Версии в `requirements.txt` закреплены; Python на Render — 3.13 (`PYTHON_VERSION`), локально 3.14.
@@ -31,7 +31,7 @@ FastAPI + Jinja2 (серверный рендер, без JS-фреймворк�
 - `services/queries.py` — чтение; `services/library.py` — изменения «моего» (статус, оценка, прочтения), `ValidationError`
 - `services/catalog.py` — книги из Hardcover в каталог (добавление, «Обновить», «Связать»)
 - `services/hardcover_api.py` — синхронный клиент Hardcover GraphQL; `hardcover.py`/`search.py` — старый async-клиент
-- `services/ai.py` — черновик «Подробнее» (`library.my_description`): OpenRouter (бесплатные модели, без интернета) или Gemini с поиском Google
+- `services/ai.py` — «Подробнее» (`library.my_description`): ссылка в режим ИИ Google (`ask_url`) или Gemini API с поиском
 - `services/ficbook.py` + `static/ficbook_bookmarklet.js` — фанфики через закладку в браузере
 - `db/schema.sql` — схема для пустой базы; `db/migrations/NNN_*.sql` — изменения для существующей
 - `scripts/import_notion.py`, `scripts/sync_hardcover.py` — разовые скрипты; `scripts/dev_fake.py` — локальный прогон без базы

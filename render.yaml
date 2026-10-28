@@ -20,5 +20,5 @@ services:
         sync: false
       - key: APP_PASSWORD       # пароль для входа в приложение
         sync: false
-      - key: OPENROUTER_API_KEY # openrouter.ai — «Написать с ИИ» в настройках книги (или GEMINI_API_KEY)
+      - key: GEMINI_API_KEY     # необязательно: «Написать с ИИ» (aistudio.google.com); без него — «Спросить Google ИИ»
         sync: false
