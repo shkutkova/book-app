@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 import httpx
 
 from services import hardcover_api as hc
+from services.ficbook import CYRILLIC
 
 HEADERS = {"User-Agent": "BookApp/0.1 (personal reading tracker)"}
 
@@ -56,10 +57,30 @@ def _google(query: str) -> list[dict]:
         if link:
             # https и без «загнутого уголка», который Google дорисовывает
             link = link.replace("http://", "https://").replace("&edge=curl", "")
-            out.append({"url": link, "source": "Google Books",
-                        "label": " · ".join(filter(None, [info.get("title"), info.get("language"),
+            authors = ", ".join(info.get("authors") or [])
+            out.append({"url": link, "source": "Google Books", "authors": authors,
+                        "label": " · ".join(filter(None, [info.get("title"), authors, info.get("language"),
                                                           (info.get("publishedDate") or "")[:4]]))})
     return out
+
+
+def _google_ru(title: str, author: str | None) -> list[dict]:
+    """Русская книга. intitle:"…" с кириллицей у Google не находит ничего, а на запрос из нескольких
+    русских слов он часто отвечает 503 — пробуем «название автор», потом только название.
+    Книги этого автора — первыми."""
+    error = None
+    for q in filter(None, [f"{title} {author}" if author else None, title]):
+        try:
+            found = _google(q)
+        except httpx.HTTPError as e:
+            error = e
+            continue
+        if found:
+            surname = (author or "").split()[-1].lower() if author else ""
+            return sorted(found, key=lambda c: surname not in c["authors"].lower()) if surname else found
+    if error:
+        raise error
+    return []
 
 
 def candidates(book: dict) -> tuple[list[dict], list[str]]:
@@ -71,9 +92,11 @@ def candidates(book: dict) -> tuple[list[dict], list[str]]:
     if book.get("hardcover_id"):
         jobs["Hardcover"] = lambda: _hardcover(book["hardcover_id"])
     jobs["Open Library"] = lambda: _open_library(book["title"], author)
-    jobs["Google Books"] = lambda: _google(f'intitle:"{book["title"]}"' + (f' inauthor:"{author}"' if author else ""))
-    if book.get("title_ru"):
-        jobs["Google Books (рус.)"] = lambda: _google(f'intitle:"{book["title_ru"]}"')
+    if not CYRILLIC.search(book["title"]):
+        jobs["Google Books"] = lambda: _google(f'intitle:"{book["title"]}"' + (f' inauthor:"{author}"' if author else ""))
+    ru_title = next((t for t in (book.get("title_ru"), book["title"]) if t and CYRILLIC.search(t)), None)
+    if ru_title:
+        jobs["Google Books (рус.)"] = lambda: _google_ru(ru_title, author)
 
     found, failed = [], []
     with ThreadPoolExecutor(len(jobs)) as pool:

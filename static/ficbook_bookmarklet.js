@@ -34,7 +34,7 @@
   const size = text(field['Размер']);
   const num = re => { const m = size.match(re); return m ? +m[1].replace(/\D/g, '') : null; };
 
-  // «Драко Малфой/Гермиона Грейнджер, ОМП, Гарри Поттер» -> пейринги и персонажи
+  // «Драко Малфой/Гермиона Грейнджер, ОМП, Гарри Поттер» -> персонажи (пейринги не храним)
   const cast = text(field['Пэйринг и персонажи']).split(/,\s*/).filter(Boolean);
   const badge = cls => document.querySelector('.fanfic-badges [class*="' + cls + '"]');
   const series = field['Серия'] && field['Серия'].querySelector('a');
@@ -46,7 +46,6 @@
     people,
     // у некоторых работ указана только «Вселенная», без «Фэндома»
     fandoms: links(field['Фэндом']).length ? links(field['Фэндом']) : links(field['Вселенная']),
-    pairings: cast.filter(c => c.includes('/')),
     characters: cast.filter(c => !c.includes('/')),
     pages: num(/([\d\s]+)\s+страниц/),
     words: num(/([\d\s]+)\s+слов/),

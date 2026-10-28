@@ -57,7 +57,7 @@ def hardcover_slug(raw: str | None) -> str | None:
     return m.group(1) or m.group(2)
 
 
-GOOGLE_BOOK = re.compile(r"https?://(?:www\.|books\.)?google\.[a-z.]+/books(?:/edition/[^/]+/|\?(?:.*&)?id=)([\w-]{12})")
+GOOGLE_BOOK = re.compile(r"https?://(?:www\.|books\.)?google\.[a-z.]+/books(?:/edition/[^/]+/|(?:/content)?\?(?:.*&)?id=)([\w-]{12})")
 
 
 def google_cover(volume_id: str) -> str:
@@ -74,7 +74,8 @@ def google_cover(volume_id: str) -> str:
 
 
 def cover_link(raw: str | None) -> str | None:
-    """Ссылка на картинку. Ссылку на страницу книги в Google Books превращаем в её обложку."""
+    """Ссылка на картинку. Ссылку на страницу книги в Google Books (и маленькую картинку оттуда,
+    как в вариантах обложек) превращаем в её крупную обложку."""
     raw = (raw or "").strip()
     if raw and not re.match(r"https?://", raw):
         raise ValidationError("Ссылка на обложку должна начинаться с http:// или https://")
@@ -220,23 +221,17 @@ def _lines(raw: str | None) -> list[str]:
 
 
 def save_tags(book_id: int, form: dict) -> None:
-    """Метки со страницы книги: у фанфика — фандомы, пейринги, метки ficbook;
-    у книги — жанры, настроения, предупреждения (как из Hardcover, «Обновить из Hardcover» вернёт их)."""
+    """Метки со страницы книги или фанфика: жанры, настроения, предупреждения
+    (как из Hardcover; «Обновить из Hardcover» заменит их)."""
     with transaction() as conn:
-        b = conn.execute("select kind from books where id = %s", (book_id,)).fetchone()
-        if not b:
+        done = conn.execute(
+            """update books set hardcover_tags = coalesce(hardcover_tags, '{}'::jsonb)
+                 || jsonb_build_object('genres', to_jsonb(%s::text[]), 'moods', to_jsonb(%s::text[]),
+                                       'content_warnings', to_jsonb(%s::text[]))
+               where id = %s""",
+            (_lines(form.get("genres")), _lines(form.get("moods")), _lines(form.get("content_warnings")), book_id))
+        if not done.rowcount:
             raise ValidationError("Книга не найдена")
-        if b["kind"] == "fanfic":
-            conn.execute("""update books set fandoms = %s, pairings = %s,
-                              ficbook_meta = jsonb_set(ficbook_meta, '{tags}', to_jsonb(%s::text[]))
-                            where id = %s""",
-                         (_lines(form.get("fandoms")), _lines(form.get("pairings")), _lines(form.get("tags")), book_id))
-        else:
-            conn.execute("""update books set hardcover_tags = hardcover_tags
-                              || jsonb_build_object('genres', to_jsonb(%s::text[]), 'moods', to_jsonb(%s::text[]),
-                                                    'content_warnings', to_jsonb(%s::text[]))
-                            where id = %s""",
-                         (_lines(form.get("genres")), _lines(form.get("moods")), _lines(form.get("content_warnings")), book_id))
 
 
 def delete_book(user_id: str, book_id: int) -> str:

@@ -37,8 +37,8 @@
   <div class="cards">
     {% for b in items %}
     <a class="book-card" href="/book/{{ b.id }}" data-find="{{ ((b.title_ru or '') ~ ' ' ~ b.title ~ ' ' ~ (b.authors or ''))|lower }}"{% if b.is_favorite %} data-fav{% endif %}{% if b.is_next %} data-next{% endif %}{% if no_series_filter and not b.series %} data-noseries{% endif %}>
-      {# серия (у фанфика — пейринг) — плашкой на обложке: так под обложкой меньше текста, а обложка крупнее #}
-      {% set ser = b.series or (b.pairings|join(', ') if b.pairings else '') %}
+      {# серия (у фанфика — цикл) — плашкой на обложке: так под обложкой меньше текста, а обложка крупнее #}
+      {% set ser = b.series %}
       <span class="cv">{{ cover(b, link=False) }}{% if ser %}<span class="ser" title="{{ ser }}">{{ ser }}</span>{% endif %}</span>
       {% if b.is_favorite %}<span class="fav-dot" title="Любимая">{{ icon('flame', 16) }}</span>{% endif %}
       <span class="info">

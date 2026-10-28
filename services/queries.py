@@ -209,14 +209,19 @@ def series_detail(user_id: str, series_id: int) -> dict | None:
 
 # ------------------------------------------------------------------ книги
 
+# Первая серия книги «Название · номер» — плашка на обложке в списках
+FIRST_SERIES = """
+    (select s.name || coalesce(' · ' || trim_scale(o.sort_position)::text, '')
+       from series_books_ordered o join series s on s.id = o.series_id
+      where o.user_id = %(u)s and o.book_id = b.id
+      order by s.name limit 1) as series
+"""
+
+
 def books(user_id: str) -> list[dict]:
     """Книги (не фанфики) в твоей библиотеке: с первой серией и последним прочтением."""
     return fetch_all(f"""
-        select {BOOK_FIELDS},
-               (select s.name || coalesce(' · ' || trim_scale(o.sort_position)::text, '')
-                  from series_books_ordered o join series s on s.id = o.series_id
-                 where o.user_id = %(u)s and o.book_id = b.id
-                 order by s.name limit 1) as series,
+        select {BOOK_FIELDS}, {FIRST_SERIES},
                (select max(r.finished_at) from reads r
                  where r.book_id = b.id and r.user_id = %(u)s) as finished_at
         from library l join books b on b.id = l.book_id
@@ -229,7 +234,7 @@ def books(user_id: str) -> list[dict]:
 def fanfics(user_id: str) -> list[dict]:
     """Фанфики в твоей библиотеке: сначала те, что читаешь, потом по названию."""
     return fetch_all(f"""
-        select {BOOK_FIELDS}, b.work_status, b.pairings,
+        select {BOOK_FIELDS}, b.work_status, {FIRST_SERIES},
                (select max(r.finished_at) from reads r
                  where r.book_id = b.id and r.user_id = %(u)s) as finished_at
         from library l join books b on b.id = l.book_id
@@ -244,7 +249,7 @@ def book_detail(user_id: str, book_id: int) -> dict | None:
     b = fetch_one(f"""
         select {BOOK_FIELDS}, b.description, b.description_ru, b.release_date,
                b.source_url, b.hardcover_id, b.hardcover_slug, b.hardcover_tags,
-               b.fandoms, b.pairings, b.work_status, b.words, b.parts, b.ficbook_meta,
+               b.fandoms, b.work_status, b.words, b.parts, b.ficbook_meta,
                l.book_id is not null as in_library, l.my_genre_id, l.notes
         from books b left join library l on l.book_id = b.id and l.user_id = %(u)s
         where b.id = %(b)s""", p)

@@ -102,21 +102,23 @@
 </section>
 {% endif %}
 
-{% set tags = b.hardcover_tags or {} %}
 {% set meta = b.ficbook_meta or {} %}
-{% if tags.get('genres') or tags.get('moods') or tags.get('content_warnings') or b.fandoms or b.pairings or meta.get('tags') %}
+{# Метки у книг и фанфиков одинаковые: жанры, настроение, предупреждения (hardcover_tags).
+   У фанфика, пока жанры не правила, — метки с ficbook вместо жанров #}
+{% set tags = b.hardcover_tags or {} %}
+{% if b.kind == 'fanfic' and 'genres' not in tags and meta.get('tags') %}{% set tags = dict(tags, genres=meta.tags) %}{% endif %}
+{% if tags.get('genres') or tags.get('moods') or tags.get('content_warnings') or b.fandoms or meta.get('direction') or meta.get('rating') %}
 <section class="card tags-card">
-  {% if b.fandoms or b.pairings or meta.get('direction') or meta.get('rating') %}
+  {% if b.fandoms or meta.get('direction') or meta.get('rating') %}
   <div class="pill-row fic-row">
     {% for f in b.fandoms or [] %}<span class="chip t-lilac">{{ icon('tag', 14) }}{{ f }}</span>{% endfor %}
-    {% for p in b.pairings or [] %}<span class="chip t-pink">{{ icon('m-emotional', 14) }}{{ p }}</span>{% endfor %}
     {% if meta.get('direction') %}<span class="chip t-sky">{{ meta.direction }}</span>{% endif %}
     {% if meta.get('rating') %}<span class="chip t-peach">{{ meta.rating }}</span>{% endif %}
     {% if meta.get('translation') %}<span class="chip t-mint">перевод</span>{% endif %}
   </div>
   {% endif %}
   <div class="tag-cols">
-    {% for title, items in [('Жанры', tags.get('genres') or []), ('Метки', meta.get('tags') or [])] if items %}
+    {% for title, items in [('Жанры', tags.get('genres') or [])] if items %}
     <div class="tag-col">
       <h2>{{ title }}</h2>
       <div class="pill-row" data-chips>
@@ -157,6 +159,10 @@
     {% if b.hardcover_slug %}<a href="https://hardcover.app/books/{{ b.hardcover_slug }}" target="_blank" rel="noopener">{{ icon('link', 16) }} Открыть в Hardcover</a>{% endif %}
     <a href="/book/{{ b.id }}/covers" id="find-cover">{{ icon('image', 16) }} {{ 'Другая обложка' if b.cover_url else 'Найти обложку' }}</a>
     <a href="/add/book?{{ {'link': b.id, 'q': b.title}|urlencode }}">{{ icon('link', 16) }} {{ 'Связать с другой книгой Hardcover' if b.hardcover_slug else 'Найти в Hardcover' }}</a>
+    {% if b.kind == 'fanfic' and b.source_url and 'ficbook.net' in b.source_url %}
+    {# сервер на ficbook не пускают — данные заново собирает закладка на странице фанфика #}
+    <a href="{{ b.source_url }}" target="_blank" rel="noopener" title="Откроется ficbook — там нажми закладку «В мои книги» и «Сохранить»">{{ icon('refresh', 16) }} Обновить с ficbook</a>
+    {% endif %}
     {% if b.hardcover_slug %}
     <form method="post" action="/book/{{ b.id }}/refresh"><button class="link" title="{{ 'Обложка и жанры' if b.kind == 'fanfic' else 'Описание, обложка, жанры и вся серия' }}">{{ icon('refresh', 16) }} Обновить из Hardcover</button></form>
     {% endif %}
@@ -199,17 +205,13 @@
   <h2>Метки</h2>
   <form method="post" action="/book/{{ b.id }}/tags" class="settings-form">
     <div class="form-grid tags-grid">
-      {% if b.kind == 'fanfic' %}
-      {% set fields = [('fandoms', 'Фандомы', b.fandoms or []), ('pairings', 'Пейринги', b.pairings or []), ('tags', 'Метки', meta.get('tags') or [])] %}
-      {% else %}
       {% set fields = [('genres', 'Жанры', tags.get('genres') or []), ('moods', 'Настроение', tags.get('moods') or []), ('content_warnings', 'Предупреждения', tags.get('content_warnings') or [])] %}
-      {% endif %}
       {% for name, title, items in fields %}
       <div><label for="t-{{ name }}">{{ title }}</label><textarea id="t-{{ name }}" name="{{ name }}" rows="5">{{ items|join('
 ') }}</textarea></div>
       {% endfor %}
     </div>
-    <p class="muted small">По одной на строку. {% if b.kind != 'fanfic' %}«Обновить из Hardcover» вернёт метки из Hardcover.{% endif %}</p>
+    <p class="muted small">По одной на строку. {% if b.hardcover_slug %}«Обновить из Hardcover» заменит их метками из Hardcover.{% endif %}</p>
     <p><button class="primary">Сохранить метки</button></p>
   </form>
   {% endif %}

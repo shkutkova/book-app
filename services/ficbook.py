@@ -85,7 +85,6 @@ def parse(form: dict) -> dict:
         "people": [(n, "author") for n in authors] + [(n, "translator") for n in translators],
         "people_ids": json_field(form.get("people_ids")),  # имя -> id автора на ficbook
         "fandoms": lines(form.get("fandoms")),
-        "pairings": lines(form.get("pairings")),
         "pages": positive_int(form.get("pages"), "Страницы"),
         "words": positive_int(form.get("words"), "Слова"),
         "parts": positive_int(form.get("parts"), "Части"),
@@ -114,16 +113,16 @@ def save_fanfic(user_id: str, form: dict) -> int:
     with transaction() as conn:
         book_id = conn.execute(
             """insert into books (kind, ficbook_id, source_url, title, title_ru, description, pages, cover_url,
-                                  fandoms, pairings, work_status, words, parts, ficbook_meta)
+                                  fandoms, work_status, words, parts, ficbook_meta)
                values ('fanfic', %(ficbook_id)s, %(url)s, %(title)s, %(title_ru)s, %(description)s, %(pages)s,
-                       %(cover_url)s, %(fandoms)s, %(pairings)s, %(work_status)s, %(words)s, %(parts)s, %(meta)s)
+                       %(cover_url)s, %(fandoms)s, %(work_status)s, %(words)s, %(parts)s, %(meta)s)
                on conflict (ficbook_id) do update set
                  kind = 'fanfic', source_url = excluded.source_url,
                  title = excluded.title, title_ru = coalesce(excluded.title_ru, books.title_ru),
                  description = coalesce(excluded.description, books.description),
                  pages = coalesce(excluded.pages, books.pages),
                  cover_url = coalesce(excluded.cover_url, books.cover_url),
-                 fandoms = excluded.fandoms, pairings = excluded.pairings,
+                 fandoms = excluded.fandoms,
                  work_status = excluded.work_status, words = excluded.words, parts = excluded.parts,
                  ficbook_meta = books.ficbook_meta || excluded.ficbook_meta
                returning id""",

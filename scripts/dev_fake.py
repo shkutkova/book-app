@@ -28,7 +28,7 @@ def B(i, st, kind="book", cov=None, **k):
     d = {"id": i, "kind": kind, "title": f"The Serpent and the Wings of Night {i}" if i % 3 else f"Книга {i}", "title_ru": None,
          "cover_url": cov, "pages": 300 + i, "status": st, "rating": [None, 4, 4.5, 5][i % 4], "is_favorite": False,
          "authors": ["Rina Kent", "Carissa Broadbent", "SenLinYu"][i % 3], "series": None, "finished_at": date(2026, 10, i % 27 + 1) if st == "finished" else None,
-         "pairings": ["Драко/Гермиона"] if kind == "fanfic" else None, "work_status": None}
+         "work_status": None}
     d.update(k); return d
 queries.home = lambda u: {"counts": {"finished": 136}, "reading": [
         B(1, "reading", cov=COV, series={"name": "Crowns of Nyaxia", "pos": 1, "total": 3}),
@@ -64,7 +64,7 @@ def _book(u, bid):
               "hardcover_id": 1, "hardcover_slug": "the-serpent" if bid != 27 else None,
               "hardcover_tags": {"genres": ["Fantasy", "Romance", "Romantasy", "Vampires"], "moods": ["dark", "Adventurous", "tense", "emotional", "funny"],
                                  "content_warnings": ["Violence"]},
-              "fandoms": ["Гарри Поттер"] if bid == 27 else None, "pairings": ["Драко/Гермиона"] if bid == 27 else None,
+              "fandoms": ["Гарри Поттер"] if bid == 27 else None,
               "work_status": "finished" if bid == 27 else None, "words": 120000 if bid == 27 else None, "parts": 30 if bid == 27 else None,
               "ficbook_meta": {"direction": "Гет", "rating": "NC-17", "tags": ["Слоуберн", "Hurt/Comfort"]} if bid == 27 else None,
               "in_library": True, "my_genre_id": 1, "notes": "", "is_favorite": bid == 6,

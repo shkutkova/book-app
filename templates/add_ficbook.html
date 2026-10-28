@@ -19,10 +19,8 @@
     <div><label for="authors">Автор</label><input id="authors" name="authors" value="{{ f.authors or '' }}" placeholder="через запятую"></div>
     <div><label for="translators">Переводчик</label><input id="translators" name="translators" value="{{ f.translators or '' }}" placeholder="через запятую"></div>
   </div>
-  <div class="form-grid">
-    <div><label for="fandoms">Фэндом</label><textarea id="fandoms" name="fandoms" placeholder="по одному на строку">{{ f.fandoms or '' }}</textarea></div>
-    <div><label for="pairings">Пейринг</label><textarea id="pairings" name="pairings" placeholder="по одному на строку">{{ f.pairings or '' }}</textarea></div>
-  </div>
+  <label for="fandoms">Фэндом</label>
+  <textarea id="fandoms" name="fandoms" placeholder="по одному на строку">{{ f.fandoms or '' }}</textarea>
   <div class="form-grid">
     <div><label for="pages">Страниц</label><input id="pages" name="pages" value="{{ f.pages or '' }}" inputmode="numeric"></div>
     <div><label for="words">Слов</label><input id="words" name="words" value="{{ f.words or '' }}" inputmode="numeric"></div>
@@ -92,7 +90,7 @@ function fill(d) {
   const set = (id, v) => { if (v !== undefined && v !== null && v !== '') $(id).value = v; };
   set('url', d.url); set('title', d.title);
   set('authors', by('author')); set('translators', by('translator'));
-  set('fandoms', (d.fandoms || []).join('\n')); set('pairings', (d.pairings || []).join('\n'));
+  set('fandoms', (d.fandoms || []).join('\n'));
   set('pages', d.pages); set('words', d.words); set('parts', d.parts);
   set('work_status', STATUS[d.status]);
   set('cover_url', d.cover); set('description', d.description);
