@@ -92,20 +92,20 @@
   </div>
 </section>
 
-{# Описание: аннотация (Hardcover/ficbook/Notion) и своё «Подробнее»; есть оба — вкладки, сначала своё #}
+{# Описание: аннотация (Hardcover/ficbook/Notion) и своё «Подробнее»; есть оба — вкладки, сначала аннотация #}
 {% set annot = b.description_ru or b.description %}
 {% set mine = b.my_description %}
 {% if annot or mine %}
 <section class="card about">
   {% if annot and mine %}
   <div class="seg small desc-tabs" role="tablist" aria-label="Описание">
-    <button type="button" role="tab" class="on" aria-selected="true" data-tab="mine">Подробнее</button>
-    <button type="button" role="tab" aria-selected="false" data-tab="annot">Аннотация</button>
+    <button type="button" role="tab" class="on" aria-selected="true" data-tab="annot">Аннотация</button>
+    <button type="button" role="tab" aria-selected="false" data-tab="mine">Подробнее</button>
   </div>
   {% endif %}
   <div class="desc" id="desc">
-    {% for key, text in [('mine', mine), ('annot', annot)] if text %}
-    <div data-pane="{{ key }}" {{ 'hidden' if key == 'annot' and mine }}>
+    {% for key, text in [('annot', annot), ('mine', mine)] if text %}
+    <div data-pane="{{ key }}" {{ 'hidden' if key == 'mine' and annot }}>
       {% if key == 'mine' %}{{ text|md }}{# своё — из Notion, с **жирным** и списками, как у серий #}
       {% else %}{% for par in text.split('\n') if par.strip() %}<p>{{ par.strip() }}</p>{% endfor %}{% endif %}
     </div>
