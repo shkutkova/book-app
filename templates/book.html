@@ -13,11 +13,17 @@
 {% macro more(n) -%}{% if n > 0 %}<button type="button" class="chip more" data-more aria-expanded="false">+{{ n }}</button>{% endif %}{%- endmacro %}
 
 {% block content %}
-<section class="book-hero">
-  <div class="book-cover">{{ cover(b, link=False) }}</div>
+{% set meta = b.ficbook_meta or {} %}
+{% set tags = b.hardcover_tags or {} %}
+{% if b.kind == 'fanfic' and 'genres' not in tags and meta.get('tags') %}{% set tags = dict(tags, genres=meta.tags) %}{% endif %}
+{# Сетка: обложка слева, справа название и строка «моё»; ниже описание и метки. На телефоне — одной колонкой #}
+<section class="book-page">
+  <div class="bp-cover book-cover">{{ cover(b, link=False) }}</div>
 
-  <div class="book-main">
-    <div class="title-block">
+  <div class="bp-title title-block glass">
+    {# справа сверху: где читать (ficbook) и огонёк избранного #}
+    <div class="corner">
+      {% if b.source_url %}<a class="read-link" href="{{ b.source_url }}" target="_blank" rel="noopener">{{ icon('link', 15) }} {{ 'ficbook' if 'ficbook.net' in b.source_url else 'Где читать' }}</a>{% endif %}
       {% if b.in_library %}
       <form method="post" action="/book/{{ b.id }}" class="fav-corner">
         <input type="hidden" name="is_favorite" value="{{ '' if b.is_favorite else 'on' }}">
@@ -26,115 +32,118 @@
                 title="{{ 'Убрать из избранного' if b.is_favorite else 'В избранное' }}">{{ icon('flame', 22) }}</button>
       </form>
       {% endif %}
+    </div>
+    <div class="names">
       {% if b.kind == 'fanfic' %}<span class="tag fanfic">фанфик</span>{% endif %}
       <h1>{{ b.title_ru or b.title }}</h1>
       {% if b.title_ru %}<p class="orig">{{ b.title }}</p>{% endif %}
       {# автор — ссылка: список «Книги» (или «Фанфики») с поиском по этому автору #}
       {% if b.authors %}<p class="by">{% for a in b.authors.split(', ') %}{% set name = a.replace(' (перевод)', '') %}<a href="/{{ 'fanfics' if b.kind == 'fanfic' else 'books' }}?{{ {'q': name}|urlencode }}">{{ name }}</a>{{ ' (перевод)' if name != a }}{{ ', ' if not loop.last }}{% endfor %}</p>{% endif %}
-      {% for s in b.series %}
-      <p class="in-series"><a href="/series/{{ s.id }}">{{ s.name_ru or s.name }}</a>{% if s.sort_position is not none %} · книга {{ s.sort_position|position }}{% endif %} из {{ s.books_count }}</p>
-      {% endfor %}
-      <p class="facts">
-        {% if b.pages %}<span>{{ b.pages }} стр.</span>{% endif %}
-        {% if b.words %}<span>{{ '{:,}'.format(b.words).replace(',', ' ') }} слов</span>{% endif %}
-        {% if b.parts %}<span>частей: {{ b.parts }}</span>{% endif %}
-        {% if b.release_date %}<span>вышла {{ b.release_date|ru_date }}</span>{% endif %}
-        {% if b.work_status %}<span>{{ WORK_STATUS[b.work_status] }}</span>{% endif %}
-      </p>
     </div>
+    {# факты — каждый своим цветом; серия — плашкой в той же строке: корешки по числу книг, эта книга выделена #}
+    <div class="meta">
+      <p class="facts">
+        {% if b.pages %}<span class="f-pages">{{ b.pages }} стр.</span>{% endif %}
+        {% if b.words %}<span class="f-words">{{ '{:,}'.format(b.words).replace(',', ' ') }} слов</span>{% endif %}
+        {% if b.parts %}<span class="f-parts">частей: {{ b.parts }}</span>{% endif %}
+        {% if b.release_date %}<span class="f-date">вышла {{ b.release_date|ru_date }}</span>{% endif %}
+        {% if b.work_status %}<span class="f-work">{{ WORK_STATUS[b.work_status] }}</span>{% endif %}
+      </p>
+      {% for s in b.series %}
+      <a class="series-mini" href="/series/{{ s.id }}">
+        {% if s.books_count and s.books_count <= 12 %}
+        <span class="spines" aria-hidden="true">{% for n in range(1, s.books_count + 1) %}<i class="{{ 'on' if s.sort_position is not none and s.sort_position == n }}"></i>{% endfor %}</span>
+        {% endif %}
+        <span class="s-name">{{ s.name_ru or s.name }}</span>
+        <span class="s-pos">{% if s.sort_position is not none %}{{ s.sort_position|position }} из {{ s.books_count }}{% else %}{{ s.books_count }} книг{% endif %}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
 
+  {# «Моё» строкой под названием: статус, даты, звёзды справа #}
+  <div class="bp-mine">
     {% if not b.in_library %}
-    <form method="post" action="/book/{{ b.id }}/add" class="actions">
-      <button class="primary">{{ icon('want_to_read') }} Добавить в «Хочу прочитать»</button>
+    <form method="post" action="/book/{{ b.id }}/add">
+      <button class="primary wide">{{ icon('want_to_read') }} Добавить в «Хочу прочитать»</button>
     </form>
     {% else %}
-    <div class="actions">
-      <details class="status-menu st-{{ b.status }}">
-        <summary>{{ icon(b.status) }} {{ STATUS[b.status] }} {{ icon('chevron', 16) }}</summary>
-        <form method="post" action="/book/{{ b.id }}" class="menu">
-          {% for k, v in STATUS.items() %}
-          <button name="status" value="{{ k }}" class="st-{{ k }}" {{ 'aria-current=true' if b.status == k }}>{{ icon(k) }} {{ v }}</button>
-          {% endfor %}
-        </form>
-      </details>
-
-      {% if b.status == 'want_to_read' %}
-      <form method="post" action="/book/{{ b.id }}/next">
-        <input type="hidden" name="is_next" value="{{ '' if b.is_next else 'on' }}">
-        <button class="next-btn {{ 'on' if b.is_next }}" aria-pressed="{{ 'true' if b.is_next else 'false' }}"
-                title="{{ 'Убрать из «Следующих»' if b.is_next else 'Поставить на полку «Следующие»' }}">{{ icon('next', 18) }}{{ 'Следующая' if b.is_next else 'Читать следующей' }}</button>
-      </form>
-      {% endif %}
-
-      {# Даты последнего прочтения — всегда в строке, между статусом и звёздами; прочтения нет — создастся #}
-      <form method="post" action="/book/{{ b.id }}/reads{{ '/' ~ last.id if last else '' }}" class="read-dates" data-autosave>
-        {{ icon('calendar', 17) }}
-        {# пустая дата — прочерк вместо «дд.мм.гггг» #}
-        {% for name, title in [('started_at', 'начало'), ('finished_at', 'конец')] %}{% set v = last[name] if last and last[name] else '' %}
-        <label>{{ title }} <span class="dt {{ 'blank' if not v }}"><input type="date" name="{{ name }}" value="{{ v }}" max="{{ today }}"></span></label>
-        {% endfor %}
-        <noscript><button>Сохранить</button></noscript>
-      </form>
-
-      {# Звёзды справа. Пока оценки нет — прозрачные; ставить можно прочитанной или брошенной книге #}
-      {% set can_rate = b.status in ('finished', 'dnf') %}
-      {% set r = b.rating|float|round|int if b.rating is not none else 0 %}
-      <form method="post" action="/book/{{ b.id }}" class="rate {{ 'empty' if not r }} {{ 'locked' if not can_rate }}" aria-label="Оценка"
-            title="{{ '' if can_rate else 'Оценку можно поставить прочитанной книге' }}">
-        {% for n in range(1, 6) %}
-        <button name="rating" value="{{ '' if r == n else n }}" class="{{ 'on' if n <= r }}" {{ 'disabled' if not can_rate }}
-                aria-label="{{ 'Убрать оценку' if r == n else n ~ ' из 5' }}">{{ icon('star', 24) }}</button>
+    <details class="status-menu st-{{ b.status }}">
+      <summary>{{ icon(b.status) }} {{ STATUS[b.status] }} {{ icon('chevron', 16) }}</summary>
+      <form method="post" action="/book/{{ b.id }}" class="menu">
+        {% for k, v in STATUS.items() %}
+        <button name="status" value="{{ k }}" class="st-{{ k }}" {{ 'aria-current=true' if b.status == k }}>{{ icon(k) }} {{ v }}</button>
         {% endfor %}
       </form>
-    </div>
+    </details>
 
+    {% if b.status == 'want_to_read' %}
+    <form method="post" action="/book/{{ b.id }}/next">
+      <input type="hidden" name="is_next" value="{{ '' if b.is_next else 'on' }}">
+      <button class="next-btn {{ 'on' if b.is_next }}" aria-pressed="{{ 'true' if b.is_next else 'false' }}"
+              title="{{ 'Убрать из «Следующих»' if b.is_next else 'Поставить на полку «Следующие»' }}">{{ icon('next', 18) }}{{ 'Следующая' if b.is_next else 'Читать следующей' }}</button>
+    </form>
+    {% endif %}
+
+    {# Звёзды. Пока оценки нет — прозрачные; ставить можно прочитанной или брошенной книге #}
+    {% set can_rate = b.status in ('finished', 'dnf') %}
+    {% set r = b.rating|float|round|int if b.rating is not none else 0 %}
+    <form method="post" action="/book/{{ b.id }}" class="rate {{ 'empty' if not r }} {{ 'locked' if not can_rate }}" aria-label="Оценка"
+          title="{{ '' if can_rate else 'Оценку можно поставить прочитанной книге' }}">
+      {% for n in range(1, 6) %}
+      <button name="rating" value="{{ '' if r == n else n }}" class="{{ 'on' if n <= r }}" {{ 'disabled' if not can_rate }}
+              aria-label="{{ 'Убрать оценку' if r == n else n ~ ' из 5' }}">{{ icon('star', 26) }}</button>
+      {% endfor %}
+    </form>
+
+    {# Даты последнего прочтения; прочтения нет — создастся. Пустая дата — прочерк вместо «дд.мм.гггг» #}
+    <form method="post" action="/book/{{ b.id }}/reads{{ '/' ~ last.id if last else '' }}" class="read-dates" data-autosave>
+      {{ icon('calendar', 17) }}
+      {% for name, title in [('started_at', 'начало'), ('finished_at', 'конец')] %}{% set v = last[name] if last and last[name] else '' %}
+      <label>{{ title }} <span class="dt {{ 'blank' if not v }}"><input type="date" name="{{ name }}" value="{{ v }}" max="{{ today }}"></span></label>
+      {% endfor %}
+      <noscript><button>Сохранить</button></noscript>
+    </form>
     {% endif %}
   </div>
-</section>
 
-{# Описание: аннотация (Hardcover/ficbook/Notion) и своё «Подробнее»; есть оба — вкладки, сначала аннотация #}
-{% set annot = b.description_ru or b.description %}
-{% set mine = b.my_description %}
-{% if annot or mine %}
-<section class="card about">
-  {% if annot and mine %}
-  <div class="seg small desc-tabs" role="tablist" aria-label="Описание">
-    <button type="button" role="tab" class="on" aria-selected="true" data-tab="annot">Аннотация</button>
-    <button type="button" role="tab" aria-selected="false" data-tab="mine">Подробнее</button>
-  </div>
-  {% endif %}
-  <div class="desc" id="desc">
-    {% for key, text in [('annot', annot), ('mine', mine)] if text %}
-    <div data-pane="{{ key }}" {{ 'hidden' if key == 'mine' and annot }}>
-      {% if key == 'mine' %}{{ text|md }}{# своё — из Notion, с **жирным** и списками, как у серий #}
-      {% else %}{% for par in text.split('\n') if par.strip() %}<p>{{ par.strip() }}</p>{% endfor %}{% endif %}
+  {# Описание: аннотация (Hardcover/ficbook/Notion) и своё «Подробнее»; есть оба — вкладки, сначала аннотация #}
+  {% set annot = b.description_ru or b.description %}
+  {% set mine = b.my_description %}
+  {% if annot or mine %}
+  <section class="bp-desc glass about">
+    {% if annot and mine %}
+    <div class="seg small desc-tabs" role="tablist" aria-label="Описание">
+      <button type="button" role="tab" class="on" aria-selected="true" data-tab="annot">Аннотация</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="mine">Подробнее</button>
     </div>
-    {% endfor %}
-  </div>
-  <button type="button" class="link desc-toggle" id="desc-toggle" hidden aria-expanded="false" aria-controls="desc">Читать полностью</button>
-</section>
-{% endif %}
+    {% endif %}
+    <div class="desc" id="desc">
+      {% for key, text in [('annot', annot), ('mine', mine)] if text %}
+      <div data-pane="{{ key }}" {{ 'hidden' if key == 'mine' and annot }}>
+        {% if key == 'mine' %}{{ text|md }}{# своё — из Notion, с **жирным** и списками, как у серий #}
+        {% else %}{% for par in text.split('\n') if par.strip() %}<p>{{ par.strip() }}</p>{% endfor %}{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <button type="button" class="link desc-toggle" id="desc-toggle" hidden aria-expanded="false" aria-controls="desc">Читать полностью</button>
+  </section>
+  {% endif %}
 
-{% set meta = b.ficbook_meta or {} %}
-{# Метки у книг и фанфиков одинаковые: жанры, настроение, предупреждения (hardcover_tags).
-   У фанфика, пока жанры не правила, — метки с ficbook вместо жанров #}
-{% set tags = b.hardcover_tags or {} %}
-{% if b.kind == 'fanfic' and 'genres' not in tags and meta.get('tags') %}{% set tags = dict(tags, genres=meta.tags) %}{% endif %}
-{% if tags.get('genres') or tags.get('moods') or tags.get('content_warnings') %}
-<section class="card tags-card">
-  <div class="tag-cols">
-    {% for title, items in [('Жанры', tags.get('genres') or [])] if items %}
-    <div class="tag-col">
-      <h2>{{ title }}</h2>
+  {# Метки у книг и фанфиков одинаковые: жанры, настроение, предупреждения (hardcover_tags).
+     У фанфика, пока жанры не правила, — метки с ficbook вместо жанров. Группа = заголовок + ряд меток #}
+  {% if tags.get('genres') or tags.get('moods') or tags.get('content_warnings') %}
+  <div class="bp-tags">
+    {% if tags.get('genres') %}
+    <div class="tag-group"><h2>Жанры</h2>
       <div class="pill-row" data-chips>
-        {% for g in items %}<span class="chip genre g{{ loop.index0 % 6 }}" {{ 'hidden' if loop.index > SHOW }}>{{ icon('tag', 14) }}{{ g }}</span>{% endfor %}
-        {{ more(items|length - SHOW) }}
+        {% for g in tags.genres %}<span class="chip genre g{{ loop.index0 % 6 }}" {{ 'hidden' if loop.index > SHOW }}>{{ icon('tag', 14) }}{{ g }}</span>{% endfor %}
+        {{ more(tags.genres|length - SHOW) }}
       </div>
     </div>
-    {% endfor %}
+    {% endif %}
     {% if tags.get('moods') %}
-    <div class="tag-col">
-      <h2>Настроение</h2>
+    <div class="tag-group"><h2>Настроение</h2>
       <div class="pill-row" data-chips>
         {% for m in tags.moods %}{% set key = m|lower %}
         <span class="chip {{ TONES[loop.index0 % 6] }}" {{ 'hidden' if loop.index > SHOW }}>{{ icon('m-' ~ key if key in MOODS else 'm-other', 14) }}{{ MOODS.get(key, m) }}</span>
@@ -144,8 +153,7 @@
     </div>
     {% endif %}
     {% if tags.get('content_warnings') %}
-    <div class="tag-col">
-      <h2>Предупреждения</h2>
+    <div class="tag-group"><h2>Предупреждения</h2>
       <div class="pill-row warnings" data-chips>
         {% for w in tags.content_warnings %}<span class="chip warn" {{ 'hidden' if loop.index > SHOW }}>{{ icon('warn', 14) }}{{ w }}</span>{% endfor %}
         {{ more(tags.content_warnings|length - SHOW) }}
@@ -153,13 +161,12 @@
     </div>
     {% endif %}
   </div>
+  {% endif %}
 </section>
-{% endif %}
 
 <details class="card settings">
   <summary>{{ icon('gear') }} Настройки книги</summary>
   <div class="links">
-    {% if b.source_url %}<a href="{{ b.source_url }}" target="_blank" rel="noopener">{{ icon('link', 16) }} {{ 'Читать на ficbook' if 'ficbook.net' in b.source_url else 'Где читать' }}</a>{% endif %}
     {% if meta.get('original_url') %}<a href="{{ meta.original_url }}" target="_blank" rel="noopener">{{ icon('link', 16) }} Оригинал{% if meta.get('original_author') %} · {{ meta.original_author }}{% endif %}</a>{% endif %}
     {% if b.hardcover_slug %}<a href="https://hardcover.app/books/{{ b.hardcover_slug }}" target="_blank" rel="noopener">{{ icon('link', 16) }} Открыть в Hardcover</a>{% endif %}
     <a href="/book/{{ b.id }}/covers" id="find-cover">{{ icon('image', 16) }} {{ 'Другая обложка' if b.cover_url else 'Найти обложку' }}</a>

@@ -125,12 +125,59 @@ details summary{cursor:pointer}
 .books .pos .move.remove{color:#ff8a7a}
 
 /* страница книги */
-.book-hero{display:grid;grid-template-columns:220px 1fr;gap:2rem;align-items:start;margin:1.2rem 0 1.4rem}
+/* сетка: обложка (220) слева; справа название (тянется до низа обложки) → кнопки вровень с её краем;
+   ниже описание и метки во всю ширину, метки — тремя колонками */
+.book-page{display:grid;grid-template-columns:220px minmax(0,1fr);grid-template-areas:"cover title" "cover mine" "desc desc" "tags tags";
+ grid-template-rows:1fr auto auto auto;gap:1rem 2rem;align-items:start;margin:1.2rem 0 1.4rem}
+.bp-cover{grid-area:cover}.bp-title{grid-area:title;align-self:stretch;align-content:space-between}.bp-mine{grid-area:mine}.bp-desc{grid-area:desc}.bp-tags{grid-area:tags}
+/* светлый полупрозрачный блок — название, описание */
+.glass{background:#ffffff0d;border:1px solid #ffffff1a;border-radius:var(--r);padding:1.1rem 1.3rem;color:var(--text)}
 .book-cover .cover{width:100%;flex:none}.book-cover .cover img,.book-cover .cover .img{border-radius:16px;box-shadow:0 22px 40px -18px #000c}
 .book-cover .cover .img{font-size:1.1rem;padding:1rem}
-.book-main{display:flex;flex-direction:column;gap:1rem;min-width:0}
+/* название: слева имена, справа ficbook + огонёк; снизу факты и серия одной строкой */
+.book-page .bp-title{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"names corner" "meta meta";gap:1.1rem 1rem;padding:1.5rem 1.7rem}
+.bp-title .names{grid-area:names;display:flex;flex-direction:column;align-items:flex-start;gap:.25rem;min-width:0}
+.book-page .bp-title .names .tag{margin:0 0 .2rem}
+.book-page .bp-title h1{margin:0;font-size:clamp(1.6rem,1rem + 2vw,2.5rem);line-height:1.15}
+.book-page .bp-title .orig{margin:0;font-size:.95rem}
+.book-page .bp-title .by{margin:.3rem 0 0;font-size:1.12rem}
+.bp-title .corner{grid-area:corner;display:flex;align-items:center;gap:.5rem;align-self:start}
+.bp-title .fav-corner{position:static}
+.bp-title .fav-round{width:40px;height:40px}
+.read-link{display:inline-flex;align-items:center;gap:.3rem;font-size:.84rem;font-weight:800;color:var(--text);background:#ffffff14;border:1px solid #ffffff26;border-radius:999px;padding:.4rem .8rem}
+.read-link:hover{text-decoration:none;background:#ffffff26}
+.bp-title .meta{grid-area:meta;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem 1rem}
+.book-page .bp-title .facts{margin:0;gap:.4rem}
+.book-page .bp-title .facts span{font-size:.8rem;font-weight:800;padding:.2rem .7rem;color:var(--ink)}
+.book-page .bp-title .facts .f-pages{background:var(--p-sky)}.book-page .bp-title .facts .f-words{background:var(--p-butter)}
+.book-page .bp-title .facts .f-parts{background:var(--p-peach)}.book-page .bp-title .facts .f-date{background:var(--p-lilac)}
+.book-page .bp-title .facts .f-work{background:var(--surface);color:var(--text)}
+/* серия — плашкой: корешки + «название · 1 из 3» */
+.series-mini{display:inline-flex;align-items:center;gap:.5rem;padding:.3rem .8rem;border-radius:999px;background:#ffffff12;border:1px solid #ffffff1f;color:var(--text);font-size:.82rem}
+.series-mini:hover{text-decoration:none;background:#ffffff1f}
+.series-mini .spines{display:flex;gap:3px;align-items:flex-end}
+.series-mini .spines i{width:7px;height:14px;border-radius:2px;background:var(--p-lilac);opacity:.55}
+.series-mini .spines i.on{background:var(--p-butter);opacity:1;height:17px}
+.series-mini .s-name{font-weight:800}
+.series-mini .s-pos{font-weight:700;color:var(--mut)}
+/* «моё» строкой, без рамки: статус, даты (как раньше — капсула с календарём), звёзды справа */
+.bp-mine{display:flex;flex-wrap:wrap;align-items:center;gap:.7rem 1.2rem;padding:0 .2rem}
+.bp-mine form{margin:0}
+.bp-mine .read-dates{order:2}
+.bp-mine .rate{order:3;margin-left:auto;display:flex;gap:.15rem}
+.bp-mine .primary.wide{display:flex;align-items:center;gap:.4rem}
+.bp-desc{padding:1.3rem 1.6rem}
+/* метки без рамки: заголовок группы + ряд меток; внизу — три колонки */
+.bp-tags{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));align-items:start;gap:1.2rem 1.6rem;padding-top:.2rem}
+.bp-tags h2{margin:0 0 .5rem;font-size:.92rem}
+.tag-group{min-width:0}
+/* даты: одна капсула — календарь, «начало …», «конец …» */
+.read-dates{display:flex;align-items:center;gap:.45rem;background:var(--surface);border-radius:999px;padding:.35rem .85rem}
+.read-dates>.ic{color:var(--mut)}
+.read-dates label{margin:0;display:flex;align-items:center;gap:.3rem;font-size:.8rem;color:var(--mut);font-weight:700;cursor:pointer}
+.read-dates input{width:5.6rem;padding:.1rem .2rem;font-size:.82rem;font-weight:700;background:#ffffff0d;border:0;border-radius:6px;color:var(--text);cursor:pointer}
 .title-block{position:relative;background:#ffffff0d;border:1px solid #ffffff1a;color:var(--text);border-radius:var(--r);padding:1.1rem 1.3rem}
-.title-block:has(.fav-corner) h1{padding-right:2.8rem}
+.title-block:not(.bp-title):has(.fav-corner) h1{padding-right:2.8rem}
 .fav-corner{position:absolute;top:.8rem;right:.8rem;margin:0}
 .fav-round{width:44px;height:44px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;background:#ffffff14;border:1px solid #ffffff26;color:#ffffff99}
 .fav-round:hover{color:#ffb070;border-color:#ffb07080}
@@ -140,11 +187,8 @@ details summary{cursor:pointer}
 .title-block .by{margin:0;font-size:1.1rem;font-weight:800;color:var(--p-lilac)}
 .title-block .by a{color:inherit;text-decoration:underline;text-decoration-color:#ffffff40;text-underline-offset:3px}
 .title-block .by a:hover{text-decoration-color:currentColor}
-.title-block .in-series{margin:.3rem 0 0;font-weight:700}.title-block .in-series a{color:var(--text);text-decoration:underline;text-decoration-color:#ffffff55}
 .title-block .facts{margin:.6rem 0 0;display:flex;flex-wrap:wrap;gap:.35rem .5rem}
 .title-block .facts span{font-size:.8rem;font-weight:700;background:#ffffff14;border-radius:999px;padding:.12rem .6rem;color:var(--mut)}
-.actions{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
-.actions form{margin:0}
 .ic{flex:none;vertical-align:-3px}
 .status-menu{position:relative}
 .status-menu summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:.5rem;border-radius:999px;padding:.6rem 1.1rem;font-weight:800;color:var(--ink);background:var(--st,var(--p-lilac))}
@@ -159,7 +203,6 @@ details summary{cursor:pointer}
 .status-menu .dates{border-top:1px solid var(--line);margin-top:.3rem;padding:.5rem .4rem .2rem;display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
 .status-menu .dates p{grid-column:1/-1;margin:0}
 .status-menu .dates label{margin:0;font-size:.78rem}.status-menu .dates input{width:100%;padding:.35rem .4rem;font-size:.85rem}
-.actions .rate{display:flex;align-items:center;gap:.1rem;margin:0 0 0 auto}
 .rate button{background:none;border:0;padding:.15rem;color:var(--accent);border-radius:8px}
 .rate button .ic{fill:none;transition:fill .12s}
 .rate button.on .ic{fill:var(--accent)}
@@ -170,16 +213,12 @@ details summary{cursor:pointer}
 .next-btn{display:flex;align-items:center;gap:.4rem;border-radius:999px;padding:.55rem .95rem;background:var(--surface);border:1px solid transparent;color:var(--mut);font-weight:800}
 .next-btn:hover{color:var(--p-sky)}
 .next-btn.on{background:var(--p-sky);color:var(--ink)}
-.read-dates{margin:0;display:flex;align-items:center;gap:.2rem .45rem;flex-wrap:nowrap;color:var(--mut);background:var(--surface);border-radius:999px;padding:.3rem .75rem}
-.read-dates label{margin:0;display:flex;align-items:center;gap:.25rem;font-size:.8rem;color:var(--mut);font-weight:700}
-.read-dates input{width:5.4rem;padding:.1rem .15rem;font-size:.8rem;font-weight:700;background:#ffffff0d;border:0;border-radius:6px;color:var(--text);cursor:pointer}
 .read-dates input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .read-dates input::-webkit-calendar-picker-indicator{display:none}
 input[type=date].blank:not(:focus){color:transparent}
 .read-dates .dt{position:relative;display:inline-flex}
 .read-dates .dt.blank:not(:focus-within) input{width:2.2rem}
 .read-dates .dt.blank:not(:focus-within)::after{content:"–";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;color:var(--mut);pointer-events:none}
-@media (max-width:560px){.read-dates{padding:.3rem .6rem;gap:.3rem}.read-dates>.ic{display:none}.read-dates label{font-size:.74rem}.read-dates input{width:5.6rem;font-size:.8rem}}
 .desc p{margin:0 0 .5rem;text-indent:1.6em}
 .desc{text-align:justify;hyphens:auto;-webkit-hyphens:auto}
 .desc ul{text-align:left}
@@ -189,8 +228,6 @@ input[type=date].blank:not(:focus){color:transparent}
 .desc-tabs{background:var(--surface-2);margin-bottom:.8rem}
 .ai-row{display:flex;align-items:center;gap:.4rem .9rem;flex-wrap:wrap;margin:.4rem 0 0}
 .ai-row .link{display:inline-flex;align-items:center;gap:.35rem;font-weight:800}
-.tags-card h2{margin:0 0 .6rem;font-size:.95rem}
-.tag-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:1.2rem 1.6rem}
 .fic-row{margin-bottom:1.2rem}
 .pill-row{display:flex;flex-wrap:wrap;gap:.45rem}
 .chip{display:inline-flex;align-items:center;gap:.35rem;border-radius:999px;padding:.3rem .8rem;font-size:.85rem;font-weight:800;color:var(--ink);border:0}
@@ -225,7 +262,10 @@ input[type=date].blank:not(:focus){color:transparent}
 .covers-grid .src{display:block;font-size:.8rem;margin-top:.3rem}
 .own-cover{margin-top:1.2rem;border-top:1px solid var(--line);padding-top:.6rem}
 .own-row{display:flex;gap:.5rem}.own-row input{flex:1;min-width:0}
-@media (max-width:640px){.book-hero{grid-template-columns:1fr;gap:1rem}.book-cover{width:150px;margin:0 auto}
+@media (max-width:980px){.book-page{grid-template-columns:200px minmax(0,1fr)}}
+@media (max-width:640px){.book-page{grid-template-columns:minmax(0,1fr);grid-template-areas:"cover" "title" "mine" "desc" "tags";grid-template-rows:none;gap:1rem}
+ .book-page .bp-tags,.book-page .tag-group{grid-template-columns:none}
+ .book-cover{width:150px;margin:0 auto}.bp-title{padding:1.1rem 1.2rem}.bp-desc{padding:1.1rem 1.2rem}
  .status-menu .menu{min-width:min(86vw,300px)}}
 .reads td{padding:.3rem .4rem 0 0}
 
