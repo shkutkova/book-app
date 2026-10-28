@@ -385,13 +385,18 @@ button.spine:hover,button.spine:focus-visible{transform:translateY(-10px)}
 .group-title{display:flex;align-items:center;gap:.6rem;font-size:1.2rem;margin:0 0 .9rem}
 .group-title .dot{width:12px;height:12px;border-radius:50%}
 .group-title .count{font-family:var(--body);font-size:.95rem;color:var(--mut);font-weight:700}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(46%,192px),1fr));gap:.9rem;align-items:stretch}
+/* ===== РАЗМЕРЫ КАРТОЧЕК в «Книгах» и «Фанфиках» — меняй эти два числа (в пикселях, без «px») =====
+   --card-w — ширина карточки, --cover-h — высота обложки на компьютере.
+   На телефоне карточек две в ряд: они уже, и обложка уменьшается в тех же пропорциях. */
+:root{--card-w:192;--cover-h:280}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,min(calc(var(--card-w) * 1px),calc((100% - .9rem) / 2)));gap:.9rem;align-items:stretch}
 .book-card{position:relative;display:flex;flex-direction:column;justify-content:flex-start;gap:.45rem;color:var(--text);background:var(--surface);border-radius:18px;padding:.5rem .5rem .6rem;
  box-shadow:0 12px 24px -16px #12002d;transition:background .15s}
 .book-card:hover{text-decoration:none;background:var(--surface-2)}
-/* обложка во всю ширину карточки, пропорции 2:3 — не растягивается */
+/* обложка во всю ширину карточки (минус отступы 16px), высота — из --cover-h; лишнее у картинки обрезается по краям */
 .book-card .cv{position:relative;display:block;width:100%;margin:0 auto}
 .book-card .cover{display:block;width:100%;flex:none}.book-card .cover .t{display:none}
+.book-card .cover img,.book-card .cover .img{aspect-ratio:calc(var(--card-w) - 16) / var(--cover-h)}
 .book-card .cover img,.book-card .cover .img{border-radius:10px}
 .book-card .cover .img{font-size:.8rem;padding:.7rem}
 .book-card .info{display:flex;flex-direction:column;gap:.1rem;padding:0 .15rem;flex:1}
