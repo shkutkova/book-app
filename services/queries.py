@@ -1,7 +1,6 @@
 """Чтение данных для страниц. Только SELECT: всё, что меняет базу, — в library.py.
 Каждая функция получает user_id: библиотека, оценки и прочтения у каждого свои."""
 from db import fetch_all, fetch_one
-from services.hardcover_api import is_main
 
 STATUS_NAMES = {
     "want_to_read": "Хочу прочитать",
@@ -81,8 +80,7 @@ def home(user_id: str) -> dict:
                                                   'cover_url', b.cover_url, 'status', o.status)
                                 order by o.sort_position nulls last)
                   from series_books_ordered o join books b on b.id = o.book_id
-                 where o.user_id = %(u)s and o.series_id = sp.id
-                   and (o.official_position is null or o.official_position = trunc(o.official_position))
+                 where o.user_id = %(u)s and o.series_id = sp.id and o.is_main
                    and o.status is distinct from 'skipped') as books
         from series_progress sp
         where sp.user_id = %(u)s and sp.status = 'in_progress'
@@ -106,8 +104,7 @@ def shelf(user_id: str) -> dict:
                                                   'cover_url', b.cover_url, 'pages', b.pages)
                                 order by o.sort_position nulls last)
                   from series_books_ordered o join books b on b.id = o.book_id
-                 where o.user_id = %(u)s and o.series_id = s.id
-                   and (o.official_position is null or o.official_position = trunc(o.official_position))) as books
+                 where o.user_id = %(u)s and o.series_id = s.id and o.is_main) as books
         from user_series us join series s on s.id = us.series_id
         where us.user_id = %(u)s and us.is_favorite
         order by title""", u)
@@ -193,7 +190,7 @@ def series_detail(user_id: str, series_id: int) -> dict | None:
     if not s:
         return None
     s["books"] = fetch_all(f"""
-        select {BOOK_FIELDS}, o.official_position, o.my_position, o.sort_position,
+        select {BOOK_FIELDS}, o.official_position, o.my_position, o.sort_position, o.is_main,
                (select max(r.finished_at) from reads r
                  where r.book_id = b.id and r.user_id = %(u)s) as finished_at
         from series_books_ordered o
@@ -202,9 +199,10 @@ def series_detail(user_id: str, series_id: int) -> dict | None:
         where o.user_id = %(u)s and o.series_id = %(s)s
         order by o.sort_position nulls last, b.title""", p)
     s["authors"] = sorted({a for b in s["books"] if b["authors"] for a in b["authors"].split(", ")})
-    # Основные (номер 1, 2, 3 или без номера) и дополнительные (1.5 — повести, рассказы)
-    s["extras"] = [b for b in s["books"] if not is_main(b["official_position"])]
-    s["books"] = [b for b in s["books"] if is_main(b["official_position"])]
+    # Основные (номер 1, 2, 3 или без номера) и дополнительные (1.5 — повести, рассказы);
+    # любую книгу можно перенести в другой блок сама (user_series_books.is_extra)
+    s["extras"] = [b for b in s["books"] if not b["is_main"]]
+    s["books"] = [b for b in s["books"] if b["is_main"]]
     s["pages"] = sum(b["pages"] or 0 for b in s["books"])
     return s
 

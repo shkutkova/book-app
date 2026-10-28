@@ -171,7 +171,7 @@ if (peek) {
       const items = [...row.querySelectorAll('[data-key]')].map(x => x.dataset.key);
       fetch('/shelf/order', {method: 'POST', headers: {'Content-Type': 'application/json'},
                              body: JSON.stringify({shelf: row.dataset.shelf, items})})
-        .then(r => { if (!r.ok) throw r; })
+        .then(r => { if (!r.ok) throw r; window.bookAppChanged?.(); })
         .catch(() => alert('Не получилось сохранить порядок на полке. Обнови страницу и попробуй ещё раз.'));
     },
   }));

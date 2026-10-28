@@ -1,12 +1,12 @@
 // Фильтр списков («Книги», «Фанфики», «Серии»): кнопки [data-show] оставляют одну группу
-// [data-group], «Избранное» (data-show=fav) и «Следующие» (data-show=next) — отмеченные data-fav / data-next из всех групп, поле #find ищет по data-find у карточек. Выбор кнопки запоминается в адресе (#want_to_read).
+// [data-group], «Избранное» (data-show=fav), «Следующие» (next), «Без серии» (noseries) — отмеченные data-fav / data-next / data-noseries из всех групп, поле #find ищет по data-find у карточек. Выбор кнопки запоминается в адресе (#want_to_read).
 (() => {
   const groups = [...document.querySelectorAll('[data-group]')];
   const buttons = [...document.querySelectorAll('[data-show]')];
   const find = document.getElementById('find');
   const nothing = document.getElementById('nothing');
   if (!buttons.length) return;
-  const MARKS = ['fav', 'next'];  // не группа, а отметка у карточки
+  const MARKS = ['fav', 'next', 'noseries'];  // не группа, а отметка у карточки
   let show = buttons.some(b => b.dataset.show === location.hash.slice(1)) ? location.hash.slice(1) : 'all';
 
   function apply() {

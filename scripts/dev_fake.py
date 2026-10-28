@@ -92,13 +92,18 @@ def _home4(u):
                   "want": [k(B(300 + i, "want_to_read", is_next=True)) for i in range(5)]}
     return h
 queries.home = _home4
+EXTRA = {50: True}  # книга -> в «Дополнительно» (перенос кнопкой меняет это)
 def _series(u, sid):
     books = [dict(B(40 + i, st, cov=COV if i % 2 == 0 else None), official_position=i + 1, my_position=None, sort_position=i + 1)
              for i, st in enumerate(["finished", "finished", "reading", "want_to_read"])]
+    books.append(dict(B(50, None), official_position=1.5, my_position=None, sort_position=1.5))
+    for b in books:
+        b["is_main"] = not EXTRA.get(b["id"], False)
+    books.sort(key=lambda b: b["sort_position"])
     return {"id": sid, "name": "Crowns of Nyaxia", "name_ru": "Короны Никсии", "description": "Тёмное романтическое фэнтези о вампирах и богах.\nСерия рассказывает о мире Никсии, где правят дома Ночи, Тени и Крови. Каждая книга — новая пара героев, но мир и интриги общие, и с каждой книгой всё сложнее понять, кому верить.\nВ серии **основные книги** и повести.\n- Книга 1 — Змея и крылья ночи\n- Книга 2 — Пепел и проклятый звёздами король",
             "ficbook_id": None, "hardcover_id": 1, "is_completed": False, "is_abandoned": False, "use_my_order": False,
             "is_favorite": sid == 3, "total_books": 4, "finished_books": 2, "skipped_books": 0, "extra_books": 1,
-            "progress_status": "in_progress", "books": books, "extras": [dict(B(50, None), official_position=1.5, my_position=None, sort_position=1.5)],
+            "progress_status": "in_progress", "books": [b for b in books if b["is_main"]], "extras": [b for b in books if not b["is_main"]],
             "authors": ["Carissa Broadbent"], "pages": 2100}
 queries.series_detail = _series
 _sl = queries.series_list
@@ -114,6 +119,8 @@ _b2 = queries.books
 queries.books = lambda u: [dict(b, is_next=b["status"] == "want_to_read" and b["id"] % 5 == 0) for b in _b2(u)]
 _lib.save_tags = lambda b, f: print("TAGS", b, dict(f))
 _lib.delete_book = lambda u, b: (print("DELETE", b), "fanfic")[1]
+_lib.set_series_extra = lambda u, s, b, extra: EXTRA.__setitem__(b, extra)
+_lib.set_cover = lambda b, url: print("COVER", b, _lib.cover_link(url))
 
 import uvicorn
 from main import app

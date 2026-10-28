@@ -49,6 +49,22 @@
 // Меню «+ Добавить» закрывается по клику мимо и по Esc
 document.addEventListener('click', e => document.querySelectorAll('.add-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.add-menu[open]').forEach(d => d.open = false); });
+// Изменила что-то в одной вкладке — другие открытые вкладки приложения обновятся, когда на них вернёшься.
+// Отправка формы ставит отметку; страница после сохранения рассылает «изменилось» остальным вкладкам.
+(() => {
+  if (!('BroadcastChannel' in window)) return;
+  const ch = new BroadcastChannel('book-app');
+  let stale = false;
+  const mark = () => { try { sessionStorage.setItem('changed', '1'); } catch {} };
+  document.addEventListener('submit', e => { if ((e.target.method || '').toLowerCase() === 'post') mark(); });
+  window.bookAppChanged = () => ch.postMessage('changed');  // для сохранений без перезагрузки (полка)
+  try { if (sessionStorage.getItem('changed')) { sessionStorage.removeItem('changed'); ch.postMessage('changed'); } } catch {}
+  ch.onmessage = () => { if (document.hidden) stale = true; };
+  // в этой вкладке начат и не сохранён ввод — не перезагружаем, чтобы он не пропал
+  const typing = () => [...document.querySelectorAll('input:not([type=hidden]):not([type=search]), textarea')]
+    .some(f => (f.type === 'checkbox' || f.type === 'radio') ? f.checked !== f.defaultChecked : f.value !== f.defaultValue);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && stale && !typing()) location.reload(); });
+})();
 </script>
 {% block scripts %}{% endblock %}
 </body>

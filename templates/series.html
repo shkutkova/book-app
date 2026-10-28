@@ -36,7 +36,7 @@
     </form>
   </section>
 
-{% macro rows(books) %}
+{% macro rows(books, main=True) %}
     {% for b in books %}
     <tr>
       <td class="num">{{ b.sort_position|position or '—' }}</td>
@@ -49,7 +49,12 @@
       <td class="right"><span class="badge {{ b.status or '' }}">{{ STATUS.get(b.status, 'Не добавлена') }}</span>
         {% if b.rating %}<div class="stars">{{ b.rating|stars }}</div>{% endif %}
         {% if b.finished_at %}<div class="muted small">{{ b.finished_at|ru_date }}</div>{% endif %}</td>
-      {% if edit %}<td class="pos"><input name="pos_{{ b.id }}" value="{{ b.my_position|position }}" inputmode="decimal" aria-label="Мой номер для {{ b.title }}" style="width:4rem"></td>{% endif %}
+      {% if edit %}<td class="pos">
+        {# свой номер — только у основных: дополнительные идут после них #}
+        {% if main %}<input name="pos_{{ b.id }}" value="{{ b.my_position|position }}" inputmode="decimal" aria-label="Мой номер для {{ b.title }}" style="width:4rem">{% endif %}
+        <button class="link move" formaction="/series/{{ s.id }}/extra/{{ b.id }}" name="extra" value="{{ '1' if main else '0' }}"
+                title="{{ 'Перенести в «Дополнительно» — в прогресс не войдёт' if main else 'Перенести в основные книги' }}">{{ 'в доп.' if main else 'в основные' }}</button>
+      </td>{% endif %}
     </tr>
     {% endfor %}
 {% endmacro %}
@@ -61,8 +66,8 @@
   </div>
   {% if s.extras %}
   <div class="card">
-    <h2>Дополнительно <span class="muted small">повести и рассказы — в прогресс не входят</span></h2>
-    <table class="books">{{ rows(s.extras) }}</table>
+    <h2>Дополнительно <span class="muted small">повести, рассказы, другие издания — в прогресс не входят</span></h2>
+    <table class="books">{{ rows(s.extras, main=False) }}</table>
   </div>
   {% endif %}
 

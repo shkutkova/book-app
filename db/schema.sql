@@ -165,7 +165,8 @@ create table user_series_books (
     user_id      uuid not null references profiles(id) on delete cascade on update cascade,
     series_id    bigint not null,
     book_id      bigint not null,
-    my_position  numeric(6,2) not null,
+    my_position  numeric(6,2),  -- пусто — официальный номер
+    is_extra     boolean,       -- пусто — по номеру (1.5 — доп.); true — в «Дополнительно», false — в основные
     primary key (user_id, series_id, book_id),
     foreign key (series_id, book_id) references series_books(series_id, book_id) on delete cascade
 );
@@ -247,8 +248,11 @@ select
 from profiles p
 cross join series s
 join series_books sb on sb.series_id = s.id
-cross join lateral (select sb.official_position is null
-                        or sb.official_position = trunc(sb.official_position) as is_main) x
+left join user_series_books usb
+       on usb.user_id = p.id and usb.series_id = sb.series_id and usb.book_id = sb.book_id
+cross join lateral (select coalesce(not usb.is_extra,
+                                    sb.official_position is null
+                                    or sb.official_position = trunc(sb.official_position)) as is_main) x
 left join library l on l.book_id = sb.book_id and l.user_id = p.id
 left join user_series us on us.series_id = s.id and us.user_id = p.id
 group by p.id, s.id, us.is_abandoned;
@@ -266,7 +270,10 @@ select
          then usb.my_position else sb.official_position end as sort_position,
     l.status,
     l.rating,
-    l.is_favorite
+    l.is_favorite,
+    -- основная книга: свой выбор, иначе — целый номер или без номера
+    coalesce(not usb.is_extra,
+             sb.official_position is null or sb.official_position = trunc(sb.official_position)) as is_main
 from profiles p
 cross join series_books sb
 left join user_series us

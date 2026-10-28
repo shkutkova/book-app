@@ -24,6 +24,10 @@
   {% endfor %}
   {% set favs = groups.values()|sum(start=[])|selectattr('is_favorite')|list %}
   {% if favs %}<button type="button" data-show="fav" aria-pressed="false" class="fav-filter">{{ icon('flame', 15) }}Избранное<span class="n">{{ favs|length }}</span></button>{% endif %}
+  {# книги в сериях смотрятся на странице серии, а эти — только здесь #}
+  {% if no_series_filter %}{% set alone = groups.values()|sum(start=[])|rejectattr('series')|list %}
+  {% if alone %}<button type="button" data-show="noseries" aria-pressed="false">Без серии<span class="n">{{ alone|length }}</span></button>{% endif %}
+  {% endif %}
 </div>
 <input type="search" id="find" class="find" placeholder="Найти по названию или автору" aria-label="Поиск">
 
@@ -32,7 +36,7 @@
   <h2 class="group-title"><i class="dot" style="background:{{ DOT[key] }}"></i>{{ STATUS[key] }} <span class="count">{{ items|length }}</span></h2>
   <div class="cards">
     {% for b in items %}
-    <a class="book-card" href="/book/{{ b.id }}" data-find="{{ ((b.title_ru or '') ~ ' ' ~ b.title ~ ' ' ~ (b.authors or ''))|lower }}"{% if b.is_favorite %} data-fav{% endif %}{% if b.is_next %} data-next{% endif %}>
+    <a class="book-card" href="/book/{{ b.id }}" data-find="{{ ((b.title_ru or '') ~ ' ' ~ b.title ~ ' ' ~ (b.authors or ''))|lower }}"{% if b.is_favorite %} data-fav{% endif %}{% if b.is_next %} data-next{% endif %}{% if no_series_filter and not b.series %} data-noseries{% endif %}>
       {# серия (у фанфика — пейринг) — плашкой на обложке: так под обложкой меньше текста, а обложка крупнее #}
       {% set ser = b.series or (b.pairings|join(', ') if b.pairings else '') %}
       <span class="cv">{{ cover(b, link=False) }}{% if ser %}<span class="ser" title="{{ ser }}">{{ ser }}</span>{% endif %}</span>

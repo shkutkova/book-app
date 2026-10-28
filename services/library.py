@@ -4,7 +4,10 @@
 import re
 from datetime import date
 
+import httpx
+
 from db import fetch_one, transaction
+from services.hardcover_api import is_main
 
 STATUSES = {"want_to_read", "reading", "finished", "paused", "dnf", "skipped"}
 
@@ -54,10 +57,30 @@ def hardcover_slug(raw: str | None) -> str | None:
     return m.group(1) or m.group(2)
 
 
+GOOGLE_BOOK = re.compile(r"https?://(?:www\.|books\.)?google\.[a-z.]+/books(?:/edition/[^/]+/|\?(?:.*&)?id=)([\w-]{12})")
+
+
+def google_cover(volume_id: str) -> str:
+    """Обложка книги Google Books по id — напрямую, без API (у API без ключа квота 0).
+    Крупная (zoom=3) есть не у всех: вместо неё Google отдаёт PNG-заглушку — тогда берём обычную."""
+    url = f"https://books.google.com/books/content?id={volume_id}&printsec=frontcover&img=1&zoom="
+    try:
+        r = httpx.head(url + "3", timeout=10, follow_redirects=True)
+        if r.status_code == 200 and r.headers.get("content-type", "").startswith("image/jpeg"):
+            return url + "3"
+    except httpx.HTTPError:
+        pass
+    return url + "1"
+
+
 def cover_link(raw: str | None) -> str | None:
+    """Ссылка на картинку. Ссылку на страницу книги в Google Books превращаем в её обложку."""
     raw = (raw or "").strip()
     if raw and not re.match(r"https?://", raw):
         raise ValidationError("Ссылка на обложку должна начинаться с http:// или https://")
+    m = GOOGLE_BOOK.match(raw)
+    if m:
+        return google_cover(m.group(1))
     return raw or None
 
 
@@ -303,13 +326,31 @@ def save_series(user_id: str, series_id: int, form: dict) -> None:
                  is_abandoned = excluded.is_abandoned, use_my_order = excluded.use_my_order""",
             (user_id, series_id, bool(form.get("is_abandoned")), my_order))
         for book_id, pos in positions.items():
-            if pos is None:
-                conn.execute("""delete from user_series_books
-                                where user_id = %s and series_id = %s and book_id = %s""",
-                             (user_id, series_id, book_id))
-            else:
-                conn.execute(
-                    """insert into user_series_books (user_id, series_id, book_id, my_position)
-                       values (%s, %s, %s, %s)
-                       on conflict (user_id, series_id, book_id) do update set my_position = excluded.my_position""",
-                    (user_id, series_id, book_id, pos))
+            conn.execute(
+                """insert into user_series_books (user_id, series_id, book_id, my_position)
+                   values (%s, %s, %s, %s)
+                   on conflict (user_id, series_id, book_id) do update set my_position = excluded.my_position""",
+                (user_id, series_id, book_id, pos))
+        _drop_empty_series_books(conn, user_id, series_id)
+
+
+def _drop_empty_series_books(conn, user_id: str, series_id: int) -> None:
+    """Строка без своего номера и без выбора блока ничего не значит — убираем."""
+    conn.execute("""delete from user_series_books where user_id = %s and series_id = %s
+                      and my_position is null and is_extra is null""", (user_id, series_id))
+
+
+def set_series_extra(user_id: str, series_id: int, book_id: int, extra: bool) -> None:
+    """Перенести книгу в «Дополнительно» (extra=True) или в основные. Совпадает с тем,
+    что и так следует из официального номера, — свой выбор снимается."""
+    with transaction() as conn:
+        row = conn.execute("select official_position from series_books where series_id = %s and book_id = %s",
+                           (series_id, book_id)).fetchone()
+        if not row:
+            raise ValidationError("Этой книги нет в серии")
+        choice = None if extra == (not is_main(row["official_position"])) else extra
+        conn.execute(
+            """insert into user_series_books (user_id, series_id, book_id, is_extra) values (%s, %s, %s, %s)
+               on conflict (user_id, series_id, book_id) do update set is_extra = excluded.is_extra""",
+            (user_id, series_id, book_id, choice))
+        _drop_empty_series_books(conn, user_id, series_id)

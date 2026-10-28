@@ -120,7 +120,8 @@ details summary{cursor:pointer}
 .books td{padding:.6rem .4rem;border-top:1px solid var(--line);vertical-align:middle}
 .books .num{width:3rem;color:var(--mut);text-align:center;font-family:var(--display);font-size:.85rem}
 .books .mini{width:42px}.books .mini .img,.books .mini img{width:42px;aspect-ratio:2/3;border-radius:6px;object-fit:cover;background:var(--p-lilac);display:block}
-.books .pos{width:4.5rem}
+.books .pos{width:4.5rem;text-align:right;white-space:nowrap}
+.books .pos .move{display:block;margin:.3rem 0 0 auto;font-size:.8rem;font-weight:600}
 
 /* страница книги */
 .book-hero{display:grid;grid-template-columns:220px 1fr;gap:2rem;align-items:start;margin:1.2rem 0 1.4rem}

@@ -185,6 +185,17 @@ async def series_favorite(request: Request, series_id: int):
     return back(f"/series/{series_id}")
 
 
+@router.post("/series/{series_id}/extra/{book_id}")
+async def series_extra(request: Request, series_id: int, book_id: int):
+    """Перенести книгу в «Дополнительно» или обратно в основные (кнопка в режиме «Изменить серию»)."""
+    form = dict(await request.form())
+    try:
+        library.set_series_extra(current_user_id(), series_id, book_id, form.get("extra") == "1")
+    except library.ValidationError as e:
+        return back(f"/series/{series_id}", str(e))
+    return RedirectResponse(f"/series/{series_id}?edit=1", status_code=303)
+
+
 @router.post("/series/{series_id}/refresh")
 async def series_refresh(series_id: int):
     try:
@@ -375,7 +386,7 @@ def _library_list(request: Request, rows: list[dict], **page):
 @router.get("/books", response_class=HTMLResponse)
 def books_page(request: Request):
     return _library_list(request, queries.books(current_user_id()), title="Книги", booky="/static/img/booky/1-02.webp",
-                         add_url="/add/book", add_what="книгу", empty_text="Книг пока нет.")
+                         add_url="/add/book", add_what="книгу", empty_text="Книг пока нет.", no_series_filter=True)
 
 
 @router.get("/fanfics", response_class=HTMLResponse)
