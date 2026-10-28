@@ -122,6 +122,7 @@ details summary{cursor:pointer}
 .books .mini{width:42px}.books .mini .img,.books .mini img{width:42px;aspect-ratio:2/3;border-radius:6px;object-fit:cover;background:var(--p-lilac);display:block}
 .books .pos{width:4.5rem;text-align:right;white-space:nowrap}
 .books .pos .move{display:block;margin:.3rem 0 0 auto;font-size:.8rem;font-weight:600}
+.books .pos .move.remove{color:#ff8a7a}
 
 /* страница книги */
 .book-hero{display:grid;grid-template-columns:220px 1fr;gap:2rem;align-items:start;margin:1.2rem 0 1.4rem}

@@ -154,6 +154,14 @@ def save_fanfic(user_id: str, form: dict) -> int:
         # его можно вписать в форме.
         if f["series_name"]:
             name, name_ru = split_title(f["series_name"])
+            # Серия из Notion (без номера ficbook) с тем же названием — та же серия: связываем, а не создаём дубль
+            if f["series_ficbook_id"] and not conn.execute(
+                    "select 1 from series where ficbook_id = %s", (f["series_ficbook_id"],)).fetchone():
+                conn.execute("""update series set ficbook_id = %s where id = (
+                                  select id from series where ficbook_id is null
+                                     and (lower(name) = lower(%s) or lower(name_ru) = lower(coalesce(%s, %s)))
+                                  order by id limit 1)""",
+                             (f["series_ficbook_id"], name, name_ru, name))
             if f["series_ficbook_id"]:
                 series_id = conn.execute(
                     """insert into series (ficbook_id, name, name_ru) values (%s, %s, %s)

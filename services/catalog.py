@@ -84,7 +84,12 @@ def _series(conn, s: dict) -> int:
         conn.execute("""update series set description = coalesce(description, %s),
                           is_completed = coalesce(%s, is_completed) where id = %s""",
                      (s.get("description"), s.get("is_completed"), series_id))
+    # книги, которые убрала из этой серии вручную, обратно не добавляем
+    removed = {r["hardcover_id"] for r in conn.execute(
+        "select hardcover_id from series_removed where series_id = %s", (series_id,)).fetchall()}
     for b in s["books"]:
+        if b["id"] in removed:
+            continue
         conn.execute(
             """insert into series_books (series_id, book_id, official_position) values (%s, %s, %s)
                on conflict (series_id, book_id) do update

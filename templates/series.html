@@ -54,6 +54,10 @@
         {% if main %}<input name="pos_{{ b.id }}" value="{{ b.my_position|position }}" inputmode="decimal" aria-label="Мой номер для {{ b.title }}" style="width:4rem">{% endif %}
         <button class="link move" formaction="/series/{{ s.id }}/extra/{{ b.id }}" name="extra" value="{{ '1' if main else '0' }}"
                 title="{{ 'Перенести в «Дополнительно» — в прогресс не войдёт' if main else 'Перенести в основные книги' }}">{{ 'в доп.' if main else 'в основные' }}</button>
+        {# убрать совсем: лишнее издание из Hardcover; книга из библиотеки в библиотеке остаётся #}
+        <button class="link move remove" formaction="/series/{{ s.id }}/remove/{{ b.id }}"
+                onclick="return confirm('Убрать «{{ (b.title_ru or b.title)|replace("'", "’") }}» из серии?{{ ' Книга останется в твоих книгах.' if b.status else '' }}')"
+                title="Убрать из серии — «Обновить из Hardcover» её не вернёт">убрать</button>
       </td>{% endif %}
     </tr>
     {% endfor %}
@@ -82,6 +86,11 @@
     <label class="check"><input type="checkbox" name="is_abandoned" {{ 'checked' if s.is_abandoned }}> Бросила серию</label>
     <p style="display:flex;gap:.8rem;align-items:center">
       <button class="primary">Сохранить серию</button> <a href="/series/{{ s.id }}">Отмена</a>
+    </p>
+    <p class="danger-zone">
+      <button class="danger" formaction="/series/{{ s.id }}/delete"
+              onclick="return confirm('Удалить серию «{{ (s.name_ru or s.name)|replace("'", "’") }}»? Книги из твоих книг останутся со статусами и оценками. Отменить нельзя.')">Удалить серию</button>
+      <span class="muted small">Например, дубль. Книги останутся в «Книгах» / «Фанфиках».</span>
     </p>
   </div>
   {% endif %}

@@ -121,6 +121,8 @@ queries.books = lambda u: [dict(b, is_next=b["status"] == "want_to_read" and b["
 _lib.save_tags = lambda b, f: print("TAGS", b, dict(f))
 _lib.delete_book = lambda u, b: (print("DELETE", b), "fanfic")[1]
 _lib.set_series_extra = lambda u, s, b, extra: EXTRA.__setitem__(b, extra)
+_lib.remove_from_series = lambda s, b: print("REMOVE", s, b)
+_lib.delete_series = lambda s: print("DELETE SERIES", s)
 _lib.set_cover = lambda b, url: print("COVER", b, _lib.cover_link(url))
 
 import uvicorn

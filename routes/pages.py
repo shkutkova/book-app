@@ -196,6 +196,25 @@ async def series_extra(request: Request, series_id: int, book_id: int):
     return RedirectResponse(f"/series/{series_id}?edit=1", status_code=303)
 
 
+@router.post("/series/{series_id}/remove/{book_id}")
+async def series_remove_book(series_id: int, book_id: int):
+    """Убрать книгу из серии (кнопка в режиме «Изменить серию»)."""
+    try:
+        library.remove_from_series(series_id, book_id)
+    except library.ValidationError as e:
+        return back(f"/series/{series_id}", str(e))
+    return RedirectResponse(f"/series/{series_id}?edit=1", status_code=303)
+
+
+@router.post("/series/{series_id}/delete")
+async def series_delete(series_id: int):
+    try:
+        library.delete_series(series_id)
+    except library.ValidationError as e:
+        return back(f"/series/{series_id}", str(e))
+    return back("/series")
+
+
 @router.post("/series/{series_id}/refresh")
 async def series_refresh(series_id: int):
     try:

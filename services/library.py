@@ -335,6 +335,45 @@ def _drop_empty_series_books(conn, user_id: str, series_id: int) -> None:
                       and my_position is null and is_extra is null""", (user_id, series_id))
 
 
+def _drop_orphan_books(conn, book_ids: list[int]) -> None:
+    """Книги, которых нет ни у кого в библиотеке и ни в одной серии, — из каталога (с осиротевшими авторами)."""
+    authors = [r["author_id"] for r in conn.execute(
+        "select author_id from book_authors where book_id = any(%s::bigint[])", (book_ids,)).fetchall()]
+    conn.execute("""delete from books b where b.id = any(%s::bigint[])
+                      and not exists (select 1 from library l where l.book_id = b.id)
+                      and not exists (select 1 from series_books sb where sb.book_id = b.id)""", (book_ids,))
+    conn.execute("""delete from authors a where a.id = any(%s::bigint[])
+                      and not exists (select 1 from book_authors ba where ba.author_id = a.id)""", (authors,))
+
+
+def remove_from_series(series_id: int, book_id: int) -> None:
+    """Убрать книгу из серии. Книга из твоей библиотеки остаётся в библиотеке;
+    не добавленная (лишнее издание из Hardcover) удаляется из каталога.
+    «Обновить из Hardcover» её больше в эту серию не вернёт."""
+    with transaction() as conn:
+        b = conn.execute("""select b.hardcover_id from series_books sb join books b on b.id = sb.book_id
+                            where sb.series_id = %s and sb.book_id = %s""", (series_id, book_id)).fetchone()
+        if not b:
+            raise ValidationError("Этой книги нет в серии")
+        if b["hardcover_id"]:
+            conn.execute("insert into series_removed (series_id, hardcover_id) values (%s, %s) on conflict do nothing",
+                         (series_id, b["hardcover_id"]))
+        conn.execute("delete from series_books where series_id = %s and book_id = %s", (series_id, book_id))
+        _drop_orphan_books(conn, [book_id])
+
+
+def delete_series(series_id: int) -> None:
+    """Удалить серию (например, дубль). Книги из библиотеки остаются со статусами и оценками;
+    не добавленные книги, которые были только в этой серии, уходят из каталога."""
+    with transaction() as conn:
+        books = [r["book_id"] for r in conn.execute(
+            "select book_id from series_books where series_id = %s", (series_id,)).fetchall()]
+        conn.execute("delete from shelf_order where item = %s", (f"s{series_id}",))
+        if not conn.execute("delete from series where id = %s", (series_id,)).rowcount:  # связи — каскадом
+            raise ValidationError("Серия не найдена")
+        _drop_orphan_books(conn, books)
+
+
 def set_series_extra(user_id: str, series_id: int, book_id: int, extra: bool) -> None:
     """Перенести книгу в «Дополнительно» (extra=True) или в основные. Совпадает с тем,
     что и так следует из официального номера, — свой выбор снимается."""

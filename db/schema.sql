@@ -171,6 +171,13 @@ create table user_series_books (
     foreign key (series_id, book_id) references series_books(series_id, book_id) on delete cascade
 );
 
+-- Книги, убранные из серии вручную: «Обновить из Hardcover» их больше не добавляет.
+create table series_removed (
+    series_id     bigint not null references series(id) on delete cascade,
+    hardcover_id  int    not null,   -- id книги в Hardcover
+    primary key (series_id, hardcover_id)
+);
+
 -- Свой порядок на полке главной. item — 'b<id книги>' или 's<id серии>'.
 create table shelf_order (
     user_id  uuid not null references profiles(id) on delete cascade on update cascade,
@@ -303,6 +310,7 @@ alter table reads              enable row level security;
 alter table user_series        enable row level security;
 alter table user_series_books  enable row level security;
 alter table shelf_order        enable row level security;
+alter table series_removed     enable row level security;
 alter table liked_tags         enable row level security;
 alter table library_liked_tags enable row level security;
 
