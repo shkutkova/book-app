@@ -132,6 +132,7 @@ create table library (
     is_next      boolean not null default false,  -- «Следующая»: из «Хочу прочитать», читаю следующей
     my_genre_id  bigint references my_genres(id) on delete set null,
     notes        text,
+    my_description text,                          -- «Подробнее»: своё описание (пересказ из Notion)
     primary key (user_id, book_id)
 );
 

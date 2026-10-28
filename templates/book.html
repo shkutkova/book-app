@@ -92,11 +92,24 @@
   </div>
 </section>
 
-{% set text = b.description_ru or b.description %}
-{% if text %}
+{# Описание: аннотация (Hardcover/ficbook/Notion) и своё «Подробнее»; есть оба — вкладки, сначала своё #}
+{% set annot = b.description_ru or b.description %}
+{% set mine = b.my_description %}
+{% if annot or mine %}
 <section class="card about">
+  {% if annot and mine %}
+  <div class="seg small desc-tabs" role="tablist" aria-label="Описание">
+    <button type="button" role="tab" class="on" aria-selected="true" data-tab="mine">Подробнее</button>
+    <button type="button" role="tab" aria-selected="false" data-tab="annot">Аннотация</button>
+  </div>
+  {% endif %}
   <div class="desc" id="desc">
-    {% for par in text.split('\n') if par.strip() %}<p>{{ par.strip() }}</p>{% endfor %}
+    {% for key, text in [('mine', mine), ('annot', annot)] if text %}
+    <div data-pane="{{ key }}" {{ 'hidden' if key == 'annot' and mine }}>
+      {% if key == 'mine' %}{{ text|md }}{# своё — из Notion, с **жирным** и списками, как у серий #}
+      {% else %}{% for par in text.split('\n') if par.strip() %}<p>{{ par.strip() }}</p>{% endfor %}{% endif %}
+    </div>
+    {% endfor %}
   </div>
   <button type="button" class="link desc-toggle" id="desc-toggle" hidden aria-expanded="false" aria-controls="desc">Читать полностью</button>
 </section>
@@ -170,6 +183,8 @@
       <div><label for="title_ru">Название на русском</label><input id="title_ru" name="title_ru" value="{{ b.title_ru or '' }}" style="width:100%"></div>
     </div>
     <label for="notes">Заметки</label><textarea id="notes" name="notes">{{ b.notes or '' }}</textarea>
+    <label for="my_description">Подробнее <span class="muted small">— своё описание, видно вкладкой рядом с аннотацией</span></label>
+    <textarea id="my_description" name="my_description" rows="8">{{ b.my_description or '' }}</textarea>
     <p><button class="primary">Сохранить</button></p>
   </form>
 

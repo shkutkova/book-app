@@ -67,7 +67,7 @@ def _book(u, bid):
               "fandoms": ["Гарри Поттер"] if bid == 27 else None,
               "work_status": "finished" if bid == 27 else None, "words": 120000 if bid == 27 else None, "parts": 30 if bid == 27 else None,
               "ficbook_meta": {"direction": "Гет", "rating": "NC-17", "tags": ["Слоуберн", "Hurt/Comfort"]} if bid == 27 else None,
-              "in_library": True, "my_genre_id": 1, "notes": "", "is_favorite": bid == 6,
+              "in_library": True, "my_genre_id": 1, "notes": "", "my_description": "Спустя десять лет после окончания войны в волшебном мире назревает скандал. В Британии орудует сеть контрабандистов, торгующая артефактами и порталами.\n\nГлавной неожиданностью становится приказ «сверху»: включить в группу Драко Малфоя.\n\nНикто не знает, где он пропадал десять лет. Его досье запечатано, доступ запрещён даже Поттеру. Малфой возвращается изменившимся — спокойным, уверенным профессионалом.\n\nИ чем глубже они продвигаются в деле, тем очевиднее: самые охраняемые тайны Министерства меркнут перед напряжением между бывшими врагами." if bid == 27 else None, "is_favorite": bid == 6,
               "series": [] if bid == 27 else [{"id": 3, "name": "Crowns of Nyaxia", "name_ru": None, "sort_position": 1, "books_count": 3}],
               "reads": [{"id": 1, "started_at": date(2026, 10, 1), "finished_at": date(2026, 10, 9) if bid % 2 else None}]})
     return b

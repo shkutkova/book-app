@@ -186,6 +186,7 @@ input[type=date].blank:not(:focus){color:transparent}
 .about .desc{font-size:1.02rem;line-height:1.6}
 .desc.clamp{max-height:9.6em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
 .desc-toggle{margin-top:.4rem;font-weight:800}
+.desc-tabs{background:var(--surface-2);margin-bottom:.8rem}
 .tags-card h2{margin:0 0 .6rem;font-size:.95rem}
 .tag-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:1.2rem 1.6rem}
 .fic-row{margin-bottom:1.2rem}

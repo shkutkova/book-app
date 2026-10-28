@@ -250,7 +250,7 @@ def book_detail(user_id: str, book_id: int) -> dict | None:
         select {BOOK_FIELDS}, b.description, b.description_ru, b.release_date,
                b.source_url, b.hardcover_id, b.hardcover_slug, b.hardcover_tags,
                b.fandoms, b.work_status, b.words, b.parts, b.ficbook_meta,
-               l.book_id is not null as in_library, l.my_genre_id, l.notes
+               l.book_id is not null as in_library, l.my_genre_id, l.notes, l.my_description
         from books b left join library l on l.book_id = b.id and l.user_id = %(u)s
         where b.id = %(b)s""", p)
     if not b:

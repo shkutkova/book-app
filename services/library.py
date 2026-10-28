@@ -101,7 +101,7 @@ def save_book(user_id: str, book_id: int, form: dict) -> None:
     Просто изменить оценку у прочитанной книги — новое прочтение НЕ создаётся.
     Поля, которых нет в форме, не меняются: на странице книги статус, «избранное»
     и настройки — отдельные формы."""
-    keep = fetch_one("""select l.status, l.rating, l.is_favorite, l.my_genre_id, l.notes, b.title_ru
+    keep = fetch_one("""select l.status, l.rating, l.is_favorite, l.my_genre_id, l.notes, l.my_description, b.title_ru
                         from books b left join library l on l.book_id = b.id and l.user_id = %s
                         where b.id = %s""", (user_id, book_id)) or {}
     form = {**{k: ("on" if v is True else "" if v in (None, False) else str(v))
@@ -127,14 +127,14 @@ def save_book(user_id: str, book_id: int, form: dict) -> None:
                            (user_id, book_id)).fetchone()
         old_status = old["status"] if old else None
         conn.execute(
-            """insert into library (user_id, book_id, status, rating, is_favorite, my_genre_id, notes)
-               values (%s, %s, %s, %s, %s, %s, %s)
+            """insert into library (user_id, book_id, status, rating, is_favorite, my_genre_id, notes, my_description)
+               values (%s, %s, %s, %s, %s, %s, %s, %s)
                on conflict (user_id, book_id) do update set
                  status = excluded.status, rating = excluded.rating,
                  is_favorite = excluded.is_favorite, my_genre_id = excluded.my_genre_id,
-                 notes = excluded.notes""",
+                 notes = excluded.notes, my_description = excluded.my_description""",
             (user_id, book_id, status, rating, bool(form.get("is_favorite")), genre_id,
-             (form.get("notes") or "").strip() or None))
+             (form.get("notes") or "").strip() or None, (form.get("my_description") or "").strip() or None))
         # «Следующая» — только у книг из «Хочу прочитать»: начала читать — отметка снимается
         conn.execute("update library set is_next = false where user_id = %s and book_id = %s and status <> 'want_to_read'",
                      (user_id, book_id))
