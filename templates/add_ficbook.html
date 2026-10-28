@@ -89,7 +89,8 @@ function fill(d) {
   const by = role => (d.people || []).filter(p => p.role === role).map(p => p.name).join(', ');
   const set = (id, v) => { if (v !== undefined && v !== null && v !== '') $(id).value = v; };
   set('url', d.url); set('title', d.title);
-  set('authors', by('author')); set('translators', by('translator'));
+  // у перевода автор на ficbook не зарегистрирован — он в поле «Автор оригинала»
+  set('authors', by('author') || d.original_author); set('translators', by('translator'));
   set('fandoms', (d.fandoms || []).join('\n'));
   set('pages', d.pages); set('words', d.words); set('parts', d.parts);
   set('work_status', STATUS[d.status]);

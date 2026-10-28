@@ -116,7 +116,8 @@ _lib.set_next = lambda u, b, on: print("NEXT", b, on)
 _bk = queries.book_detail
 queries.book_detail = lambda u, bid: dict(_bk(u, bid), status="want_to_read", is_next=bid == 8) if bid in (8, 10) else _bk(u, bid)
 _b2 = queries.books
-queries.books = lambda u: [dict(b, is_next=b["status"] == "want_to_read" and b["id"] % 5 == 0) for b in _b2(u)]
+queries.books = lambda u: [dict(b, is_next=b["status"] == "want_to_read" and b["id"] % 5 == 0,
+                                title_ru="Змея и крылья ночи" if b["id"] % 3 == 1 else None) for b in _b2(u)]
 _lib.save_tags = lambda b, f: print("TAGS", b, dict(f))
 _lib.delete_book = lambda u, b: (print("DELETE", b), "fanfic")[1]
 _lib.set_series_extra = lambda u, s, b, extra: EXTRA.__setitem__(b, extra)

@@ -70,6 +70,10 @@ def parse(form: dict) -> dict:
     if status and status not in WORK_STATUS.values():
         raise ValidationError("Неизвестный статус работы")
     authors, translators = names(form.get("authors")), names(form.get("translators"))
+    meta = clean_meta(json_field(form.get("meta")))
+    if not authors and meta.get("original_author"):
+        # перевод: автор — «Автор оригинала» с ficbook (на самом ficbook его нет)
+        authors = names(meta["original_author"])
     if not authors and not translators:
         raise ValidationError("Укажи автора или переводчика")
     position = (form.get("series_position") or "").strip().replace(",", ".")
@@ -94,7 +98,7 @@ def parse(form: dict) -> dict:
         "series_name": (form.get("series_name") or "").strip() or None,
         "series_ficbook_id": (form.get("series_ficbook_id") or "").strip() or None,
         "series_position": position,
-        "meta": clean_meta(json_field(form.get("meta"))),
+        "meta": meta,
     }
 
 

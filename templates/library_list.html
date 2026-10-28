@@ -43,11 +43,13 @@
       {% if b.is_favorite %}<span class="fav-dot" title="Любимая">{{ icon('flame', 16) }}</span>{% endif %}
       <span class="info">
         <span class="ttl">{{ b.title_ru or b.title }}</span>
-        {# строка автора есть всегда (пусть пустая) — так все карточки одной высоты #}
+        {# строки оригинального названия и автора есть всегда (пусть пустые) — так все карточки одной высоты #}
+        <span class="orig">{{ b.title if b.title_ru else '' }}</span>
         <span class="au">{{ b.authors or '' }}</span>
+        {# звёзды слева, страницы всегда в правом нижнем углу #}
         <span class="foot">
           {% if b.rating %}<span class="stars">{{ b.rating|stars }}</span>{% endif %}
-          {% if b.finished_at and key == 'finished' %}<span>{{ b.finished_at|ru_date }}</span>{% elif b.pages %}<span>{{ b.pages }} стр.</span>{% endif %}
+          {% if b.pages %}<span class="pg">{{ b.pages }} стр.</span>{% endif %}
         </span>
       </span>
     </a>
