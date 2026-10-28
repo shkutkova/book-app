@@ -386,30 +386,33 @@ button.spine:hover,button.spine:focus-visible{transform:translateY(-10px)}
 .group-title .dot{width:12px;height:12px;border-radius:50%}
 .group-title .count{font-family:var(--body);font-size:.95rem;color:var(--mut);font-weight:700}
 /* ===== РАЗМЕРЫ КАРТОЧЕК в «Книгах» и «Фанфиках» — меняй эти два числа (в пикселях, без «px») =====
-   --card-w — ширина карточки, --cover-h — высота обложки на компьютере.
+   --card-w — ширина карточки, --card-h — вся высота карточки на компьютере.
+   Обложка занимает всё, что остаётся над текстом: текст с отступами — постоянные --text-h (его не трогать).
    На телефоне карточек две в ряд: они уже, и обложка уменьшается в тех же пропорциях.
-   Если с настоящими обложками будет плохо — прежний размер: --card-w:192;--cover-h:280 */
-:root{--card-w:235;--cover-h:220}
+   Прежние размеры: карточка 235×344 с обложкой 220 — то же --card-h:344 (теперь обложка 232);
+   самый первый вариант (обложка 280 в высоту) — --card-w:192;--card-h:392 */
+:root{--card-w:225;--card-h:354;--text-h:112}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,min(calc(var(--card-w) * 1px),calc((100% - .9rem) / 2)));gap:.9rem;align-items:stretch}
-.book-card{position:relative;display:flex;flex-direction:column;justify-content:flex-start;gap:.45rem;color:var(--text);background:var(--surface);border-radius:18px;padding:.5rem .5rem .6rem;
+.book-card{position:relative;display:flex;flex-direction:column;justify-content:flex-start;gap:.35rem;color:var(--text);background:var(--surface);border-radius:18px;padding:.4rem .4rem .4rem;
  box-shadow:0 12px 24px -16px #12002d;transition:background .15s}
 .book-card:hover{text-decoration:none;background:var(--surface-2)}
-/* обложка во всю ширину карточки (минус отступы 16px), высота — из --cover-h; лишнее у картинки обрезается по краям */
+/* обложка во всю ширину карточки (минус отступы 13px), высота — --card-h минус текст; лишнее у картинки обрезается по краям */
 .book-card .cv{position:relative;display:block;width:100%;margin:0 auto}
 .book-card .cover{display:block;width:100%;flex:none}.book-card .cover .t{display:none}
-.book-card .cover img,.book-card .cover .img{aspect-ratio:calc(var(--card-w) - 16) / var(--cover-h)}
+.book-card .cover img,.book-card .cover .img{aspect-ratio:calc(var(--card-w) - 13) / calc(var(--card-h) - var(--text-h))}
 .book-card .cover img,.book-card .cover .img{border-radius:10px}
 .book-card .cover .img{font-size:.8rem;padding:.7rem}
-.book-card .info{display:flex;flex-direction:column;gap:.1rem;padding:0 .15rem;flex:1}
+/* высота текста постоянная (с запасом на две строки названия): название и оригинал сверху, автор и низ — внизу */
+.book-card .info{display:flex;flex-direction:column;padding:0 .15rem;flex:none;height:5.85rem}
 .book-card .ttl{font-weight:800;font-size:.92rem;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* под русским названием — оригинальное, мельче; автор ещё мельче и с отступом, чтобы не сливался с названием */
 .book-card .orig{height:1.35em;line-height:1.35;font-size:.78rem;font-weight:600;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.book-card .au{height:1.4em;line-height:1.4;margin-top:.3rem}
+.book-card .au{height:1.4em;line-height:1.4;margin-top:auto;flex:none}
 .book-card .au{font-size:.72rem;color:var(--p-lilac);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .book-card .foot .pg{margin-left:auto}
 .book-card .ser{position:absolute;left:6px;right:6px;bottom:6px;font-size:.68rem;font-weight:800;line-height:1.3;color:var(--text);background:#14052cd0;border-radius:6px;padding:.15rem .4rem;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-.book-card .foot{display:flex;justify-content:space-between;gap:.4rem;font-size:.76rem;color:var(--mut);padding-top:.1rem;margin-top:auto;min-height:1.5em}
+.book-card .foot{display:flex;justify-content:space-between;gap:.4rem;font-size:.76rem;color:var(--mut);padding-top:.1rem;min-height:1.5em}
 .filters .next-filter{display:inline-flex;align-items:center;gap:.3rem;color:var(--p-sky)}
 .filters .next-filter[aria-pressed="true"]{background:var(--p-sky);color:var(--ink)}
 .filters .fav-filter{display:inline-flex;align-items:center;gap:.3rem;color:#ffb070}
