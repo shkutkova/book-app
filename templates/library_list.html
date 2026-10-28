@@ -29,38 +29,72 @@
   {% if alone %}<button type="button" data-show="noseries" aria-pressed="false">Без серии<span class="n">{{ alone|length }}</span></button>{% endif %}
   {% endif %}
 </div>
-<input type="search" id="find" class="find" placeholder="Найти по названию или автору" aria-label="Поиск">
+<div class="find-row">
+  <input type="search" id="find" class="find" placeholder="Найти по названию или автору" aria-label="Поиск">
+  <div class="seg small view-switch" role="group" aria-label="Вид">
+    {% for v, name in [('cards', 'Карточки'), ('feed', 'Лента'), ('table', 'Таблица')] %}
+    <button type="button" data-view="{{ v }}" aria-pressed="false">{{ name }}</button>
+    {% endfor %}
+  </div>
+</div>
 
+{# Вид (карточки / лента с описанием / таблица) — одна разметка, меняет CSS по data-view; выбор помнит браузер #}
+<div class="lib" id="lib" data-view="cards">
+<script>try { const v = localStorage.getItem('libView'); if (['feed', 'table'].includes(v)) document.getElementById('lib').dataset.view = v; } catch {}</script>
 {% for key, items in groups.items() if items %}
 <section class="group" data-group="{{ key }}">
   <h2 class="group-title"><i class="dot" style="background:{{ DOT[key] }}"></i>{{ STATUS[key] }} <span class="count">{{ items|length }}</span></h2>
   <div class="cards">
+    <div class="tbl-head" aria-hidden="true"><span></span><span>Название</span><span>Автор</span><span>Серия</span><span>Оценка</span><span>Стр.</span><span>Прочитана</span></div>
     {% for b in items %}
-    <a class="book-card" href="/book/{{ b.id }}" data-find="{{ ((b.title_ru or '') ~ ' ' ~ b.title ~ ' ' ~ (b.authors or ''))|lower }}"{% if b.is_favorite %} data-fav{% endif %}{% if b.is_next %} data-next{% endif %}{% if no_series_filter and not b.series %} data-noseries{% endif %}>
+    <article class="book-card" data-find="{{ ((b.title_ru or '') ~ ' ' ~ b.title ~ ' ' ~ (b.authors or ''))|lower }}"{% if b.is_favorite %} data-fav{% endif %}{% if b.is_next %} data-next{% endif %}{% if no_series_filter and not b.series %} data-noseries{% endif %}>
       {# серия (у фанфика — цикл) — плашкой на обложке: так под обложкой меньше текста, а обложка крупнее #}
       {% set ser = b.series %}
       <span class="cv">{{ cover(b, link=False) }}{% if ser %}<span class="ser" title="{{ ser }}">{{ ser }}</span>{% endif %}</span>
       {% if b.is_favorite %}<span class="fav-dot" title="Любимая">{{ icon('flame', 16) }}</span>{% endif %}
       <span class="info">
-        <span class="ttl">{{ b.title_ru or b.title }}</span>
+        {# ссылка растянута на всю карточку (::after), кроме ленты — там в описании свои кнопки #}
+        <a class="ttl" href="/book/{{ b.id }}">{{ b.title_ru or b.title }}</a>
         {# строки оригинального названия и автора есть всегда (пусть пустые) — так все карточки одной высоты #}
         <span class="orig">{{ b.title if b.title_ru else '' }}</span>
         <span class="au">{{ b.authors or '' }}</span>
         {# звёзды слева, страницы всегда в правом нижнем углу #}
         <span class="foot">
-          {% if b.rating %}<span class="stars">{{ b.rating|stars }}</span>{% endif %}
-          {% if b.pages %}<span class="pg">{{ b.pages }} стр.</span>{% endif %}
+          <span class="stars">{{ b.rating|stars if b.rating }}</span>
+          <span class="pg">{{ (b.pages ~ ' стр.') if b.pages }}</span>
         </span>
       </span>
-    </a>
+      <span class="t-ser">{{ ser or '' }}</span>
+      <span class="t-date">{{ b.finished_at|ru_date }}</span>
+      {% set annot, mine = b.annot, b.my_description %}
+      {% if annot or mine %}
+      <div class="feed-desc">
+        {% if annot and mine %}
+        <div class="seg small desc-tabs" role="tablist" aria-label="Описание">
+          <button type="button" role="tab" class="on" aria-selected="true" data-tab="annot">Аннотация</button>
+          <button type="button" role="tab" aria-selected="false" data-tab="mine">Подробнее</button>
+        </div>
+        {% endif %}
+        <div class="desc {{ 'clamp' if ((annot or mine)|length > 260 or mine) }}">
+          {% for k, text in [('annot', annot), ('mine', mine)] if text %}
+          <div data-pane="{{ k }}" {{ 'hidden' if k == 'mine' and annot }}>
+            {% if k == 'mine' %}{{ text|md }}{% else %}{% for par in text.split('\n') if par.strip() %}<p>{{ par.strip() }}</p>{% endfor %}{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% if (annot or mine)|length > 260 or mine %}<button type="button" class="link desc-toggle" aria-expanded="false">Читать полностью</button>{% endif %}
+      </div>
+      {% endif %}
+    </article>
     {% endfor %}
   </div>
 </section>
 {% endfor %}
+</div>
 <p class="empty-note" id="nothing" hidden>Ничего не нашлось. Попробуй часть названия или автора.</p>
 {% else %}
 <p class="empty-note">{{ empty_text }} <a href="{{ add_url }}">Добавить</a></p>
 {% endif %}
 {% endblock %}
 
-{% block scripts %}<script src="/static/filters.js?v={{ CSS_V }}"></script>{% endblock %}
+{% block scripts %}<script src="/static/filters.js?v={{ CSS_V }}"></script><script src="/static/views.js?v={{ CSS_V }}"></script>{% endblock %}

@@ -28,7 +28,8 @@ def B(i, st, kind="book", cov=None, **k):
     d = {"id": i, "kind": kind, "title": f"The Serpent and the Wings of Night {i}" if i % 3 else f"Книга {i}", "title_ru": None,
          "cover_url": cov, "pages": 300 + i, "status": st, "rating": [None, 4, 4.5, 5][i % 4], "is_favorite": False,
          "authors": ["Rina Kent", "Carissa Broadbent", "SenLinYu"][i % 3], "series": None, "finished_at": date(2026, 10, i % 27 + 1) if st == "finished" else None,
-         "work_status": None}
+         "work_status": None, "annot": "Для людей и вампиров правила выживания одинаковы: никогда не доверяй, никогда не уступай и всегда — всегда — оберегай своё сердце.\nПриёмная дочь короля вампиров Орайя всю жизнь провела в золотой клетке." if i % 5 else None,
+         "my_description": "Спустя десять лет после окончания войны в волшебном мире назревает скандал. В Британии орудует сеть контрабандистов, торгующая артефактами и порталами.\n- **Медленное сближение** героев\n- **Детективная интрига** до последней главы" if i % 3 == 0 else None}
     d.update(k); return d
 queries.home = lambda u: {"counts": {"finished": 136}, "reading": [
         B(1, "reading", cov=COV, series={"name": "Crowns of Nyaxia", "pos": 1, "total": 3}),

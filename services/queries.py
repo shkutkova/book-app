@@ -217,11 +217,14 @@ FIRST_SERIES = """
       order by s.name limit 1) as series
 """
 
+# Описания для вида «Лента»: аннотация и своё «Подробнее»
+LIST_DESC = "coalesce(b.description_ru, b.description) as annot, l.my_description"
+
 
 def books(user_id: str) -> list[dict]:
     """Книги (не фанфики) в твоей библиотеке: с первой серией и последним прочтением."""
     return fetch_all(f"""
-        select {BOOK_FIELDS}, {FIRST_SERIES},
+        select {BOOK_FIELDS}, {FIRST_SERIES}, {LIST_DESC},
                (select max(r.finished_at) from reads r
                  where r.book_id = b.id and r.user_id = %(u)s) as finished_at
         from library l join books b on b.id = l.book_id
@@ -234,7 +237,7 @@ def books(user_id: str) -> list[dict]:
 def fanfics(user_id: str) -> list[dict]:
     """Фанфики в твоей библиотеке: сначала те, что читаешь, потом по названию."""
     return fetch_all(f"""
-        select {BOOK_FIELDS}, b.work_status, {FIRST_SERIES},
+        select {BOOK_FIELDS}, b.work_status, {FIRST_SERIES}, {LIST_DESC},
                (select max(r.finished_at) from reads r
                  where r.book_id = b.id and r.user_id = %(u)s) as finished_at
         from library l join books b on b.id = l.book_id
