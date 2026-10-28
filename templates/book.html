@@ -185,6 +185,9 @@
     <label for="notes">Заметки</label><textarea id="notes" name="notes">{{ b.notes or '' }}</textarea>
     <label for="my_description">Подробнее <span class="muted small">— своё описание, видно вкладкой рядом с аннотацией</span></label>
     <textarea id="my_description" name="my_description" rows="8">{{ b.my_description or '' }}</textarea>
+    {# черновик от Gemini — в поле; сохраняется только кнопкой «Сохранить», после проверки #}
+    <p class="ai-row"><button type="button" class="link" id="ai-write">{{ icon('sparkle', 16) }} Написать с ИИ</button>
+      <span class="muted small" id="ai-state" aria-live="polite"></span></p>
     <p><button class="primary">Сохранить</button></p>
   </form>
 
@@ -267,6 +270,20 @@ document.querySelectorAll('input[type=date]').forEach(i => {
 document.querySelectorAll('[data-more]').forEach(btn => btn.onclick = () => {
   btn.closest('[data-chips]').querySelectorAll('[hidden]').forEach(c => c.hidden = false);
   btn.remove();
+});
+
+// «Написать с ИИ»: черновик «Подробнее» от Gemini (ищет книгу в Google, до минуты) — в поле, сохраняешь сама
+document.getElementById('ai-write')?.addEventListener('click', async e => {
+  const btn = e.currentTarget, field = document.getElementById('my_description'), state = document.getElementById('ai-state');
+  if (field.value.trim() && !confirm('Заменить текст в «Подробнее» черновиком от ИИ?')) return;
+  btn.disabled = true; state.textContent = 'ИИ ищет книгу и пишет — до минуты…';
+  try {
+    const data = await (await fetch(`/book/{{ b.id }}/ai-description`, {method: 'POST'})).json();
+    if (data.error) { state.textContent = data.error; return; }
+    field.value = data.text; field.focus();
+    state.textContent = 'Готово. Проверь текст (нет ли спойлеров и выдумок) и нажми «Сохранить».';
+  } catch { state.textContent = 'Не получилось связаться с сервером — попробуй ещё раз.'; }
+  finally { btn.disabled = false; }
 });
 
 // Обложка: окно сразу; варианты подгружаются, своя ссылка — всегда внизу

@@ -15,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
 from starlette.concurrency import run_in_threadpool
 
-from services import auth, catalog, covers, ficbook, hardcover_api, library, queries
+from services import auth, catalog, covers, ficbook, gemini, hardcover_api, library, queries
 from services.users import current_user_id
 
 router = APIRouter()
@@ -361,6 +361,18 @@ def covers_json(book_id: int):
         raise HTTPException(404, "Книга не найдена")
     found, failed = covers.candidates(b)
     return {"covers": found, "failed": failed}
+
+
+@router.post("/book/{book_id}/ai-description")
+def ai_description(book_id: int):
+    """Черновик «Подробнее» от Gemini: кнопка в настройках вставляет его в поле, сохраняешь сама."""
+    b = queries.book_detail(current_user_id(), book_id)
+    if not b:
+        raise HTTPException(404, "Книга не найдена")
+    try:
+        return {"text": gemini.write_description(b)}
+    except gemini.GeminiError as e:
+        return {"error": str(e)}
 
 
 @router.post("/book/{book_id}/cover")
