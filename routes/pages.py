@@ -238,9 +238,11 @@ async def series_refresh(series_id: int):
 # ------------------------------------------------------------------ добавить книгу
 
 @router.get("/add/book", response_class=HTMLResponse)
-def add_book_page(request: Request, q: str = "", error: str | None = None, link: int | None = None):
+def add_book_page(request: Request, q: str = "", error: str | None = None, link: int | None = None,
+                  fanfic: bool = False):
     """Поиск в Hardcover. Найденные книги, которые уже есть, помечены.
-    link=<id книги> — поиск со страницы книги: результат не добавляется, а связывается с ней."""
+    link=<id книги> — поиск со страницы книги: результат не добавляется, а связывается с ней.
+    fanfic=1 — тот же поиск, но найденное добавляется фанфиком."""
     user_id = current_user_id()
     target = queries.book_detail(user_id, link) if link else None
     if link and not target:
@@ -256,7 +258,8 @@ def add_book_page(request: Request, q: str = "", error: str | None = None, link:
         for r in results:
             r["known"] = known.get(r["id"])
     return templates.TemplateResponse(request, "add_book.html",
-                                      {"q": q, "results": results, "error": error, "target": target, "f": {}})
+                                      {"q": q, "results": results, "error": error, "target": target, "f": {},
+                                       "fanfic": fanfic and not target})
 
 
 @router.post("/add/manual")
@@ -275,14 +278,15 @@ async def add_manual(request: Request):
 @router.post("/add/book")
 async def add_book(request: Request):
     form = dict(await request.form())
+    kind = "fanfic" if form.get("kind") == "fanfic" else "book"
     try:
-        book_id = await run_in_threadpool(catalog.add_from_hardcover, current_user_id(), int(form["hardcover_id"]))
+        book_id = await run_in_threadpool(catalog.add_from_hardcover, current_user_id(), int(form["hardcover_id"]), kind)
     except (KeyError, ValueError):
         return back("/add/book", "Не выбрана книга")
     except library.ValidationError as e:
         # возвращаемся к тем же результатам поиска
-        return RedirectResponse("/add/book?" + urlencode({"q": form.get("q", ""), "error": str(e)}),
-                                status_code=303)
+        params = {"q": form.get("q", ""), "error": str(e), **({"fanfic": 1} if kind == "fanfic" else {})}
+        return RedirectResponse("/add/book?" + urlencode(params), status_code=303)
     return back(f"/book/{book_id}")
 
 
@@ -440,7 +444,7 @@ def books_page(request: Request):
 @router.get("/fanfics", response_class=HTMLResponse)
 def fanfics_page(request: Request):
     return _library_list(request, queries.fanfics(current_user_id()), title="Фанфики", booky="/static/img/booky/2-18.webp",
-                         add_url="/add/ficbook", add_what="фанфик", empty_text="Фанфиков пока нет.")
+                         add_url="/add/book?fanfic=1", add_what="фанфик", empty_text="Фанфиков пока нет.")
 
 
 def _ficbook_form(request: Request, form: dict | None = None, error: str | None = None):

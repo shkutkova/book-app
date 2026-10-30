@@ -131,6 +131,22 @@ FILES = {6: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/v
 _bk2 = queries.book_detail
 queries.book_detail = lambda u, bid: dict(_bk2(u, bid), file_url=FILES.get(bid))
 _lib.set_file = lambda u, b, url: FILES.__setitem__(b, (url or "").strip() or None)
+# Настройки книги: тип (книга/фанфик) и аннотации запоминаются до перезапуска
+EDITS = {}
+_bk3 = queries.book_detail
+queries.book_detail = lambda u, bid: dict(_bk3(u, bid), **EDITS.get(bid, {}))
+_lib.save_book = lambda u, b, f: EDITS.setdefault(b, {}).update(
+    {k: (f.get(k) or "").strip() or None for k in ("kind", "title_ru") if k in f},
+    **({"description_ru": (f["annotation"] or "").strip() or None} if "annotation" in f else {}))
+# Поиск в Hardcover — выдуманные результаты; «Добавить» открывает книгу 6 или фанфик 27
+from services import catalog as _cat, hardcover_api as _hc
+_hc.search = lambda q: [{"id": 900 + i, "title": f"{q} — вариант {i}", "authors": "SenLinYu", "year": 2021, "pages": 800,
+                         "series": None, "cover": COV if i % 2 else None} for i in range(3)]
+_cat.known = lambda u, ids: {}
+_cat.add_from_hardcover = lambda u, hid, kind="book": (print("ADD", hid, kind), 27 if kind == "fanfic" else 6)[1]
+# Фанфик вручную: форма проверяется, сохранения нет — открывается выдуманный фанфик 27
+from services import ficbook as _fic
+_fic.save_fanfic = lambda u, f: (print("FANFIC", _fic.parse(f)), 27)[1]
 
 # «Отправить на Kindle» без настоящего Gmail: письмо не уходит, только печатается
 from services import kindle as _kindle

@@ -1,9 +1,12 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Найти в Hardcover' if target else 'Добавить книгу' }}{% endblock %}
+{% block title %}{{ 'Найти в Hardcover' if target else 'Добавить фанфик' if fanfic else 'Добавить книгу' }}{% endblock %}
 {% block content %}
 {% if target %}
 <h1>Найти в Hardcover</h1>
 <p class="sub">Для «<a href="/book/{{ target.id }}">{{ target.title }}</a>». Выбери книгу — подтянутся обложка, жанры и автор{% if target.kind == 'fanfic' %}; ссылка на ficbook и описание перевода останутся{% else %}, описание и серия{% endif %}.</p>
+{% elif fanfic %}
+<h1>Добавить фанфик</h1>
+<p class="sub">Поиск в Hardcover — найденное попадёт в «Фанфики». С ficbook удобнее закладкой: <a href="/add/ficbook">форма фанфика</a>.</p>
 {% else %}
 <h1>Добавить книгу</h1>
 <p class="sub">Поиск в Hardcover. Обложка, автор, описание, страницы и вся серия подтянутся сами.</p>
@@ -13,6 +16,7 @@
   <label for="q" class="sr-only" style="position:absolute;left:-9999px">Название или автор</label>
   <input id="q" name="q" value="{{ q }}" placeholder="Название, автор или и то и другое" style="flex:1;min-width:220px" autofocus>
   {% if target %}<input type="hidden" name="link" value="{{ target.id }}">{% endif %}
+  {% if fanfic %}<input type="hidden" name="fanfic" value="1">{% endif %}
   <button class="primary">Найти</button>
 </form>
 
@@ -50,7 +54,8 @@
           <form method="post" action="/add/book">
             <input type="hidden" name="hardcover_id" value="{{ r.id }}">
             <input type="hidden" name="q" value="{{ q }}">
-            <button class="primary">{{ 'Добавить к себе' if r.known else 'Добавить' }}</button>
+            {% if fanfic %}<input type="hidden" name="kind" value="fanfic">{% endif %}
+            <button class="primary">{{ 'Добавить к себе' if r.known else 'Добавить фанфиком' if fanfic else 'Добавить' }}</button>
           </form>
           {% if r.known %}<span class="muted small">уже в каталоге (из серии)</span>{% endif %}
         {% endif %}
@@ -61,7 +66,9 @@
 </div>
 {% endif %}
 
-{% if not target %}
+{% if fanfic %}
+<p class="card">Нет в Hardcover? <a href="/add/ficbook">Добавить вручную или закладкой с ficbook</a> — ссылка на ficbook там необязательна.</p>
+{% elif not target %}
 <details class="card" {{ 'open' if manual }}>
   <summary><strong>Нет в Hardcover? Добавить вручную</strong></summary>
   <form method="post" action="/add/manual" style="margin-top:.6rem">

@@ -170,6 +170,17 @@ def save_book(user_id: str, book_id: int, form: dict) -> None:
         # Оригинальное название — только если поле было в форме и не пустое (пустым его не сделать)
         if (form.get("title") or "").strip():
             conn.execute("update books set title = %s where id = %s", (form["title"].strip(), book_id))
+        # Книга ↔ фанфик и аннотация — только из настроек (в других формах этих полей нет)
+        if form.get("kind") in ("book", "fanfic"):
+            conn.execute("update books set kind = %s where id = %s", (form["kind"], book_id))
+        if "annotation" in form:
+            # Одно поле — видимая аннотация. Правка ложится в description_ru: она показывается первой
+            # и «Обновить из Hardcover» её не трогает (там пишется description). Стёрла — пусто совсем
+            text = (form.get("annotation") or "").strip() or None
+            old = conn.execute("select description, description_ru from books where id = %s", (book_id,)).fetchone()
+            if text != (old["description_ru"] or old["description"]):
+                conn.execute("update books set description_ru = %s, description = case when %s then null else description end"
+                             " where id = %s", (text, text is None, book_id))
         current = conn.execute("select hardcover_slug, cover_url from books where id = %s", (book_id,)).fetchone()
         # Меняем связь только если поле было в форме: сохранение статуса из другого места
         # (без этих полей) не должно стирать обложку и связь с Hardcover

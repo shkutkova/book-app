@@ -123,15 +123,18 @@ def _save(conn, book: dict, series: list) -> int:
     return book_id
 
 
-def add_from_hardcover(user_id: str, hc_book_id: int) -> int:
+def add_from_hardcover(user_id: str, hc_book_id: int, kind: str = "book") -> int:
     """Добавляет книгу (с авторами и сериями) в каталог и в библиотеку как «Хочу прочитать».
-    Если книга уже есть — обновляет данные из Hardcover, статус не трогает."""
+    Если книга уже есть — обновляет данные из Hardcover, статус не трогает.
+    kind='fanfic' — добавление со страницы фанфика: запись попадает в «Фанфики»."""
     try:
         book, series = _load(hc_book_id)
     except hc.HardcoverError as e:
         raise ValidationError(str(e))
     with transaction() as conn:
         book_id = _save(conn, book, series)
+        if kind == "fanfic":
+            conn.execute("update books set kind = 'fanfic' where id = %s", (book_id,))
         conn.execute("insert into library (user_id, book_id) values (%s, %s) on conflict do nothing",
                      (user_id, book_id))
     return book_id

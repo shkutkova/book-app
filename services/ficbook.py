@@ -25,11 +25,10 @@ def split_title(raw: str) -> tuple[str, str | None]:
     return (a, b) if CYRILLIC.search(b) else (raw.strip(), None)
 
 
-def ficbook_id(raw: str | None) -> str:
+def ficbook_id(raw: str | None) -> str | None:
+    """id с ficbook; ссылка на другой сайт (AO3 и т.п.) или пустая — None."""
     m = URL.match((raw or "").strip())
-    if not m:
-        raise ValidationError("Ссылка должна быть вида https://ficbook.net/readfic/...")
-    return m.group(1)
+    return m.group(1) if m else None
 
 
 def lines(raw: str | None) -> list[str]:
@@ -62,6 +61,10 @@ def json_field(raw: str | None) -> dict:
 def parse(form: dict) -> dict:
     """Проверяет форму и приводит её к полям базы. Ошибка — ValidationError с понятным текстом."""
     fid = ficbook_id(form.get("url"))
+    # Ссылка необязательна: фанфик можно завести и без ficbook
+    url = f"https://ficbook.net/readfic/{fid}" if fid else (form.get("url") or "").strip() or None
+    if url and not url.startswith(("http://", "https://")):
+        raise ValidationError("Ссылка должна начинаться с http:// или https://")
     raw_title = (form.get("title") or "").strip()
     if not raw_title:
         raise ValidationError("Нужно название")
@@ -83,7 +86,7 @@ def parse(form: dict) -> dict:
         raise ValidationError(f"Номер в серии должен быть числом: {position}")
     return {
         "ficbook_id": fid,
-        "url": f"https://ficbook.net/readfic/{fid}",
+        "url": url,
         "title": title,
         "title_ru": title_ru,
         "people": [(n, "author") for n in authors] + [(n, "translator") for n in translators],

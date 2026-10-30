@@ -2,14 +2,14 @@
 {% block title %}Добавить фанфик{% endblock %}
 {% block content %}
 <h1>Добавить фанфик</h1>
-<p class="sub" id="hint">Открой фанфик на ficbook и нажми закладку «В мои книги» — форма заполнится сама. Или заполни вручную.</p>
+<p class="sub" id="hint">Открой фанфик на ficbook и нажми закладку «В мои книги» — форма заполнится сама. Или заполни вручную. Фанфик есть в Hardcover — <a href="/add/book?fanfic=1">найти там</a>.</p>
 
 <form method="post" action="/add/ficbook" class="card" id="fic-form">
   <div style="display:flex;gap:1rem;align-items:flex-start">
     <img id="cover-preview" alt="" src="{{ f.cover_url or '' }}" style="width:92px;aspect-ratio:2/3;object-fit:cover;border-radius:8px;background:var(--card2);{{ '' if f.cover_url else 'display:none' }}">
     <div style="flex:1">
-      <label for="url">Ссылка на ficbook *</label>
-      <input id="url" name="url" value="{{ f.url or '' }}" placeholder="https://ficbook.net/readfic/..." required style="width:100%">
+      <label for="url">Где читать <span class="muted small">— ficbook, AO3 или другой сайт; можно пусто</span></label>
+      <input id="url" name="url" value="{{ f.url or '' }}" placeholder="https://ficbook.net/readfic/..." style="width:100%">
       <label for="title">Название *</label>
       <input id="title" name="title" value="{{ f.title or '' }}" required style="width:100%">
       <p class="muted small">Для переводов «Оригинал | Перевод» — разделится на два названия, как в Notion.</p>
@@ -41,7 +41,7 @@
   <input type="hidden" id="people_ids" name="people_ids" value="{{ f.people_ids or '' }}">
   <input type="hidden" id="meta" name="meta" value="{{ f.meta or '' }}">
   <p id="meta-view" class="muted small"></p>
-  <p class="muted small">Фанфик добавится в «Хочу прочитать». Если он уже есть — обновятся данные с ficbook, твой статус и оценка не изменятся.</p>
+  <p class="muted small">Фанфик добавится в «Хочу прочитать». Если он уже есть (та же ссылка на ficbook) — обновятся данные с ficbook, твой статус и оценка не изменятся.</p>
   <p><button class="primary">Сохранить</button></p>
 </form>
 

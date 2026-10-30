@@ -204,8 +204,12 @@
           {% for g in genres %}<option value="{{ g.id }}" {{ 'selected' if b.my_genre_id == g.id }}>{{ g.name }}</option>{% endfor %}</select></div>
       <div><label for="title">Название в оригинале</label><input id="title" name="title" value="{{ b.title }}" required style="width:100%"></div>
       <div><label for="title_ru">Название на русском</label><input id="title_ru" name="title_ru" value="{{ b.title_ru or '' }}" style="width:100%"></div>
+      <div><label for="kind">Это</label>
+        <select id="kind" name="kind">{% for k, v in [('book', 'Книга'), ('fanfic', 'Фанфик')] %}<option value="{{ k }}" {{ 'selected' if b.kind == k }}>{{ v }}</option>{% endfor %}</select></div>
     </div>
     <label for="notes">Заметки</label><textarea id="notes" name="notes">{{ b.notes or '' }}</textarea>
+    <label for="annotation">Аннотация</label>
+    <textarea id="annotation" name="annotation" rows="6">{{ b.description_ru or b.description or '' }}</textarea>
     <label for="my_description">Подробнее <span class="muted small">— своё описание, видно вкладкой рядом с аннотацией</span></label>
     <textarea id="my_description" name="my_description" rows="8">{{ b.my_description or '' }}</textarea>
     {# черновик от ИИ — в поле; сохраняется только кнопкой «Сохранить», после проверки #}
