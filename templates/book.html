@@ -24,6 +24,9 @@
     {# справа сверху: где читать (ficbook) и огонёк избранного #}
     <div class="corner">
       {% if b.source_url %}<a class="read-link" href="{{ b.source_url }}" target="_blank" rel="noopener">{{ icon('link', 15) }} {{ 'ficbook' if 'ficbook.net' in b.source_url else 'Где читать' }}</a>{% endif %}
+      {% set f = file_links(b.file_url) %}
+      {% if f %}<a class="read-link file-link" href="{{ f.download }}" target="_blank" rel="noopener"
+         title="{{ 'Скачать файл с Google Диска' if f.drive else 'Открыть файл книги' }}">{{ icon('download', 15) }} {{ 'Скачать' if f.drive else 'Файл' }}</a>{% endif %}
       {% if b.in_library %}
       <form method="post" action="/book/{{ b.id }}" class="fav-corner">
         <input type="hidden" name="is_favorite" value="{{ '' if b.is_favorite else 'on' }}">
@@ -170,6 +173,7 @@
     {% if meta.get('original_url') %}<a href="{{ meta.original_url }}" target="_blank" rel="noopener">{{ icon('link', 16) }} Оригинал{% if meta.get('original_author') %} · {{ meta.original_author }}{% endif %}</a>{% endif %}
     {% if b.hardcover_slug %}<a href="https://hardcover.app/books/{{ b.hardcover_slug }}" target="_blank" rel="noopener">{{ icon('link', 16) }} Открыть в Hardcover</a>{% endif %}
     <a href="/book/{{ b.id }}/covers" id="find-cover">{{ icon('image', 16) }} {{ 'Другая обложка' if b.cover_url else 'Найти обложку' }}</a>
+    <a href="/workshop?book={{ b.id }}" title="Загрузить epub: главы, обложка из карточки, название, страницы для Kindle">{{ icon('pencil', 16) }} Мастерская epub</a>
     <a href="/add/book?{{ {'link': b.id, 'q': b.title}|urlencode }}">{{ icon('link', 16) }} {{ 'Связать с другой книгой Hardcover' if b.hardcover_slug else 'Найти в Hardcover' }}</a>
     {% if b.kind == 'fanfic' and b.source_url and 'ficbook.net' in b.source_url %}
     {# сервер на ficbook не пускают — данные заново собирает закладка на странице фанфика #}
@@ -181,6 +185,18 @@
   </div>
 
   {% if b.in_library %}
+  {# свой файл книги: ссылка на Google Диск — наверху страницы появится кнопка «Скачать» #}
+  <form method="post" action="/book/{{ b.id }}/file" class="own-cover file-form">
+    <label for="file_url">Файл книги — ссылка на Google Диск
+      {% if f and f.drive %}<a class="small" href="{{ f.open }}" target="_blank" rel="noopener">открыть в Диске</a>{% endif %}</label>
+    <div class="own-row">
+      <input id="file_url" name="file_url" type="url" value="{{ b.file_url or '' }}" placeholder="https://drive.google.com/file/d/…">
+      <button class="primary">Сохранить</button>
+    </div>
+    <p class="muted small">В Диске: файл → «Поделиться» → «Копировать ссылку». Доступ можно оставить «только мне» —
+      скачается там, где ты вошла в Google. Чтобы убрать — сотри ссылку и сохрани.</p>
+  </form>
+
   <form method="post" action="/book/{{ b.id }}" class="settings-form">
     <div class="form-grid">
       <div><label for="genre">Мой жанр</label>

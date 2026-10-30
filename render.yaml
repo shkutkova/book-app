@@ -22,3 +22,12 @@ services:
         sync: false
       - key: GEMINI_API_KEY     # необязательно: «Написать с ИИ» (aistudio.google.com); без него — «Спросить Google ИИ»
         sync: false
+      # необязательно: «Отправить на Kindle» в мастерской epub (Gmail API; как получить — services/kindle.py)
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
+        sync: false
+      - key: KINDLE_EMAIL       # адрес вида …@kindle.com
+        sync: false

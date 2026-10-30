@@ -73,7 +73,7 @@ def _book(u, bid):
               "reads": [{"id": 1, "started_at": date(2026, 10, 1), "finished_at": date(2026, 10, 9) if bid % 2 else None}]})
     return b
 queries.book_detail = _book
-_covers.candidates = lambda b: ([], ["Google Books"])
+_covers.candidates = lambda b: ([{"url": COV + "?v=2", "source": "Hardcover", "label": "Другое издание"}], ["Google Books"])
 queries.series_list = lambda u: [{"id": i, "name": n, "name_ru": None, "authors": "Rina Kent", "status": st,
                                   "finished_books": f, "total_books": t, "is_reading": st == "in_progress" and i == 1,
                                   "books": [{"id": 30 + j, "title": f"B{j}", "title_ru": None, "cover_url": COV if j % 2 == 0 else None,
@@ -110,6 +110,8 @@ queries.series_detail = _series
 _sl = queries.series_list
 queries.series_list = lambda u: [dict(x, is_favorite=x["id"] == 1) for x in _sl(u)]
 
+queries.find_books = lambda u, q: [dict(B(6, "finished", cov=COV), title_ru="Змея и крылья ночи", series="Crowns of Nyaxia · 1", in_library=True)]
+
 from services import library as _lib
 _lib.save_shelf_order = lambda u, shelf, items: print("SHELF", shelf, items)
 
@@ -125,6 +127,16 @@ _lib.set_series_extra = lambda u, s, b, extra: EXTRA.__setitem__(b, extra)
 _lib.remove_from_series = lambda s, b: print("REMOVE", s, b)
 _lib.delete_series = lambda s: print("DELETE SERIES", s)
 _lib.set_cover = lambda b, url: print("COVER", b, _lib.cover_link(url))
+FILES = {6: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing"}
+_bk2 = queries.book_detail
+queries.book_detail = lambda u, bid: dict(_bk2(u, bid), file_url=FILES.get(bid))
+_lib.set_file = lambda u, b, url: FILES.__setitem__(b, (url or "").strip() or None)
+
+# «Отправить на Kindle» без настоящего Gmail: письмо не уходит, только печатается
+from services import kindle as _kindle
+for _k in _kindle.KEYS: os.environ[_k] = "fake"
+os.environ["KINDLE_EMAIL"] = "me_fake@kindle.com"
+_kindle.send = lambda data, name, title="": (print("KINDLE", name, len(data)), "me_fake@kindle.com")[1]
 
 import uvicorn
 from main import app

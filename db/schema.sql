@@ -133,6 +133,7 @@ create table library (
     my_genre_id  bigint references my_genres(id) on delete set null,
     notes        text,
     my_description text,                          -- «Подробнее»: своё описание (пересказ из Notion)
+    file_url     text,                            -- свой файл книги (Google Диск) — кнопка «Скачать»
     primary key (user_id, book_id)
 );
 

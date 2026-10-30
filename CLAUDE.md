@@ -16,6 +16,7 @@ python main.py            # http://127.0.0.1:8000
 (подменяет `queries.*` и изменения в `library`). Новое поле в запросе → дописать его и туда.
 
 `.env` (не коммитить, не выводить значения): `DATABASE_URL`, `HARDCOVER_TOKEN` (только чтение); необязательные: `APP_PASSWORD` (вход; без него вход выключен и висит предупреждение), `SESSION_SECRET`, `APP_USER_ID`, `APP_BASE_URL` (внешний адрес — для закладки ficbook и команды iPhone; на Render берётся `RENDER_EXTERNAL_URL`), `GOOGLE_BOOKS_KEY` (без него Google Books часто отвечает 429), `GEMINI_API_KEY` (кнопка «Написать с ИИ»; модель — `GEMINI_MODEL`; из России ключ не создать — страна аккаунта). Без ключа — «Спросить Google ИИ»: ссылка в режим ИИ Google с запросом из карточки.
+`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` (получить: `scripts/gmail_token.py`), `KINDLE_EMAIL` — «Отправить на Kindle» в мастерской (Gmail API: SMTP с бесплатного Render закрыт). Без них кнопки нет.
 
 Хостинг — Render, `render.yaml` (free, автодеплой из `main`, засыпает через 15 мин).
 После отката (Rollback) Render сам выключает Auto-Deploy — включить: Settings → Build & Deploy → Auto-Deploy → On Commit. Версии в `requirements.txt` закреплены; Python на Render — 3.13 (`PYTHON_VERSION`), локально 3.14.
@@ -33,6 +34,7 @@ FastAPI + Jinja2 (серверный рендер, без JS-фреймворк�
 - `services/hardcover_api.py` — синхронный клиент Hardcover GraphQL; `hardcover.py`/`search.py` — старый async-клиент
 - `services/ai.py` — «Подробнее» (`library.my_description`): ссылка в режим ИИ Google (`ask_url`) или Gemini API с поиском
 - `services/ficbook.py` + `static/ficbook_bookmarklet.js` — фанфики через закладку в браузере
+- `services/epub.py` + `static/workshop.js` — «Мастерская epub» (`/workshop`): проверка и ремонт файла, обложка, страницы для Kindle; файл не хранится. `services/kindle.py` — отправка на Kindle через Gmail API
 - `db/schema.sql` — схема для пустой базы; `db/migrations/NNN_*.sql` — изменения для существующей
 - `scripts/import_notion.py`, `scripts/sync_hardcover.py` — разовые скрипты; `scripts/dev_fake.py` — локальный прогон без базы
 - `static/style.css` — вся тема; `CSS_V` в `pages.py` — хеш style.css + filters.js + desc.js (новый статичный JS — добавить туда)

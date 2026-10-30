@@ -13,7 +13,7 @@ import time
 COOKIE = "session"
 MAX_AGE = 365 * 24 * 3600  # на телефоне не хочется вводить пароль часто
 # Без входа доступны только страница входа и статика (стили)
-OPEN_PATHS = ("/login", "/static/")
+OPEN_PATHS = ("/login", "/static/", "/privacy")  # /privacy — для экрана согласия Google
 
 
 def password() -> str | None:

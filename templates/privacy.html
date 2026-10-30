@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}О приложении и конфиденциальность — Spooky Books{% endblock %}
+{% block nav %}{% endblock %}
+{% block content %}
+{# Открыта без входа: на неё ссылается экран согласия Google («Отправить на Kindle» через Gmail) #}
+<article class="card" style="max-width:720px;margin:3rem auto">
+  <h1 style="margin-top:0">Spooky Books</h1>
+  <p>Личный книжный трекер одного человека: книги, серии, фанфики, статистика чтения.
+    Сайт закрыт паролем и не предназначен для других пользователей.</p>
+
+  <h2 id="privacy">Конфиденциальность</h2>
+  <ul>
+    <li>Доступ к Gmail нужен только для кнопки «Отправить на Kindle»: приложение отправляет письмо
+      с файлом книги на адрес Kindle владельца. Разрешение — только отправка (gmail.send);
+      читать, хранить или удалять почту приложение не может.</li>
+    <li>Файлы книг не сохраняются на сервере: исправленный файл сразу отдаётся на скачивание или в письмо.</li>
+    <li>Данные не передаются третьим лицам, не продаются и не используются для рекламы.</li>
+    <li>Отозвать доступ можно в любой момент: <a href="https://myaccount.google.com/permissions" rel="noopener">myaccount.google.com/permissions</a>.</li>
+  </ul>
+
+  <h2>Privacy (English)</h2>
+  <p>Spooky Books is a private reading tracker used by its owner only. Gmail access (scope gmail.send) is used solely
+    to email the owner's own book files to the owner's Kindle address. The app cannot read, store or delete mail.
+    Book files are not stored on the server. No data is shared, sold or used for advertising.
+    Access can be revoked at <a href="https://myaccount.google.com/permissions" rel="noopener">myaccount.google.com/permissions</a>.</p>
+</article>
+{% endblock %}

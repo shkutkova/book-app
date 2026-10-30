@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Мастерская epub{% endblock %}
+{% block content %}
+<h1>Мастерская epub</h1>
+<p class="sub">Загрузи файл — проверю, что с ним не так, найду книгу, поставлю обложку, главы и страницы для Kindle.
+  Отдам исправленный файл; на сайте он не сохраняется.</p>
+
+<form id="ws" class="ws" data-book="{{ b.id if b else '' }}" novalidate>
+  <section class="card ws-step">
+    <h2><span class="ws-n">1</span> Файл</h2>
+    <label class="ws-drop" id="ws-drop">
+      <input type="file" id="ws-file" name="file" accept=".epub,application/epub+zip">
+      <span class="ws-drop-text">{{ icon('reading', 22) }} <b>Выбери epub</b><span> или перетащи сюда</span></span>
+    </label>
+    <p id="ws-info" class="ws-info" aria-live="polite"></p>
+    <div id="ws-check" class="ws-check" hidden>
+      <div class="ws-check-head">
+        <h3 id="ws-check-title">Проверка и ремонт</h3>
+      </div>
+      <div id="ws-checks" class="ws-checks"></div>
+      {# настройки страниц — скрипт переносит их в строку «Номера страниц» #}
+      <div id="ws-pages-opts" class="ws-pages-opts">
+        <div class="ws-presets" role="group" aria-label="Размер страницы">
+          <button type="button" data-per="950">Kindle <span>≈ 1 экран</span></button>
+          <button type="button" id="per-own">Своё</button>
+        </div>
+        <span class="ws-own" id="ws-own" hidden>
+          <input id="per-page" name="per_page" type="number" min="200" max="20000" step="10" value="950" aria-label="Знаков на страницу">
+          <span class="muted small">знаков</span>
+          <button type="button" class="link" id="calib-open">посчитать</button>
+        </span>
+        <span class="muted small" id="pages-est"></span>
+        <div class="ws-calib" id="ws-calib" hidden>
+          <p class="small">Открой на Kindle начало главы и посчитай, сколько раз листаешь до следующей.</p>
+          <div class="ws-calib-row">
+            <select id="calib-ch" aria-label="Глава"></select>
+            <input id="calib-n" type="number" min="1" placeholder="экранов" aria-label="Сколько экранов" style="width:7rem">
+            <button type="button" id="calib-go">Посчитать</button>
+          </div>
+        </div>
+      </div>
+      <div class="ws-map">
+        <div class="ws-map-row"><span class="muted small">Сейчас</span><div class="ws-bar" id="map-before"></div></div>
+        <div class="ws-map-row"><span class="muted small">После</span><div class="ws-bar" id="map-after"></div></div>
+        <p class="ws-bar-label" id="bar-label" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
+  <div id="ws-rest" hidden>
+  <section class="card ws-step">
+    <h2><span class="ws-n">2</span> Что за книга</h2>
+    <div class="ws-chosen" id="ws-chosen" {% if not b %}hidden{% endif %}>
+      {% if b %}{% if b.cover_url %}<img src="{{ b.cover_url }}" alt="">{% endif %}
+      <div><b>{{ b.title_ru or b.title }}</b><span class="muted small">{{ card.authors|join(', ') }}{% if card.series %} · {{ card.series }}{% if card.series_index %} #{{ card.series_index }}{% endif %}{% endif %}</span>
+        <span class="badge">из карточки</span></div>{% endif %}
+    </div>
+    <div class="ws-search">
+      <label for="ws-q">{{ 'Другая книга? Найти' if b else 'Найти книгу — на сайте, в Hardcover и Google Books' }}</label>
+      <div class="own-row"><input id="ws-q" type="search" placeholder="Название или автор">
+        <button type="button" id="ws-find">Найти</button></div>
+      <p class="muted small" id="ws-find-state" aria-live="polite"></p>
+      <div class="ws-results" id="ws-results"></div>
+    </div>
+    <div class="form-grid ws-fields">
+      <div class="wide"><label for="ws-title">Название</label><input id="ws-title" name="title" value="{{ card.title if card else '' }}"></div>
+      <div class="wide"><label for="ws-authors">Автор <span class="muted small">— несколько через запятую</span></label><input id="ws-authors" name="authors" value="{{ card.authors|join(', ') if card else '' }}"></div>
+      <div><label for="ws-series">Серия</label><input id="ws-series" name="series" value="{{ card.series if card else '' }}"></div>
+      <div><label for="ws-index">Номер в серии</label><input id="ws-index" name="series_index" value="{{ card.series_index if card else '' }}" inputmode="decimal"></div>
+    </div>
+    <p class="muted small" id="ws-filemeta"></p>
+  </section>
+
+  <section class="card ws-step">
+    <h2><span class="ws-n">3</span> Обложка</h2>
+    <div class="ws-sources" role="radiogroup" aria-label="Откуда обложка">
+      <label class="ws-chip"><input type="radio" name="cover_src" value="keep" checked> Как в файле</label>
+      <label class="ws-chip" id="chip-found" {% if not (b and b.cover_url) %}hidden{% endif %}><input type="radio" name="cover_src" value="url" id="src-card" data-url="{{ b.cover_url if b and b.cover_url else '' }}"> <span id="chip-found-text">{{ 'Из карточки' if b else 'Найденной книги' }}</span></label>
+      <label class="ws-chip" id="chip-variants" {% if not b %}hidden{% endif %}><input type="radio" name="cover_src" value="url" id="src-variant"> Другие варианты</label>
+      <label class="ws-chip"><input type="radio" name="cover_src" value="file" id="src-file"> Своя картинка</label>
+    </div>
+    <input type="hidden" name="cover_url" id="ws-cover-url">
+    <input type="hidden" name="crop" id="ws-crop">
+    <input type="file" name="cover_file" id="ws-cover-file" accept="image/*" hidden>
+    <p class="muted small" id="ws-variants-state" hidden></p>
+    <div class="covers-grid ws-variants" id="ws-variants" hidden></div>
+
+    <p class="muted" id="crop-empty" hidden></p>
+    <div class="ws-cropper" id="ws-cropper" hidden>
+      <div class="crop" id="crop"><img id="crop-img" alt="Обложка"><div class="crop-frame" id="crop-frame"><span class="crop-handle" id="crop-handle" aria-hidden="true"></span></div></div>
+      <div class="ws-crop-side">
+        <label class="check"><input type="checkbox" id="crop-on" checked> Обрезать под Kindle</label>
+        <label for="ratio">Ширина ÷ высота</label>
+        <input id="ratio" type="number" step="0.01" min="0.4" max="1.5" value="0.73" style="width:7rem">
+        <p class="muted small">Двигай рамку, тяни за уголок — меняй размер. Что вне рамки — обрежется.</p>
+        <p class="small" id="crop-size"></p>
+      </div>
+    </div>
+  </section>
+
+  <div class="ws-go">
+    <button class="primary" id="ws-build">Скачать исправленный epub</button>
+    {% if KINDLE_ON() %}<button type="button" class="kindle-btn" id="ws-kindle">Отправить на Kindle</button>
+    {% else %}<span class="muted small">Отправка на Kindle не настроена — нужны ключи Gmail (services/kindle.py)</span>{% endif %}
+    <span class="muted small" id="ws-state" aria-live="polite"></span>
+  </div>
+  <ul class="ws-report" id="ws-report" hidden></ul>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}<script src="/static/workshop.js?v={{ CSS_V }}"></script>{% endblock %}

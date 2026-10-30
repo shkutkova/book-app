@@ -602,3 +602,108 @@ button.spine:hover,button.spine:focus-visible{transform:translateY(-10px)}
 .scroll{overflow-x:auto}
 @media (max-width:640px){.chart{min-height:200px}.chart.tall{height:240px}.col small{font-size:.62rem}.val{font-size:.68rem}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* мастерская epub: шаги карточками, рамка обрезки обложки */
+.ws-step h2{display:flex;align-items:center;gap:.6rem}
+.ws-n{display:inline-grid;place-items:center;width:1.8rem;height:1.8rem;border-radius:50%;background:var(--accent);color:var(--ink);font-size:.85rem;flex:none}
+.ws-drop{position:relative;display:grid;place-items:center;min-height:7rem;margin:0;border:2px dashed var(--line);border-radius:16px;
+ background:#ffffff08;color:var(--text);font-size:1rem;font-weight:600;text-align:center;padding:1rem;cursor:pointer;transition:border-color .15s,background .15s}
+.ws-drop:hover,.ws-drop.over{border-color:var(--accent);background:#ffe08f14}
+.ws-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.ws-drop-text{display:inline-flex;align-items:center;gap:.5rem;overflow-wrap:anywhere}
+.ws-info{margin:.8rem 0 0}
+.ws-info:empty{display:none}
+/* проверка файла: значок состояния, что видно, что сделаю */
+.ws-check{margin-top:1.1rem;padding-top:1rem;border-top:1px solid var(--line)}
+.ws-check h3{font-size:.95rem;margin:0 0 .7rem}
+.ws-check-head{margin-bottom:.2rem}
+.ws-check-head h3{margin:0;font-size:1.05rem}
+.mark{display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:50%;font-size:.85rem;font-weight:800;color:var(--ink);flex:none}
+.st-ok .mark{background:var(--p-mint)}.st-warn .mark{background:var(--p-butter)}.st-bad .mark{background:var(--p-pink)}
+.ws-checks{font-size:1rem}
+.ws-checks h4{font-size:.9rem;color:var(--mut);margin:.9rem 0 .4rem;font-weight:700}
+/* «В порядке» — зелёные значки в строку; «Оглавление» раскрывается списком глав */
+.ws-ok-line{display:flex;flex-wrap:wrap;gap:.45rem;align-items:flex-start}
+.ws-ok{display:inline-block;background:#a6ecd024;color:var(--p-mint);border-radius:999px;padding:.25rem .8rem;font-size:.95rem;font-weight:700}
+button.ws-ok{border:0;font:inherit;font-size:.95rem;font-weight:700;cursor:pointer}button.ws-ok:hover{background:#a6ecd03a}
+/* что поправить: значок, что, что не так, справа круглая галочка с действием; между строками тонкая черта */
+.ws-row{display:grid;grid-template-columns:1.9rem 13.5rem 1fr auto;gap:.25rem .7rem;align-items:center;padding:.6rem 0;border-top:1px solid #ffffff17}
+.ws-checks h4+.ws-row{border-top:0}
+.ws-row .detail{color:#e2d6fa}
+.ws-row .ws-hint{color:var(--mut);font-size:.95rem}
+.ws-row .ws-pages-opts,.ws-row-more{grid-column:2/-1}
+.ws-row-more summary{color:var(--link);font-size:.95rem;font-weight:600}
+.ws-toc{margin:.5rem 0 0;padding-left:1.4rem;columns:2 16rem;column-gap:2rem;font-size:.95rem;color:#e2d6fa}
+.ws-fixbox{display:inline-flex;align-items:center;gap:.5rem;margin:0;color:var(--text);font-size:1rem;font-weight:700;cursor:pointer;white-space:nowrap}
+.ws-fixbox input{appearance:none;-webkit-appearance:none;width:1.5rem;height:1.5rem;margin:0;padding:0;border-radius:50%;
+ border:2px solid var(--mut);background:transparent;display:inline-grid;place-items:center;cursor:pointer;flex:none}
+.ws-fixbox input:checked{background:var(--accent);border-color:var(--accent)}
+.ws-fixbox input:checked::after{content:"✓";color:var(--ink);font-size:.85rem;font-weight:900}
+.ws-fixbox input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ws-fixbox:has(input:not(:checked)) span{color:var(--mut);font-weight:600}
+/* номера страниц внутри строки */
+.ws-pages-opts{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-top:.4rem}
+.ws-own{display:inline-flex;align-items:center;gap:.4rem}
+.ws-own input{width:6.5rem}
+.ws-pages-opts .ws-calib{flex-basis:100%}
+.ws-pages-opts .muted.small{font-size:.92rem}
+.file-form{margin:.4rem 0 .6rem}
+.file-form label a{margin-left:.5rem;font-weight:600}
+.ws-map{margin-top:1rem;display:grid;gap:.45rem}
+.ws-map-row{display:grid;grid-template-columns:4rem 1fr;gap:.6rem;align-items:center}
+.ws-bar{display:flex;gap:2px;height:22px;border-radius:8px;overflow:hidden;background:#ffffff12}
+.ws-bar span{background:var(--p-lilac);min-width:3px;outline-offset:-2px}.ws-bar span.alt{background:var(--c1)}
+.ws-bar span:hover,.ws-bar span:focus,.ws-bar span.on{background:var(--accent)}
+.ws-bar span{cursor:pointer}
+.ws-map .ws-bar-label{margin:.1rem 0 0 4.6rem;min-height:1.5em;font-weight:700;color:var(--accent)}
+.ws-map p{margin:.2rem 0 0}
+/* что за книга */
+.ws-chosen{display:flex;gap:.9rem;align-items:center;margin-bottom:.4rem}
+.ws-chosen img{width:52px;aspect-ratio:2/3;object-fit:cover;border-radius:8px}
+.ws-chosen div{display:grid;gap:.15rem;justify-items:start}
+.ws-search{margin-bottom:.4rem}
+.ws-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.6rem}
+.ws-results:empty{display:none}
+.ws-hit{display:flex;gap:.7rem;align-items:center;text-align:left;padding:.5rem;border-radius:14px;background:var(--surface-2);border:2px solid transparent;font-weight:400}
+.ws-hit:hover{border-color:var(--line)}.ws-hit.on{border-color:var(--accent)}
+.ws-hit-cover{flex:none;width:44px;aspect-ratio:2/3;border-radius:6px;background:var(--p-lilac);overflow:hidden}
+.ws-hit-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.ws-hit-text{display:grid;gap:.15rem;justify-items:start;min-width:0}
+.ws-hit-text b{font-size:.95rem;line-height:1.25}
+.ws-fields{grid-template-columns:2fr 2fr 1.4fr 1fr;margin-top:.4rem}
+.ws-fields input{width:100%}
+.ws-sources{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
+.ws-chip{display:inline-flex;align-items:center;gap:.45rem;margin:0;padding:.4rem .9rem;border-radius:999px;background:var(--surface-2);
+ color:var(--text);font-size:.92rem;cursor:pointer}
+.ws-chip input{width:auto;margin:0;accent-color:var(--accent)}
+.ws-chip:has(input:checked){background:var(--p-lilac);color:var(--ink)}
+.ws-variants{margin-bottom:1rem}
+.ws-variants .pick.on img{outline:3px solid var(--accent)}
+.ws-cropper{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:1.4rem;align-items:start}
+.crop{position:relative;overflow:hidden;border-radius:10px;width:max-content;max-width:100%;touch-action:none;user-select:none;background:#0004}
+.crop img{display:block;max-width:100%;max-height:62vh}
+.crop-frame{position:absolute;box-shadow:0 0 0 9999px #14052cb8;outline:2px solid var(--accent);cursor:move;touch-action:none}
+.crop-handle{position:absolute;right:-9px;bottom:-9px;width:22px;height:22px;border-radius:50%;background:var(--accent);
+ box-shadow:0 0 0 3px var(--ink);cursor:nwse-resize}
+.ws-crop-side label:first-child{margin-top:0}
+.ws-step .check{margin:.5rem 0 0;font-weight:600}
+.ws-pages{margin-left:1.6rem}
+.ws-presets{display:flex;flex-wrap:wrap;gap:.5rem;margin:.6rem 0 .2rem}
+.ws-presets button{border-radius:14px;text-align:left;line-height:1.25}
+.ws-presets button span{display:block;font-size:.78rem;font-weight:400;color:var(--mut)}
+.ws-presets button.on span{color:var(--ink-mut)}
+.ws-calib{margin-top:.8rem}
+.ws-calib-row{display:flex;flex-wrap:wrap;gap:.5rem}
+.ws-calib-row select{min-width:0;max-width:100%}
+.ws-go{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin:.4rem 0 1rem}
+.ws-go .primary{padding:.7rem 1.4rem;border-radius:999px}
+.kindle-btn{padding:.7rem 1.4rem;border-radius:999px;background:var(--p-sky);border-color:var(--p-sky);color:var(--ink);font-weight:800}
+.kindle-btn:hover{filter:brightness(1.05)}
+.ws-report{margin:0;padding:.9rem 1.2rem .9rem 2.4rem;border-radius:16px;background:#a6ecd01f;box-shadow:inset 0 0 0 1px #a6ecd055}
+@media (max-width:640px){
+ .ws-cropper{grid-template-columns:1fr}
+ .ws-row{grid-template-columns:1.9rem 1fr}.ws-row .detail,.ws-row>.ws-fixbox,.ws-row>.ws-hint{grid-column:2}
+ .ws-fields{grid-template-columns:1fr 1fr}.ws-fields .wide{grid-column:1/-1}
+ .ws-map-row{grid-template-columns:1fr}.ws-map .ws-bar-label{margin-left:0}
+ .crop img{max-height:55vh}
+ .ws-pages{margin-left:0}}

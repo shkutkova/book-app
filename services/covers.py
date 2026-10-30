@@ -58,7 +58,7 @@ def _google(query: str) -> list[dict]:
             # https и без «загнутого уголка», который Google дорисовывает
             link = link.replace("http://", "https://").replace("&edge=curl", "")
             authors = ", ".join(info.get("authors") or [])
-            out.append({"url": link, "source": "Google Books", "authors": authors,
+            out.append({"url": link, "source": "Google Books", "authors": authors, "title": info.get("title") or "",
                         "label": " · ".join(filter(None, [info.get("title"), authors, info.get("language"),
                                                           (info.get("publishedDate") or "")[:4]]))})
     return out

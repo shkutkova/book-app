@@ -5,17 +5,18 @@ import hashlib
 import json
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
 from urllib.parse import quote, urlencode
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
 from starlette.concurrency import run_in_threadpool
 
-from services import auth, catalog, ai, covers, ficbook, hardcover_api, library, queries
+from services import auth, catalog, ai, covers, epub, ficbook, hardcover_api, kindle, library, queries
 from services.users import current_user_id
 
 router = APIRouter()
@@ -70,11 +71,14 @@ def simple_md(text: str | None) -> Markup:
 
 templates.env.filters.update(ru_date=ru_date, stars=stars, position=position, md=simple_md)
 templates.env.globals.update(ai=ai)  # «Спросить Google ИИ» / «Написать с ИИ» на странице книги
+templates.env.globals.update(file_links=library.file_links)  # кнопка «Скачать» своего файла книги
+templates.env.globals.update(KINDLE_ON=kindle.enabled)  # кнопка «Отправить на Kindle» в мастерской
 templates.env.globals.update(LOGIN_ON=auth.password, STATUS=queries.STATUS_NAMES, SERIES_STATUS=queries.SERIES_STATUS_NAMES,
                              WORK_STATUS=queries.WORK_STATUS_NAMES,
                              # ?v=<хеш> у стилей и скриптов: после выкладки браузер берёт новые файлы, а не из кэша
                              CSS_V=hashlib.md5(b"".join((Path(__file__).parent.parent / "static" / f).read_bytes()
-                                                        for f in ("style.css", "filters.js", "desc.js", "views.js"))).hexdigest()[:8])
+                                                        for f in ("style.css", "filters.js", "desc.js", "views.js",
+                                                                  "workshop.js"))).hexdigest()[:8])
 
 
 def back(url: str, error: str | None = None) -> RedirectResponse:
@@ -105,6 +109,12 @@ async def login(request: Request):
     response.set_cookie(auth.COOKIE, auth.new_cookie(), max_age=auth.MAX_AGE,
                         httponly=True, samesite="lax", secure=https)
     return response
+
+
+@router.get("/privacy", response_class=HTMLResponse)
+def privacy(request: Request):
+    """О приложении и конфиденциальность — открыто без входа: ссылка на экране согласия Google (Gmail для Kindle)."""
+    return templates.TemplateResponse(request, "privacy.html", {})
 
 
 @router.post("/logout")
@@ -300,6 +310,12 @@ async def book_save(request: Request, book_id: int):
     return await _book_action(request, book_id, lambda f: library.save_book(current_user_id(), book_id, f))
 
 
+@router.post("/book/{book_id}/file")
+async def book_file(request: Request, book_id: int):
+    """Ссылка на свой файл книги (Google Диск) — на странице кнопка «Скачать»."""
+    return await _book_action(request, book_id, lambda f: library.set_file(current_user_id(), book_id, f.get("file_url")))
+
+
 @router.post("/book/{book_id}/tags")
 async def book_tags(request: Request, book_id: int):
     return await _book_action(request, book_id, lambda f: library.save_tags(book_id, f))
@@ -460,3 +476,138 @@ async def ficbook_save(request: Request):
 @router.post("/book/{book_id}/reads/{read_id}/delete")
 async def read_delete(request: Request, book_id: int, read_id: int):
     return await _book_action(request, book_id, lambda f: library.delete_read(current_user_id(), book_id, read_id))
+
+
+# ------------------------------------------------------------------ мастерская epub
+
+@router.get("/workshop", response_class=HTMLResponse)
+def workshop_page(request: Request, book: int | None = None):
+    """Загрузить epub, поправить, скачать. ?book=<id> — из карточки: название, автор, серия и обложка оттуда."""
+    b = queries.book_detail(current_user_id(), book) if book else None
+    if book and not b:
+        raise HTTPException(404, "Книга не найдена")
+    return templates.TemplateResponse(request, "workshop.html", {"b": b, "card": epub.card_meta(b) if b else None})
+
+
+@router.get("/workshop/find")
+def workshop_find(q: str = ""):
+    """Что это за книга: среди книг на сайте, в Hardcover, в Google Books (русские издания).
+    Источник, который не ответил, — в failed; остальные показываются."""
+    q = q.strip()
+    if not q:
+        return {"results": [], "failed": []}
+    jobs = {"Мои книги": lambda: [{"source": "Мои книги", "book_id": b["id"], "title": b["title_ru"] or b["title"],
+                                   "authors": b["authors"] or "", "series": b["series"] or "", "cover": b["cover_url"],
+                                   "in_library": b["in_library"]} for b in queries.find_books(current_user_id(), q)],
+            "Hardcover": lambda: [{"source": "Hardcover", "hc_id": r["id"], "title": r["title"], "authors": r["authors"],
+                                   "series": r["series"], "cover": r["cover"], "year": r["year"]} for r in hardcover_api.search(q)[:8]],
+            "Google Books": lambda: [{"source": "Google Books", "title": c["title"], "authors": c["authors"], "series": "",
+                                      "cover": c["url"]} for c in (covers._google_ru(q, None) if covers.CYRILLIC.search(q)
+                                                                   else covers._google(q))[:6]]}
+    results, failed = [], []
+    with ThreadPoolExecutor(len(jobs)) as pool:
+        futures = {name: pool.submit(job) for name, job in jobs.items()}
+        for name, future in futures.items():
+            try:
+                results += future.result()
+            except Exception:  # noqa: BLE001 — не ответил один источник: показываем остальные
+                failed.append(name)
+    # Hardcover и Google на русский запрос отвечают чем попало («Кубанский огонь» на «Бриллиантовый огонь»):
+    # оставляем, где совпали хотя бы 2/3 слов запроса (из двух слов — оба)
+    words = {w for w in re.findall(r"\w{3,}", q.lower())}
+    def relevant(r):
+        hay = f"{r['title']} {r['authors']} {r['series']}".lower()
+        return not words or sum(w in hay for w in words) * 3 >= len(words) * 2
+    return {"results": [r for r in results if r["source"] == "Мои книги" or relevant(r)], "failed": failed}
+
+
+@router.get("/workshop/pick")
+def workshop_pick(book: int | None = None, hc: int | None = None):
+    """Выбрали найденную книгу: название, автор, серия + варианты обложек."""
+    if book:
+        b = queries.book_detail(current_user_id(), book)
+        if not b:
+            raise HTTPException(404, "Книга не найдена")
+        meta, main = epub.card_meta(b), b.get("cover_url")
+    elif hc:
+        try:
+            h = hardcover_api.book(hc)
+        except hardcover_api.HardcoverError as e:
+            return JSONResponse({"error": str(e)}, status_code=502)
+        if not h:
+            raise HTTPException(404, "Такой книги в Hardcover нет")
+        bs = sorted((s for s in h.get("book_series") or [] if s.get("series") and not s.get("compilation")),
+                    key=lambda s: not s.get("featured"))
+        pos = bs[0].get("position") if bs else None
+        meta = {"title": h["title"], "authors": [a["name"] for a in hardcover_api.authors_of(h)],
+                "series": bs[0]["series"]["name"] if bs else "", "series_index": f"{float(pos):g}" if pos is not None else ""}
+        main = (h.get("image") or {}).get("url")
+        b = {"title": h["title"], "authors": ", ".join(meta["authors"]), "hardcover_id": hc, "cover_url": main}
+    else:
+        raise HTTPException(400, "Не выбрана книга")
+    found, _ = covers.candidates(b)
+    variants = ([{"url": main, "source": "Основная", "label": ""}] if main else []) + found
+    return {"meta": meta, "cover": main, "covers": variants, "book_id": book}
+
+
+@router.post("/workshop/inspect")
+async def workshop_inspect(request: Request):
+    """Что внутри загруженного файла — до изменений (файл нигде не сохраняется)."""
+    form = await request.form()
+    data = await form["file"].read() if hasattr(form.get("file"), "read") else b""
+    try:
+        return await run_in_threadpool(epub.inspect, data)
+    except epub.EpubError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+@router.post("/workshop/build")
+async def workshop_build(request: Request):
+    """Тот же файл ещё раз + выбранное на странице -> исправленный epub на скачивание.
+    Что сделано — в заголовке X-Report (страница показывает списком)."""
+    result = await _workshop_epub(await request.form())
+    if isinstance(result, JSONResponse):
+        return result
+    content, report = result
+    return Response(content, media_type="application/epub+zip",
+                    headers={"X-Report": quote(json.dumps(report, ensure_ascii=False))})
+
+
+@router.post("/workshop/kindle")
+async def workshop_kindle(request: Request):
+    """То же, что «Скачать», но файл уходит письмом на Kindle (Gmail API). Ответ — что сделано и куда ушло."""
+    form = await request.form()
+    result = await _workshop_epub(form)
+    if isinstance(result, JSONResponse):
+        return result
+    content, report = result
+    try:
+        to = await run_in_threadpool(kindle.send, content, form.get("filename") or "book.epub", form.get("title", "").strip())
+    except kindle.KindleError as e:
+        return JSONResponse({"error": str(e), "report": report}, status_code=502)
+    return {"report": report, "to": to}
+
+
+async def _workshop_epub(form) -> tuple[bytes, list[str]] | JSONResponse:
+    """Собирает исправленный epub из формы мастерской; ошибка — JSON с понятным текстом."""
+    data = await form["file"].read() if hasattr(form.get("file"), "read") else b""
+    try:
+        cover_src = form.get("cover_src", "keep")
+        image = None
+        if cover_src == "url":
+            image = await run_in_threadpool(epub.fetch_image, form.get("cover_url", ""))
+        elif cover_src == "file" and hasattr(form.get("cover_file"), "read"):
+            image = await form["cover_file"].read()
+        box = tuple(float(x) for x in form["crop"].split(",")) if form.get("crop") else None
+        per_page = int(form["per_page"]) if form.get("pages") and form.get("per_page") else None
+        content, report = await run_in_threadpool(
+            epub.build, data, fixes={f for f in epub.FIXES if form.get(f)},
+            title=form.get("title", "").strip(), authors=[a.strip() for a in form.get("authors", "").split(",") if a.strip()],
+            series=form.get("series", "").strip(), index=form.get("series_index", "").strip(),
+            cover=image, box=box, change_cover=cover_src != "none" and (image is not None or box is not None),
+            per_page=max(200, min(per_page, 20000)) if per_page else None)
+    except epub.EpubError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+    except ValueError:
+        return JSONResponse({"error": "Странные значения в форме — обнови страницу и попробуй ещё раз"}, status_code=400)
+    return content, report

@@ -85,6 +85,33 @@ def cover_link(raw: str | None) -> str | None:
     return raw or None
 
 
+DRIVE_FILE = re.compile(r"https://(?:drive|docs)\.google\.com/(?:file/d/|open\?id=|uc\?(?:.*&)?id=)([\w-]{20,})")
+
+
+def file_links(url: str | None) -> dict | None:
+    """Ссылка на свой файл книги -> {open, download}. У Google Диска «скачать» — прямая ссылка
+    на файл (без страницы просмотра); у остальных обе ведут по самой ссылке."""
+    if not url:
+        return None
+    m = DRIVE_FILE.match(url)
+    if m:
+        return {"open": f"https://drive.google.com/file/d/{m.group(1)}/view",
+                "download": f"https://drive.google.com/uc?export=download&id={m.group(1)}", "drive": True}
+    return {"open": url, "download": url, "drive": False}
+
+
+def set_file(user_id: str, book_id: int, raw: str | None) -> None:
+    """Ссылка на свой файл книги (Google Диск или любая https). Пустая — убрать."""
+    url = (raw or "").strip() or None
+    if url and not re.match(r"https?://", url):
+        raise ValidationError("Ссылка на файл должна начинаться с https://")
+    with transaction() as conn:
+        updated = conn.execute("update library set file_url = %s where user_id = %s and book_id = %s",
+                               (url, user_id, book_id)).rowcount
+    if not updated:
+        raise ValidationError("Сначала добавь книгу к себе")
+
+
 def set_cover(book_id: int, raw: str | None) -> None:
     """Обложка, выбранная на странице «Выбрать обложку»."""
     cover = cover_link(raw)

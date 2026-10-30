@@ -253,7 +253,7 @@ def book_detail(user_id: str, book_id: int) -> dict | None:
         select {BOOK_FIELDS}, b.description, b.description_ru, b.release_date,
                b.source_url, b.hardcover_id, b.hardcover_slug, b.hardcover_tags,
                b.fandoms, b.work_status, b.words, b.parts, b.ficbook_meta,
-               l.book_id is not null as in_library, l.my_genre_id, l.notes, l.my_description
+               l.book_id is not null as in_library, l.my_genre_id, l.notes, l.my_description, l.file_url
         from books b left join library l on l.book_id = b.id and l.user_id = %(u)s
         where b.id = %(b)s""", p)
     if not b:
@@ -268,6 +268,19 @@ def book_detail(user_id: str, book_id: int) -> dict | None:
         where user_id = %(u)s and book_id = %(b)s
         order by coalesce(finished_at, started_at) desc nulls first""", p)
     return b
+
+
+def find_books(user_id: str, q: str) -> list[dict]:
+    """Книги каталога по куску названия (оригинал или русское) или автора — для мастерской epub.
+    Сначала те, что в твоей библиотеке."""
+    return fetch_all(f"""
+        select {BOOK_FIELDS}, {FIRST_SERIES}, l.book_id is not null as in_library
+        from books b left join library l on l.book_id = b.id and l.user_id = %(u)s
+        where b.title ilike %(q)s or b.title_ru ilike %(q)s
+           or exists (select 1 from book_authors ba join authors a on a.id = ba.author_id
+                      where ba.book_id = b.id and a.name ilike %(q)s)
+        order by (l.book_id is null), coalesce(b.title_ru, b.title)
+        limit 8""", {"u": user_id, "q": "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"})
 
 
 def genres(user_id: str) -> list[dict]:
