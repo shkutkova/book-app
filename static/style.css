@@ -618,8 +618,8 @@ button.spine:hover,button.spine:focus-visible{transform:translateY(-10px)}
 .ws-check h3{font-size:.95rem;margin:0 0 .7rem}
 .ws-check-head{margin-bottom:.2rem}
 .ws-check-head h3{margin:0;font-size:1.05rem}
-.mark{display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:50%;font-size:.85rem;font-weight:800;color:var(--ink);flex:none}
-.st-ok .mark{background:var(--p-mint)}.st-warn .mark{background:var(--p-butter)}.st-bad .mark{background:var(--p-pink)}
+.ws-mark{display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:50%;font-size:.85rem;font-weight:800;color:var(--ink);flex:none}
+.st-ok .ws-mark{background:var(--p-mint)}.st-warn .ws-mark{background:var(--p-butter)}.st-bad .ws-mark{background:var(--p-pink)}
 .ws-checks{font-size:1rem}
 .ws-checks h4{font-size:.9rem;color:var(--mut);margin:.9rem 0 .4rem;font-weight:700}
 /* «В порядке» — зелёные значки в строку; «Оглавление» раскрывается списком глав */

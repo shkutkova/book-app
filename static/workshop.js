@@ -102,7 +102,7 @@
     if (todo.length) parts.push(el('h4', null, 'Что поправить'));
     for (const c of todo) {
       const r = el('div', 'ws-row st-' + c.state);
-      r.append(el('span', 'mark', MARK[c.state]), el('b', null, c.title), el('span', 'detail', c.detail),
+      r.append(el('span', 'ws-mark', MARK[c.state]), el('b', null, c.title), el('span', 'detail', c.detail),
                c.key ? fixBox(c) : el('span', 'ws-hint', '→ ' + c.action));
       if (c.key === 'toc' && info.chapters.length) {  // собираем заново — сразу видно, какие будут главы
         const d = el('details', 'ws-row-more');
