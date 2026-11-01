@@ -801,3 +801,9 @@ nav{view-transition-name:site-nav}
 /* Меньше движения (настройка системы): страницы просто сменяются; крутилки и смена цвета остаются */
 @media (prefers-reduced-motion:reduce){
  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+
+/* Блоки главной и плитки статистики выплывают снизу, пока въезжают в экран (привязано к прокрутке;
+   где браузер не умеет — просто стоят). Что видно при открытии — сразу на месте */
+@supports (animation-timeline:view()){
+ :is(.hello,.section-head,.board .tile,.shelf-scene,.kpi){animation:rv-rise linear both;animation-timeline:view();animation-range:entry 0% entry 60%}}
+@keyframes rv-rise{from{opacity:0;transform:translateY(56px)}}
