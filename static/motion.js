@@ -20,6 +20,14 @@
     if (location.pathname === new URL(a.href).pathname) { e.preventDefault(); top(); }
   }));
 
+  // ---- свечение цветом обложки: размытая копия первой обложки в углу цветной карточки
+  document.querySelectorAll('.s-card.soft, .now-card').forEach(c => {
+    const img = c.querySelector('img');
+    if (!img) return;
+    const glow = img.cloneNode(); glow.className = 'glow-img'; glow.alt = '';
+    c.prepend(glow);
+  });
+
   // ---- отклик после сохранения: что нажала — запоминаем перед отправкой, на новой странице проигрываем
   document.addEventListener('submit', e => {
     if (e.defaultPrevented) return;

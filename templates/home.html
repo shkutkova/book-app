@@ -35,29 +35,29 @@
 
 <div class="section-head"><h2>Мой книжный год</h2><a href="/stats">Вся статистика</a></div>
 {% set bm = board.best_month %}
-<div class="board">
+<div class="board">{# цифры — ссылки в статистику; картинки — просто наклейки #}
   <div class="col-b">
     <div class="tile pic t-pink"><img src="/static/img/booky/2-16.webp" alt="" loading="lazy"></div>
-    <div class="tile t-mint"><span class="lbl">В этом месяце</span><span class="big">{{ board.month_reads }}</span></div>
-    <div class="tile t-butter"><span class="lbl">Страниц в этом месяце</span><span class="big long">{{ '{:,}'.format(board.month_pages).replace(',', ' ') }}</span></div>
+    <a class="tile t-mint" href="/stats"><span class="lbl">В этом месяце</span><span class="big">{{ board.month_reads }}</span></a>
+    <a class="tile t-butter" href="/stats"><span class="lbl">Страниц в этом месяце</span><span class="big long">{{ '{:,}'.format(board.month_pages).replace(',', ' ') }}</span></a>
   </div>
   <div class="col-b">
-    <div class="tile t-butter" style="min-height:210px"><span class="lbl">Прочитано всего</span>
-      <span><span class="big">{{ counts.get('finished', 0) }}</span><span class="note">книг и фанфиков</span></span></div>
+    <a class="tile t-butter" href="/stats" style="min-height:210px"><span class="lbl">Прочитано всего</span>
+      <span><span class="big">{{ counts.get('finished', 0) }}</span><span class="note">книг и фанфиков</span></span></a>
     <div class="tile pic t-sky"><img src="/static/img/booky/1-05.webp" alt="" loading="lazy"></div>
   </div>
   <div class="col-b">
     <div class="tile pic t-lilac"><img src="/static/img/booky/2-15.webp" alt="" loading="lazy"></div>
-    <div class="tile t-peach"><span class="lbl">Страниц за год</span><span class="big long">{{ '{:,}'.format(board.year_pages).replace(',', ' ') }}</span></div>
+    <a class="tile t-peach" href="/stats"><span class="lbl">Страниц за год</span><span class="big long">{{ '{:,}'.format(board.year_pages).replace(',', ' ') }}</span></a>
   </div>
   <div class="col-b">
-    <div class="tile dark"><span class="lbl">Серий закончено</span><span class="big">{{ board.series_done }}</span></div>
-    <div class="tile t-mint"><span class="lbl">Фанфиков за год</span><span class="big">{{ board.year_fanfics }}</span></div>
+    <a class="tile dark" href="/series"><span class="lbl">Серий закончено</span><span class="big">{{ board.series_done }}</span></a>
+    <a class="tile t-mint" href="/stats"><span class="lbl">Фанфиков за год</span><span class="big">{{ board.year_fanfics }}</span></a>
     <div class="tile pic t-lilac"><img src="/static/img/booky/1-26.webp" alt="" loading="lazy"></div>
   </div>
   <div class="col-b">
-    {% if bm %}<div class="tile t-butter"><span class="lbl">Лучший месяц года</span>
-      <span><span class="big word">{{ MONTHS[bm.month - 1] }}</span><span class="note">{{ bm.n }} {{ plural(bm.n, 'книга', 'книги', 'книг') }}</span></span></div>{% endif %}
+    {% if bm %}<a class="tile t-butter" href="/stats"><span class="lbl">Лучший месяц года</span>
+      <span><span class="big word">{{ MONTHS[bm.month - 1] }}</span><span class="note">{{ bm.n }} {{ plural(bm.n, 'книга', 'книги', 'книг') }}</span></span></a>{% endif %}
     <div class="tile pic t-peach"><img src="/static/img/booky/1-08.webp" alt="" loading="lazy"></div>
   </div>
 </div>

@@ -336,6 +336,10 @@ h1.with-booky img{width:clamp(56px,8vw,84px);height:auto;margin:-.6rem 0;filter:
 .tile.pic img{width:82%;max-height:160px;object-fit:contain;filter:drop-shadow(0 8px 10px #2611403d)}
 .t-pink{background:var(--p-pink)}.t-butter{background:var(--p-butter)}.t-mint{background:var(--p-mint)}
 .t-sky{background:var(--p-sky)}.t-lilac{background:var(--p-lilac)}.t-peach{background:var(--p-peach)}
+/* плитки доски — переход в соседний пастельный цвет, как плитки статистики */
+.tile.t-pink{background:linear-gradient(140deg,var(--p-pink),var(--p-lilac))}.tile.t-mint{background:linear-gradient(140deg,var(--p-mint),var(--p-sky))}
+.tile.t-butter{background:linear-gradient(140deg,var(--p-butter),var(--p-peach))}.tile.t-peach{background:linear-gradient(140deg,var(--p-peach),var(--p-pink))}
+.tile.t-sky{background:linear-gradient(140deg,var(--p-sky),var(--p-lilac))}.tile.t-lilac{background:linear-gradient(140deg,var(--p-lilac),var(--p-sky))}
 @media (max-width:900px){.board{grid-template-columns:repeat(3,minmax(0,1fr))}.board .col-b{margin-top:0!important}
  .board .col-b:nth-child(even){margin-top:24px!important}}
 @media (max-width:560px){.board{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.board .col-b{gap:10px}
@@ -821,3 +825,19 @@ nav{view-transition-name:site-nav}
  background:radial-gradient(130% 100% at 0% 0%,color-mix(in srgb,var(--tone) 58%,transparent),transparent 72%),#ffffff0d!important}
 .now-wrap .blur{display:none}
 .lib[data-view=feed] .book-card:hover,.lib[data-view=table] .book-card:hover{background:#ffffff12}
+
+/* Доска на главной: цифры — ссылки в статистику. При наведении плитка приподнимается и чуть поворачивается, наклейка покачивается.
+   translate/rotate, а не transform: transform занят «выплыванием» при прокрутке */
+a.tile{transition:translate .25s var(--ease-out),rotate .25s var(--ease-out),box-shadow .25s}
+a.tile:hover{text-decoration:none;translate:0 -5px;rotate:-1.2deg;box-shadow:0 26px 36px -20px #12002d}
+.board .col-b:nth-child(even) a.tile:hover{rotate:1.2deg}
+a.tile:active{translate:0 -1px;transition-duration:.1s}
+a.tile:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.tile.pic img{transition:rotate .4s var(--ease-out),scale .4s var(--ease-out)}
+.tile.pic:hover img{rotate:-7deg;scale:1.07}
+.kpi{transition:translate .25s var(--ease-out),box-shadow .25s}
+.kpi:hover{translate:0 -3px;box-shadow:0 22px 30px -18px #000c}
+/* Свечение цветом обложки: в углу цветной карточки — размытая копия её первой обложки (ставит motion.js).
+   Без обложки остаётся пастельное свечение */
+:is(.s-card.soft,.now-card):has(>.glow-img){position:relative;overflow:hidden;isolation:isolate;background:#ffffff0d!important}
+.glow-img{position:absolute;z-index:-1;left:-15%;top:-25%;width:75%;height:110%;object-fit:cover;filter:blur(34px) saturate(1.6);opacity:.75;pointer-events:none}
