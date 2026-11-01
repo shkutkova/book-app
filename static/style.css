@@ -807,3 +807,17 @@ nav{view-transition-name:site-nav}
 @supports (animation-timeline:view()){
  :is(.hello,.section-head,.board .tile,.shelf-scene,.kpi){animation:rv-rise linear both;animation-timeline:view();animation-range:entry 0% entry 60%}}
 @keyframes rv-rise{from{opacity:0;transform:translateY(56px)}}
+
+/* ---------- блоки и цветные карточки ----------
+   Блоки — матовое стекло: светлый полупрозрачный фон, под ним всё размыто, поэтому блики и обложки не «просвечивают» сквозь текст.
+   Цветные карточки (серии, «Читаю сейчас») — то же стекло, а свой цвет «светится» из верхнего угла; текст всегда белый */
+:is(.card,.dash .card,.bookcase,.glass,.title-block,.lib[data-view=table] .cards){
+ background:#ffffff12;border:1px solid #ffffff1f;box-shadow:0 14px 34px -22px #12002d;
+ -webkit-backdrop-filter:blur(18px) saturate(1.25);backdrop-filter:blur(18px) saturate(1.25)}
+/* карточек книг много — без размытия, чтобы список не тормозил на телефоне */
+.book-card{background:#ffffff12;border:1px solid #ffffff1a}
+.book-card:hover{background:#ffffff1f}
+:is(.s-card.soft,.now-card){border:1px solid color-mix(in srgb,var(--tone) 38%,transparent);color:var(--text);
+ background:radial-gradient(130% 100% at 0% 0%,color-mix(in srgb,var(--tone) 58%,transparent),transparent 72%),#ffffff0d!important}
+.now-wrap .blur{display:none}
+.lib[data-view=feed] .book-card:hover,.lib[data-view=table] .book-card:hover{background:#ffffff12}
