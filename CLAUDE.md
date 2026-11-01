@@ -37,7 +37,9 @@ FastAPI + Jinja2 (серверный рендер, без JS-фреймворк�
 - `services/epub.py` + `static/workshop.js` — «Мастерская epub» (`/workshop`): проверка и ремонт файла, обложка, страницы для Kindle; файл не хранится. `services/kindle.py` — отправка на Kindle через Gmail API
 - `db/schema.sql` — схема для пустой базы; `db/migrations/NNN_*.sql` — изменения для существующей
 - `scripts/import_notion.py`, `scripts/sync_hardcover.py` — разовые скрипты; `scripts/dev_fake.py` — локальный прогон без базы
-- `static/style.css` — вся тема; `CSS_V` в `pages.py` — хеш style.css + filters.js + desc.js (новый статичный JS — добавить туда)
+- `static/style.css` — вся тема; `CSS_V` в `pages.py` — хеш style.css и статичного JS (новый статичный JS — добавить туда)
+- `static/motion.js` — шапка прячется при прокрутке, «наверх», отклик после сохранения, цифры досчитываются;
+  крутилка на кнопках — `busy()` в `base.html` (на все POST-формы сама); смена страниц — `@view-transition` в `<head>` base.html
 - `static/img/booky/*.webp` — наклейки-приведения (талисман), `static/icons/` + `manifest.webmanifest` — PWA
 
 ## Модель данных

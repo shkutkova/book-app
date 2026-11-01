@@ -266,7 +266,7 @@
 
 <dialog class="covers-dialog" id="covers">
   <div class="dialog-head"><h2>Обложка</h2><button class="link" onclick="this.closest('dialog').close()">Закрыть</button></div>
-  <p class="muted small" id="covers-state">Ищу варианты…</p>
+  <p class="muted small loading" id="covers-state">Ищу варианты…</p>
   <div class="covers-grid" id="covers-grid"></div>
   <form method="post" action="/book/{{ b.id }}/cover" class="own-cover">
     <label for="own-cover">Своя картинка — ссылка</label>
@@ -287,7 +287,7 @@ document.addEventListener('click', e => document.querySelectorAll('.status-menu[
 // Даты прочтения: календарь — по клику на дату (своего значка нет), сохраняются сразу при выборе
 document.querySelectorAll('[data-autosave] input').forEach(i => {
   i.addEventListener('click', () => { try { i.showPicker(); } catch {} });
-  i.addEventListener('change', () => i.form.submit());
+  i.addEventListener('change', () => i.form.requestSubmit());  // requestSubmit — чтобы крутилка увидела отправку
 });
 // Любая пустая дата на странице: без «дд.мм.гггг» (текст прозрачный, пока поле не в фокусе)
 document.querySelectorAll('input[type=date]').forEach(i => {
@@ -305,14 +305,14 @@ document.querySelectorAll('[data-more]').forEach(btn => btn.onclick = () => {
 document.getElementById('ai-write')?.addEventListener('click', async e => {
   const btn = e.currentTarget, field = document.getElementById('my_description'), state = document.getElementById('ai-state');
   if (field.value.trim() && !confirm('Заменить текст в «Подробнее» черновиком от ИИ?')) return;
-  btn.disabled = true; state.textContent = 'ИИ пишет — до минуты…';
+  busy(btn, true); state.textContent = 'ИИ пишет — до минуты…';
   try {
     const data = await (await fetch(`/book/{{ b.id }}/ai-description`, {method: 'POST'})).json();
     if (data.error) { state.textContent = data.error; return; }
     field.value = data.text; field.focus();
     state.textContent = 'Готово. Проверь текст (нет ли спойлеров и выдумок) и нажми «Сохранить».';
   } catch { state.textContent = 'Не получилось связаться с сервером — попробуй ещё раз.'; }
-  finally { btn.disabled = false; }
+  finally { busy(btn, false); }
 });
 
 // Обложка: окно сразу; варианты подгружаются, своя ссылка — всегда внизу
@@ -334,9 +334,10 @@ document.getElementById('find-cover').addEventListener('click', async e => {
       f.querySelector('.src').textContent = c.source; f.querySelector('button').title = c.label || '';
       grid.append(f);
     }
+    state.classList.remove('loading');
     state.textContent = data.covers.length ? 'Нажми на понравившуюся.'
       : 'Вариантов не нашлось' + (data.failed.length ? ` (не ответили: ${data.failed.join(', ')})` : '') + '. Можно поставить свою картинку по ссылке.';
-  } catch { state.textContent = 'Не получилось спросить варианты — можно поставить свою картинку по ссылке.'; }
+  } catch { state.classList.remove('loading'); state.textContent = 'Не получилось спросить варианты — можно поставить свою картинку по ссылке.'; }
 });
 </script>
 {% endblock %}

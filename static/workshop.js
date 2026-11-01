@@ -19,7 +19,7 @@
     if (!f) return;
     drop.querySelector('b').textContent = f.name;
     drop.querySelector('b + span').textContent = ' — нажми, чтобы выбрать другой';
-    $('ws-info').textContent = 'Смотрю, что внутри…';
+    $('ws-info').textContent = 'Смотрю, что внутри…'; $('ws-info').classList.add('loading');
     $('ws-check').hidden = $('ws-rest').hidden = $('ws-report').hidden = true; $('ws-state').textContent = '';
     const fd = new FormData(); fd.append('file', f);
     try {
@@ -27,6 +27,7 @@
       if (data.error) { $('ws-info').textContent = data.error; return; }
       info = data; showInfo();
     } catch { $('ws-info').textContent = 'Не получилось связаться с сервером — попробуй ещё раз.'; }
+    finally { $('ws-info').classList.remove('loading'); }
   });
 
   const MARK = {ok: '✓', warn: '!', bad: '✕'};
@@ -136,7 +137,7 @@
   async function find() {
     const q = $('ws-q').value.trim(), state = $('ws-find-state'), box = $('ws-results');
     if (!q) return;
-    state.textContent = 'Ищу…'; box.replaceChildren();
+    state.textContent = ''; box.replaceChildren(); busy($('ws-find'), true);
     try {
       const data = await (await fetch('/workshop/find?' + new URLSearchParams({q}))).json();
       for (const r of data.results) {
@@ -153,6 +154,7 @@
       state.textContent = (data.results.length ? 'Нажми на свою — подставлю название, автора, серию и обложки.' : 'Ничего не нашлось — попробуй название на английском или автора.')
         + (data.failed.length ? ` Не ответили: ${data.failed.join(', ')}.` : '');
     } catch { state.textContent = 'Не получилось поискать — попробуй ещё раз.'; }
+    finally { busy($('ws-find'), false); }
   }
 
   async function pick(r, btn) {
@@ -323,9 +325,9 @@
   }
   async function run(btn, work) {  // кнопки недоступны, пока идёт работа
     const btns = [$('ws-build'), $('ws-kindle')].filter(Boolean);
-    btns.forEach(b => b.disabled = true);
+    btns.forEach(b => b.disabled = true); busy(btn, true);
     try { await work(); } catch { $('ws-state').textContent = 'Не получилось связаться с сервером — попробуй ещё раз.'; }
-    finally { btns.forEach(b => b.disabled = false); }
+    finally { btns.forEach(b => b.disabled = false); busy(btn, false); }
   }
 
   form.addEventListener('submit', e => {

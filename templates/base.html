@@ -17,9 +17,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Unbounded:wght@600;700;800&display=swap">
 <link rel="stylesheet" href="/static/style.css?v={{ CSS_V }}">
+{# Плавная смена страниц. Именно здесь, а не в style.css: из внешнего файла Chrome переход не включал #}
+<style>@view-transition{navigation:auto}</style>
 </head>
 <body>
 {% block nav %}
+{% from "_icons.html" import icon %}
 {% set path = request.url.path %}
 {% set fic_search = path == '/add/book' and request.query_params.get('fanfic') %}
 <nav>
@@ -41,6 +44,15 @@
   </details>
   {% if LOGIN_ON() %}<form method="post" action="/logout"><button class="link">Выйти</button></form>{% endif %}
 </nav>
+{# Телефон: разделы внизу экрана, как в приложениях #}
+<div class="tabbar" role="navigation" aria-label="Разделы">
+  <a href="/" class="{{ 'on' if path == '/' }}">{{ icon('home', 22) }}<span>Главная</span></a>
+  <a href="/books" class="{{ 'on' if path.startswith('/books') or (path.startswith('/add/book') and not fic_search) }}">{{ icon('books', 22) }}<span>Книги</span></a>
+  <a href="/series" class="{{ 'on' if path.startswith('/series') }}">{{ icon('series', 22) }}<span>Серии</span></a>
+  <a href="/fanfics" class="{{ 'on' if path.startswith('/fanfics') or path.startswith('/add/ficbook') or fic_search }}">{{ icon('fanfic', 22) }}<span>Фанфики</span></a>
+  <a href="/stats" class="{{ 'on' if path.startswith('/stats') }}">{{ icon('chart', 22) }}<span>Статистика</span></a>
+</div>
+<button type="button" class="to-top" aria-label="Наверх" title="Наверх">{{ icon('arrow-up', 22) }}</button>
 {% endblock %}
 <div class="wrap">
   {% if not LOGIN_ON() %}<div class="error" role="status">Вход по паролю выключен: не задан APP_PASSWORD. Локально это нормально, на хостинге — обязательно задать.</div>{% endif %}
@@ -48,6 +60,26 @@
   {% block content %}{% endblock %}
 </div>
 <script>
+// Крутилка на кнопке, пока идёт сохранение. busy(кнопка, true/false) — и для действий без перезагрузки.
+// disabled не ставим: у отключённой кнопки браузер не отправит её name/value (статус, «Удалить» и т.п.)
+window.busy = (btn, on) => {
+  if (!btn) return;
+  if (on) btn.style.setProperty('--spin', getComputedStyle(btn).color);
+  btn.classList.toggle('busy', on); btn.toggleAttribute('aria-busy', on);
+};
+document.addEventListener('submit', e => {
+  const form = e.target;
+  if (e.defaultPrevented || (form.method || '').toLowerCase() !== 'post') return;
+  if (form.hasAttribute('aria-busy')) return e.preventDefault();  // второй клик, пока сохраняется
+  form.setAttribute('aria-busy', 'true');
+  busy(e.submitter || form.querySelector('button:not([type=button])'), true);
+});
+// «Назад» в браузере возвращает страницу из памяти как есть — снимаем крутилки
+addEventListener('pageshow', e => {
+  if (!e.persisted) return;
+  document.querySelectorAll('.busy').forEach(b => busy(b, false));
+  document.querySelectorAll('form[aria-busy]').forEach(f => f.removeAttribute('aria-busy'));
+});
 // Меню «+ Добавить» закрывается по клику мимо и по Esc
 document.addEventListener('click', e => document.querySelectorAll('.add-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.add-menu[open]').forEach(d => d.open = false); });
@@ -68,6 +100,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') document.que
   document.addEventListener('visibilitychange', () => { if (!document.hidden && stale && !typing()) location.reload(); });
 })();
 </script>
+<script src="/static/motion.js?v={{ CSS_V }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

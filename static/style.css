@@ -603,6 +603,18 @@ button.spine:hover,button.spine:focus-visible{transform:translateY(-10px)}
 @media (max-width:640px){.chart{min-height:200px}.chart.tall{height:240px}.col small{font-size:.62rem}.val{font-size:.68rem}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
+/* Крутилка: кнопка, пока сохраняется. Текст прячется, размер кнопки тот же; цвет — как был у текста (--spin) */
+.busy{position:relative;pointer-events:none;cursor:progress;color:transparent!important}
+.busy>*{visibility:hidden}
+.busy::after{content:"";position:absolute;inset:0;margin:auto;width:1.1em;height:1.1em;border-radius:50%;
+ border:2.5px solid color-mix(in srgb,var(--spin,currentColor) 28%,transparent);border-top-color:var(--spin,currentColor);
+ animation:spin .7s linear infinite}
+.read-dates[aria-busy="true"]{position:relative}
+.read-dates[aria-busy="true"]>svg{visibility:hidden}
+.read-dates[aria-busy="true"]::before{content:"";position:absolute;left:calc(.85rem + 1px);top:50%;width:15px;height:15px;margin-top:-7.5px;border-radius:50%;
+ border:2px solid #ffffff33;border-top-color:var(--accent);animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(1turn)}}
+
 /* мастерская epub: шаги карточками, рамка обрезки обложки */
 .ws-step h2{display:flex;align-items:center;gap:.6rem}
 .ws-n{display:inline-grid;place-items:center;width:1.8rem;height:1.8rem;border-radius:50%;background:var(--accent);color:var(--ink);font-size:.85rem;flex:none}
@@ -707,3 +719,85 @@ button.ws-ok{border:0;font:inherit;font-size:.95rem;font-weight:700;cursor:point
  .ws-map-row{grid-template-columns:1fr}.ws-map .ws-bar-label{margin-left:0}
  .crop img{max-height:55vh}
  .ws-pages{margin-left:0}}
+/* Крутилка перед строкой состояния («Ищу варианты…»), пока ждём ответа */
+.loading::before{content:"";display:inline-block;vertical-align:-.15em;width:.95em;height:.95em;margin-right:.5em;border-radius:50%;
+ border:2px solid #ffffff33;border-top-color:var(--accent);animation:spin .7s linear infinite}
+
+/* ---------- движение ---------- */
+:root{--ease-out:cubic-bezier(.16,1,.3,1)}
+
+/* Шапка закреплена сверху: при прокрутке вниз уезжает, при прокрутке вверх возвращается (классы ставит motion.js).
+   Высота не меняется — иначе страница под ней прыгает; меняется только фон */
+nav{position:sticky;top:0;z-index:40;max-width:none;padding-inline:max(1rem,calc(50% - 624px));
+ transition:transform .3s var(--ease-out),background-color .25s,box-shadow .25s}
+html.scrolled nav{background:color-mix(in srgb,var(--ground-deep) 74%,transparent);
+ -webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4);box-shadow:0 10px 28px -18px #12002d}
+html.nav-hide nav:not(:focus-within){transform:translateY(-100%)}
+
+/* Телефон: разделы внизу, как в приложениях; в шапке остаются логотип и «+ Добавить» */
+.tabbar{display:none}
+@media (max-width:720px){
+ nav .links{display:none}
+ .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:45;
+  padding:.35rem .4rem max(.4rem,env(safe-area-inset-bottom));background:color-mix(in srgb,var(--surface) 86%,transparent);
+  -webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4);border-top:1px solid #ffffff1a}
+ .wrap{padding-bottom:calc(6rem + env(safe-area-inset-bottom))}
+ .tabbar a{display:flex;flex-direction:column;align-items:center;gap:.15rem;padding:.3rem 0;color:var(--mut);font-size:.7rem;font-weight:700;
+  border-radius:14px;-webkit-tap-highlight-color:transparent}
+ .tabbar a:hover{text-decoration:none}
+ .tabbar .ic{padding:.2rem .9rem;box-sizing:content-box;border-radius:999px;transition:background-color .2s,color .2s,transform .15s}
+ .tabbar a.on{color:var(--text)}
+ .tabbar a.on .ic{background:color-mix(in srgb,var(--p-lilac) 26%,transparent);color:var(--accent)}
+ .tabbar a:active .ic{transform:scale(.92)}}
+
+/* «Наверх» (компьютер): появляется, когда пролистала полтора экрана. На телефоне наверх ведёт касание открытого раздела */
+.to-top{position:fixed;right:max(1rem,env(safe-area-inset-right));bottom:max(1.2rem,env(safe-area-inset-bottom));z-index:44;width:48px;height:48px;
+ border-radius:50%;padding:0;display:grid;place-items:center;background:var(--p-lilac);border:0;color:var(--ink);box-shadow:0 12px 24px -10px #12002dcc;
+ opacity:0;transform:translateY(16px) scale(.9);pointer-events:none;transition:opacity .2s,transform .3s var(--ease-out)}
+html.far .to-top{opacity:1;transform:none;pointer-events:auto}
+.to-top:hover{background:var(--p-butter)}
+@media (max-width:720px){.to-top{display:none}}
+
+/* Смена страниц (View Transitions; включает <style> в base.html): шапка и нижняя панель стоят на месте,
+   страница мягко проявляется. Где браузер не умеет — открывается как обычно */
+nav{view-transition-name:site-nav}
+.tabbar{view-transition-name:tabbar}
+::view-transition-old(root){animation:vt-out .15s ease-in both}
+::view-transition-new(root){animation:vt-in .32s var(--ease-out) both}
+@keyframes vt-out{to{opacity:0}}
+@keyframes vt-in{from{opacity:0;transform:translateY(10px)}}
+
+/* Отклик на действие и «радость в цифрах» */
+/* столбики графиков вырастают снизу, по очереди */
+.chart .fill{animation:bar-grow .7s var(--ease-out) backwards}
+@keyframes bar-grow{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(-4em -4em 0 -4em)}}
+.chart .col:nth-child(2) .fill{animation-delay:25ms}.chart .col:nth-child(3) .fill{animation-delay:50ms}
+.chart .col:nth-child(4) .fill{animation-delay:75ms}.chart .col:nth-child(5) .fill{animation-delay:100ms}
+.chart .col:nth-child(6) .fill{animation-delay:125ms}.chart .col:nth-child(7) .fill{animation-delay:150ms}
+.chart .col:nth-child(8) .fill{animation-delay:175ms}.chart .col:nth-child(9) .fill{animation-delay:200ms}
+.chart .col:nth-child(10) .fill{animation-delay:225ms}.chart .col:nth-child(11) .fill{animation-delay:250ms}
+.chart .col:nth-child(n+12) .fill{animation-delay:275ms}
+/* прогресс серий заполняется */
+.bar i{transform-origin:left;animation:bar-fill .9s var(--ease-out) .1s backwards}
+@keyframes bar-fill{from{transform:scaleX(0)}}
+/* обложки под мышкой приподнимаются (только где есть мышь) */
+@media (hover:hover){
+ .cover :is(img,.img){transition:transform .25s var(--ease-out),box-shadow .25s}
+ a.cover:hover :is(img,.img),a:hover>.cover :is(img,.img),.lib:not([data-view=table]) .book-card:hover .cover :is(img,.img){
+  transform:translateY(-4px) rotate(-1.5deg);box-shadow:0 18px 26px -14px #000c}}
+/* после сохранения: огонёк вспыхивает, звёзды подпрыгивают по очереди, от плашки статуса расходится волна */
+.fav-round{position:relative}
+.fav-round.pop .ic{animation:pop .55s var(--ease-out)}
+.fav-round.pop::before{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--p-peach);
+ animation:ring .6s var(--ease-out) forwards;pointer-events:none}
+.rate.pop button.on .ic{animation:pop .5s var(--ease-out) backwards}
+.rate.pop button:nth-child(2) .ic{animation-delay:60ms}.rate.pop button:nth-child(3) .ic{animation-delay:120ms}
+.rate.pop button:nth-child(4) .ic{animation-delay:180ms}.rate.pop button:nth-child(5) .ic{animation-delay:240ms}
+.status-menu summary.pop{animation:wave .7s var(--ease-out)}
+@keyframes pop{0%{transform:scale(.5)}55%{transform:scale(1.25)}100%{transform:none}}
+@keyframes ring{from{transform:scale(.7);opacity:1}to{transform:scale(1.6);opacity:0}}
+@keyframes wave{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--st,var(--p-lilac)) 70%,transparent)}to{box-shadow:0 0 0 14px transparent}}
+
+/* Меньше движения (настройка системы): страницы просто сменяются; крутилки и смена цвета остаются */
+@media (prefers-reduced-motion:reduce){
+ ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}

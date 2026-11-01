@@ -137,7 +137,11 @@ _bk3 = queries.book_detail
 queries.book_detail = lambda u, bid: dict(_bk3(u, bid), **EDITS.get(bid, {}))
 _lib.save_book = lambda u, b, f: EDITS.setdefault(b, {}).update(
     {k: (f.get(k) or "").strip() or None for k in ("kind", "title_ru") if k in f},
-    **({"description_ru": (f["annotation"] or "").strip() or None} if "annotation" in f else {}))
+    **({"description_ru": (f["annotation"] or "").strip() or None} if "annotation" in f else {}),
+    # статус, оценка, «избранное» — чтобы на локальном сайте было видно, что нажатие сработало
+    **({"status": f["status"]} if f.get("status") else {}),
+    **({"rating": float(f["rating"]) if f["rating"] else None} if "rating" in f else {}),
+    **({"is_favorite": f["is_favorite"] == "on"} if "is_favorite" in f else {}))
 # Поиск в Hardcover — выдуманные результаты; «Добавить» открывает книгу 6 или фанфик 27
 from services import catalog as _cat, hardcover_api as _hc
 _hc.search = lambda q: [{"id": 900 + i, "title": f"{q} — вариант {i}", "authors": "SenLinYu", "year": 2021, "pages": 800,
