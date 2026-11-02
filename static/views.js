@@ -1,4 +1,4 @@
-// «Книги», «Фанфики»: вид списка (карточки / лента / таблица) — запоминается в браузере.
+// «Книги», «Фанфики»: вид списка (карточки / лента) — запоминается в браузере.
 // В ленте у описания вкладки «Аннотация | Подробнее» и «Читать полностью»
 (() => {
   const lib = document.getElementById('lib');
@@ -11,6 +11,15 @@
     mark();
   });
   mark();
+
+  // Свечение карточки в ленте — размытая копия её обложки (видна только в ленте)
+  lib.querySelectorAll('.book-card').forEach(card => {
+    const img = card.querySelector('.cover img');
+    if (!img) return;
+    const g = document.createElement('span'), i = new Image();
+    g.className = 'fglow'; i.src = img.src; i.alt = ''; i.loading = 'lazy';
+    g.append(i); card.prepend(g);
+  });
 
   lib.addEventListener('click', e => {
     const box = e.target.closest('.feed-desc');

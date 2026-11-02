@@ -222,10 +222,11 @@ input[type=date].blank:not(:focus){color:transparent}
 .desc p{margin:0 0 .5rem;text-indent:1.6em}
 .desc{text-align:justify;hyphens:auto;-webkit-hyphens:auto}
 .desc ul{text-align:left}
+.desc h4{font:inherit;font-weight:800;margin:0 0 .5rem}  /* строка целиком жирным в своём описании — подзаголовок */
 .about .desc{font-size:1.02rem;line-height:1.6}
 .desc.clamp{max-height:9.6em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
 .desc-toggle{margin-top:.4rem;font-weight:800}
-.desc-tabs{background:var(--surface-2);margin-bottom:.8rem}
+.desc-tabs{margin-bottom:.8rem}
 .ai-row{display:flex;align-items:center;gap:.4rem .9rem;flex-wrap:wrap;margin:.4rem 0 0}
 .ai-row .link{display:inline-flex;align-items:center;gap:.35rem;font-weight:800}
 .fic-row{margin-bottom:1.2rem}
@@ -380,22 +381,14 @@ h1.with-booky img{width:clamp(56px,8vw,84px);height:auto;margin:-.6rem 0;filter:
 .shelf-label span{opacity:.7;font-weight:700;margin-left:.2rem}
 .shelf-row{position:relative;display:flex;align-items:flex-end;gap:4px;min-height:210px;padding:12px .6rem 0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;
  border-bottom:12px solid #3a1a6e;box-shadow:0 14px 16px -12px #000a}
-.spine{flex:none;width:var(--w);height:var(--h);border:0;background:var(--p-lilac);border-radius:5px 5px 2px 2px;padding:.5rem 0;color:var(--ink);cursor:grab;
+.spine{flex:none;width:var(--w);height:var(--h);border:0;background:var(--p-lilac);border-radius:5px 5px 2px 2px;padding:.5rem 0;color:var(--ink);cursor:pointer;
  display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;
  box-shadow:inset -5px 0 0 #26113f1f,inset 0 7px 0 #ffffff55,inset 0 -9px 0 #26113f26;transition:transform .2s cubic-bezier(.2,.8,.2,1)}
 .spine span{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:800;font-size:.72rem;line-height:1.1;max-height:100%;overflow:hidden;
  text-overflow:ellipsis;white-space:nowrap;padding:0 .1rem}
-button.spine:hover,button.spine:focus-visible{transform:translateY(-10px)}
+a.spine:hover,a.spine:focus-visible{transform:translateY(-10px);text-decoration:none}
 .shelf-row>.spine:nth-child(5n+3){transform:rotate(-4deg);transform-origin:bottom left;margin-left:8px}
 .shelf-row>.spine:nth-child(5n+3):hover{transform:rotate(-4deg) translateY(-10px)}
-/* любимая серия: её книги вплотную, название — на ленте поперёк */
-.spine-set{position:relative;flex:none;display:flex;align-items:flex-end;gap:1px;height:206px;padding:0 4px 4px;
- border-radius:8px;background:#ff9a5a1f;outline:2px solid #ff9a5a88;outline-offset:-1px;cursor:grab}
-.spine-set:hover{text-decoration:none;background:#ff9a5a33}
-.spine.mini{height:calc(var(--h) - 4px);width:calc(var(--w) - 8px);padding:0;cursor:inherit}
-.set-label{position:absolute;left:-4px;right:-4px;top:38%;background:linear-gradient(160deg,#ff9a5a,#ff5f8a);color:#fff;font-weight:800;
- font-size:.72rem;line-height:1.2;text-align:center;padding:.3rem .4rem;border-radius:4px;box-shadow:0 6px 12px -6px #000a;
- white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* «Читаю» обычно короткая: стопка лежащих книг и приведения */
 .shelf-decor{display:flex;align-items:flex-end;gap:.4rem;margin-left:auto;flex:none;pointer-events:none}
 .shelf-decor img{height:140px;width:auto;filter:drop-shadow(0 8px 10px #12002d80)}
@@ -409,16 +402,21 @@ button.spine:hover,button.spine:focus-visible{transform:translateY(-10px)}
 .shelf-hint{justify-content:flex-start;align-items:baseline;gap:.8rem}
 @media (max-width:900px){.shelf-scene{grid-template-columns:minmax(0,1fr)}.scene-side{display:none}}
 @media (max-width:560px){.bookcase{padding:1rem .7rem .3rem}.shelf-decor img{height:104px}.shelf-decor img:first-of-type{display:none}.stack{display:none}}
-.peek{border:0;border-radius:var(--r);background:var(--surface);color:var(--text);width:min(92vw,460px);padding:1.2rem;box-shadow:var(--shadow)}
-.peek::backdrop{background:#14052cb3}
-.peek-body{display:grid;grid-template-columns:120px 1fr;gap:1.1rem;align-items:start}
-.peek-cover img,.peek-cover .img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:12px;display:flex;align-items:center;justify-content:center;
- text-align:center;font-weight:800;font-size:.8rem;padding:.5rem;color:var(--ink)}
+/* всплывашка над корешком: обложка + название, автор, статус, звёзды; мышь сквозь неё проходит */
+.peek{position:fixed;z-index:60;width:300px;display:grid;grid-template-columns:88px minmax(0,1fr);gap:.85rem;align-items:start;padding:.75rem;
+ border-radius:18px;background:color-mix(in srgb,var(--surface) 88%,transparent);border:1px solid #ffffff26;color:var(--text);box-shadow:0 24px 40px -16px #0b0020;
+ -webkit-backdrop-filter:blur(16px) saturate(1.3);backdrop-filter:blur(16px) saturate(1.3);pointer-events:none;
+ opacity:0;transform:translateY(6px) scale(.97);transform-origin:50% 100%;transition:opacity .16s,transform .22s var(--ease-out)}
+.peek.below{transform-origin:50% 0;transform:translateY(-6px) scale(.97)}
+.peek.on{opacity:1;transform:none}
+.peek-cover img,.peek-cover .img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:10px;display:flex;align-items:center;justify-content:center;
+ text-align:center;font-weight:800;font-size:.7rem;padding:.4rem;color:var(--ink);box-shadow:0 10px 18px -10px #000c}
 .peek-cover img{padding:0}
-.peek h2{margin:.5rem 0 .3rem;font-size:1.15rem}
-.peek-author{margin:0 0 .4rem;color:var(--p-lilac);font-weight:800}
-.peek .stars{margin:0 0 .3rem;font-size:1.1rem}
-.peek-actions{display:flex;justify-content:flex-end;align-items:center;gap:1rem;margin-top:1rem}
+.peek-text{display:flex;flex-direction:column;align-items:flex-start;gap:.25rem;min-width:0}
+.peek-text b{font-size:.98rem;line-height:1.25;margin-top:.2rem;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.peek-author{color:var(--p-lilac);font-weight:800;font-size:.82rem}
+.peek-foot{display:flex;gap:.6rem;align-items:center;font-size:.8rem;margin-top:.15rem}
+.peek-foot .stars{font-size:.9rem}
 
 /* ---------- списки книг и фанфиков */
 .list-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
@@ -458,6 +456,7 @@ button.spine:hover,button.spine:focus-visible{transform:translateY(-10px)}
 .book-card .au{height:1.4em;line-height:1.4;margin-top:auto;flex:none}
 .book-card .au{font-size:.72rem;color:var(--p-lilac);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .book-card .foot .pg{margin-left:auto}
+.book-card .foot .stars:empty{display:none}
 .book-card .ser{position:absolute;left:6px;right:6px;bottom:6px;font-size:.68rem;font-weight:800;line-height:1.3;color:var(--text);background:#14052cd0;border-radius:6px;padding:.15rem .4rem;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
 .book-card .foot{display:flex;justify-content:space-between;gap:.4rem;font-size:.76rem;color:var(--mut);padding-top:.1rem;min-height:1.5em}
@@ -468,60 +467,47 @@ button.spine:hover,button.spine:focus-visible{transform:translateY(-10px)}
 .fav-dot{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:var(--ink);color:#ff9a5a;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px #000a}
 .empty-note{color:var(--mut);padding:.5rem 0 1rem}
 
-/* ---------- вид списка: карточки (по умолчанию) / лента с описанием / таблица — .lib[data-view] */
+/* ---------- вид списка: карточки (по умолчанию) / лента с описанием — .lib[data-view] */
 .find-row{display:flex;justify-content:space-between;align-items:center;gap:.6rem 1rem;flex-wrap:wrap;margin-bottom:.5rem}
 .find-row .find{margin-bottom:0}
 .book-card .ttl{color:var(--text)}
 .book-card .ttl:hover{text-decoration:none}
 .book-card .ttl::after{content:"";position:absolute;inset:0;border-radius:inherit}  /* вся карточка — ссылка */
-.tbl-head,.book-card .t-ser,.book-card .t-date,.book-card .feed-desc{display:none}
+.book-card .feed-desc,.book-card .f-ser{display:none}
 
-/* лента: обложка слева, справа название и описание — читать, не заходя в книгу */
-.lib[data-view=feed] .cards{display:flex;flex-direction:column;gap:.9rem}
-.lib[data-view=feed] .book-card{display:grid;grid-template-columns:116px minmax(0,1fr);grid-template-areas:"cv info" "cv desc";align-items:start;gap:.55rem 1.1rem;padding:.8rem;border-radius:var(--r)}
-.lib[data-view=feed] .book-card:hover{background:var(--surface)}
-.lib[data-view=feed] .cv{grid-area:cv}
-.lib[data-view=feed] .book-card .cover img,.lib[data-view=feed] .book-card .cover .img{aspect-ratio:2/3}
-.lib[data-view=feed] .info{grid-area:info;height:auto;gap:.15rem;padding-right:2.4rem}
-.lib[data-view=feed] .ttl{font-size:1.12rem;-webkit-line-clamp:3}
+/* лента: две карточки в ряд; слева серия плашкой, название, автор и описание, справа обложка — выступает над карточкой.
+   Карточка подсвечена цветом своей обложки: за ней размытая копия обложки (.fglow, ставит views.js) */
+.lib[data-view=feed] .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3rem 1.3rem;padding-top:2.4rem}
+.lib[data-view=feed] .book-card{display:grid;grid-template-columns:minmax(0,1fr) 130px;grid-template-areas:"ser cv" "info cv" "desc cv";grid-template-rows:auto auto 1fr;
+ align-items:start;gap:.4rem 1.2rem;padding:1.1rem 1.2rem;border-radius:16px;isolation:isolate}
+.lib[data-view=feed] .cv{grid-area:cv;margin-top:-2.4rem}
+.lib[data-view=feed] .book-card .ser{display:none}
+.lib[data-view=feed] .book-card .f-ser{display:block;grid-area:ser;justify-self:start;max-width:100%;font-size:.76rem;font-weight:800;color:var(--text);
+ background:#ffffff1f;border-radius:8px;padding:.15rem .6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib[data-view=feed] .book-card .cover img,.lib[data-view=feed] .book-card .cover .img{aspect-ratio:2/3;border-radius:8px;box-shadow:0 26px 40px -18px #000e}
+.lib[data-view=feed] .book-card:hover .cover :is(img,.img){transform:translateY(-5px);box-shadow:0 32px 44px -18px #000e}
+.lib[data-view=feed] .info{grid-area:info;height:auto;gap:.15rem}
+.lib[data-view=feed] .ttl{font-family:var(--display);font-weight:600;font-size:1.08rem;line-height:1.2;letter-spacing:-.02em;-webkit-line-clamp:3}
 .lib[data-view=feed] .ttl:hover{color:var(--link)}
 .lib[data-view=feed] .orig{height:auto;font-size:.85rem}
-.lib[data-view=feed] .au{margin-top:.15rem;font-size:.85rem}
+.lib[data-view=feed] .au{margin-top:.3rem;font-size:.95rem}
 .lib[data-view=feed] .foot{justify-content:flex-start;gap:1rem;font-size:.85rem}
 .lib[data-view=feed] .foot .pg{margin-left:0}
-.lib[data-view=feed] .feed-desc{display:block;grid-area:desc;position:relative;z-index:1}  /* над ссылкой: вкладки и «Читать полностью» нажимаются */
+.lib[data-view=feed] .fav-dot{top:auto;bottom:-12px;right:calc(130px + 1.8rem)}
+.lib[data-view=feed] .feed-desc{display:block;grid-area:desc;position:relative;z-index:1;margin-top:.4rem}  /* над ссылкой: вкладки и «Читать полностью» нажимаются */
 .feed-desc .desc-tabs{margin-bottom:.5rem}
-.feed-desc .desc{font-size:.95rem;line-height:1.55}
-.feed-desc .desc.clamp{max-height:7.8em}
+.feed-desc .desc{font-size:.95rem;line-height:1.55;text-align:left;hyphens:manual}
+.feed-desc .desc p{text-indent:0}
+.feed-desc .desc.clamp{max-height:6.2em}
+.fglow{display:none}
+.lib[data-view=feed] .fglow{display:block;position:absolute;z-index:-1;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none}
+.lib[data-view=feed] .fglow img{position:absolute;right:-10%;top:-40%;width:60%;height:180%;object-fit:cover;filter:blur(44px) saturate(1.6);opacity:.6}
+@media (max-width:900px){.lib[data-view=feed] .cards{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:600px){
- .lib[data-view=feed] .book-card{grid-template-columns:82px minmax(0,1fr);grid-template-areas:"cv info" "desc desc";padding:.65rem}
- .lib[data-view=feed] .ttl{font-size:1rem}
-}
-
-/* таблица: строка на книгу; .info и .foot «растворяются» (display:contents), их части — ячейки */
-.lib[data-view=table] .cards{display:flex;flex-direction:column;gap:0;background:var(--surface);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
-.lib[data-view=table] .tbl-head,.lib[data-view=table] .book-card{display:grid;grid-template-columns:42px minmax(0,2.2fr) minmax(0,1.3fr) minmax(0,1.3fr) 6rem 4.5rem 7rem;column-gap:1rem;align-items:center;padding:.45rem 1rem}
-.lib[data-view=table] .tbl-head{font-size:.78rem;font-weight:800;color:var(--mut);padding-top:.7rem;padding-bottom:.6rem}
-.lib[data-view=table] .book-card{grid-template-areas:"cv ttl au ser st pg dt" "cv orig au ser st pg dt";border-radius:0;box-shadow:none;background:none;border-top:1px solid var(--line);gap:0 1rem}
-.lib[data-view=table] .book-card:hover{background:var(--surface-2)}
-.lib[data-view=table] .info,.lib[data-view=table] .foot{display:contents}
-.lib[data-view=table] .cv{grid-area:cv}
-.lib[data-view=table] .book-card .cover img,.lib[data-view=table] .book-card .cover .img{aspect-ratio:2/3;border-radius:5px}
-.lib[data-view=table] .book-card .cover .img{font-size:0;padding:0}
-.lib[data-view=table] .ser,.lib[data-view=table] .fav-dot{display:none}
-.lib[data-view=table] .ttl{grid-area:ttl;align-self:end;-webkit-line-clamp:1}
-.lib[data-view=table] .orig{grid-area:orig;align-self:start}
-.lib[data-view=table] .au{grid-area:au;margin:0;font-size:.82rem}
-.lib[data-view=table] .t-ser{display:block;grid-area:ser;font-size:.82rem;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lib[data-view=table] .stars{grid-area:st}
-.lib[data-view=table] .pg{grid-area:pg;margin:0;font-size:.82rem;color:var(--mut)}
-.lib[data-view=table] .t-date{display:block;grid-area:dt;font-size:.82rem;color:var(--mut)}
-@media (max-width:700px){
- .lib[data-view=table] .tbl-head,.lib[data-view=table] .orig,.lib[data-view=table] .t-ser,.lib[data-view=table] .t-date{display:none}
- .lib[data-view=table] .book-card{grid-template-columns:38px minmax(0,1fr) auto;grid-template-areas:"cv ttl st" "cv au pg";padding:.45rem .75rem;gap:.1rem .75rem}
- .lib[data-view=table] .au,.lib[data-view=table] .pg{align-self:start}
- .lib[data-view=table] .pg{text-align:right}
-}
+ .lib[data-view=feed] .book-card{grid-template-columns:minmax(0,1fr) 104px;grid-template-areas:"ser cv" "info cv" "desc desc";padding:1rem;gap:.4rem 1rem}
+ .lib[data-view=feed] .cv{margin-top:-2rem}
+ .lib[data-view=feed] .ttl{font-size:1.05rem}
+ .lib[data-view=feed] .fav-dot{right:auto;left:1rem;bottom:auto;top:-14px}}
 
 /* ---------- статистика: плитки сверху, панели сеткой (как на дашбордах) */
 .stats-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin:.6rem 0 .2rem}
@@ -787,7 +773,7 @@ nav{view-transition-name:site-nav}
 /* обложки под мышкой приподнимаются (только где есть мышь) */
 @media (hover:hover){
  .cover :is(img,.img){transition:transform .25s var(--ease-out),box-shadow .25s}
- a.cover:hover :is(img,.img),a:hover>.cover :is(img,.img),.lib:not([data-view=table]) .book-card:hover .cover :is(img,.img){
+ a.cover:hover :is(img,.img),a:hover>.cover :is(img,.img){
   transform:translateY(-4px) rotate(-1.5deg);box-shadow:0 18px 26px -14px #000c}}
 /* после сохранения: огонёк вспыхивает, звёзды подпрыгивают по очереди, от плашки статуса расходится волна */
 .fav-round{position:relative}
@@ -815,7 +801,7 @@ nav{view-transition-name:site-nav}
 /* ---------- блоки и цветные карточки ----------
    Блоки — матовое стекло: светлый полупрозрачный фон, под ним всё размыто, поэтому блики и обложки не «просвечивают» сквозь текст.
    Цветные карточки (серии, «Читаю сейчас») — то же стекло, а свой цвет «светится» из верхнего угла; текст всегда белый */
-:is(.card,.dash .card,.bookcase,.glass,.title-block,.lib[data-view=table] .cards){
+:is(.card,.dash .card,.bookcase,.glass,.title-block){
  background:#ffffff12;border:1px solid #ffffff1f;box-shadow:0 14px 34px -22px #12002d;
  -webkit-backdrop-filter:blur(18px) saturate(1.25);backdrop-filter:blur(18px) saturate(1.25)}
 /* карточек книг много — без размытия, чтобы список не тормозил на телефоне */
@@ -824,7 +810,7 @@ nav{view-transition-name:site-nav}
 :is(.s-card.soft,.now-card){border:1px solid color-mix(in srgb,var(--tone) 38%,transparent);color:var(--text);
  background:radial-gradient(130% 100% at 0% 0%,color-mix(in srgb,var(--tone) 58%,transparent),transparent 72%),#ffffff0d!important}
 .now-wrap .blur{display:none}
-.lib[data-view=feed] .book-card:hover,.lib[data-view=table] .book-card:hover{background:#ffffff12}
+.lib[data-view=feed] .book-card:hover{background:#ffffff12}
 
 /* Доска на главной: цифры — ссылки в статистику. При наведении плитка приподнимается и чуть поворачивается, наклейка покачивается.
    translate/rotate, а не transform: transform занят «выплыванием» при прокрутке */
@@ -841,3 +827,38 @@ a.tile:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
    Без обложки остаётся пастельное свечение */
 :is(.s-card.soft,.now-card):has(>.glow-img){position:relative;overflow:hidden;isolation:isolate;background:#ffffff0d!important}
 .glow-img{position:absolute;z-index:-1;left:-15%;top:-25%;width:75%;height:110%;object-fit:cover;filter:blur(34px) saturate(1.6);opacity:.75;pointer-events:none}
+
+/* Карточки книг: под мышкой карточка целиком мягко приподнимается, картинка чуть приближается внутри рамки.
+   translate, а не transform — так не спорит с другими движениями */
+.lib[data-view=cards] .book-card{transition:translate .35s var(--ease-out),box-shadow .35s,background .2s}
+.lib[data-view=cards] .book-card .cover{overflow:hidden;border-radius:10px}
+@media (hover:hover){
+ .lib[data-view=cards] .book-card .cover :is(img,.img){transition:transform .6s var(--ease-out)}
+ .lib[data-view=cards] .book-card:hover{translate:0 -6px;box-shadow:0 28px 36px -20px #0b0020}
+ .lib[data-view=cards] .book-card:hover .cover :is(img,.img){transform:scale(1.06)}}
+
+/* Вкладки «Аннотация | Подробнее»: у каждой свой цвет (аннотация — голубой, «Подробнее» — розовый);
+   выбранная залита своим цветом и светится, рамка блока описания — в тон */
+.desc-tabs{background:#ffffff0d;border:1px solid #ffffff1f;gap:.3rem}
+.desc-tabs [data-tab=annot]{--tc:var(--p-sky)}.desc-tabs [data-tab=mine]{--tc:var(--p-pink)}
+.desc-tabs button{display:inline-flex;align-items:center;gap:.45rem;color:var(--text)}
+.desc-tabs button::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--tc);box-shadow:0 0 8px var(--tc)}
+.desc-tabs button.on{background:linear-gradient(140deg,var(--tc),color-mix(in srgb,var(--tc) 55%,var(--p-lilac)));color:var(--ink);
+ box-shadow:0 6px 18px -6px color-mix(in srgb,var(--tc) 80%,transparent),inset 0 1px 0 #fffa}
+.desc-tabs button.on::before{background:var(--ink);box-shadow:none}
+.bp-desc:has([data-tab=mine].on){border-color:#ffc6e240}.bp-desc:has([data-tab=annot].on){border-color:#b5dbff40}
+
+/* Описание на странице книги — как в журнале: блок во всю ширину, текст узкой колонкой по центру, крупнее, с буквицей.
+   «Почему это стоит прочитать?» (строка целиком **жирным**) — жёлтая плашка; плюсы («- **Плюс:** текст») — карточки с номерами */
+.bp-desc{padding-inline:max(1.6rem,calc((100% - 44rem) / 2))}
+.bp-desc .desc{font-size:1.12rem;line-height:1.75;text-align:left;hyphens:manual}
+.bp-desc .desc p{text-indent:0;margin:0 0 1rem}
+.bp-desc [data-pane]>p:first-child::first-letter{float:left;font-family:var(--display);font-weight:700;font-size:3.3em;line-height:.85;margin:.1em .12em 0 0;color:var(--p-butter)}
+.bp-desc .desc h4{display:inline-block;margin:1.2rem 0 .8rem;padding:.25rem .8rem;border-radius:999px;background:var(--p-butter);color:var(--ink);font-size:.9rem}
+.bp-desc .desc ul{list-style:none;padding:0;margin:0 0 1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:.7rem;counter-reset:pro}
+.bp-desc .desc li{counter-increment:pro;background:#ffffff0f;border:1px solid #ffffff1c;border-radius:16px;padding:.8rem .95rem .9rem;font-size:.95rem;line-height:1.55}
+.bp-desc .desc li::before{content:counter(pro,decimal-leading-zero);display:block;font-family:var(--display);font-weight:800;font-size:1.3rem;line-height:1;margin-bottom:.45rem;color:var(--p-pink)}
+.bp-desc .desc li:nth-child(3n+2)::before{color:var(--p-sky)}.bp-desc .desc li:nth-child(3n)::before{color:var(--p-mint)}
+.bp-desc .desc li.pro b{display:block;margin-bottom:.2rem;color:#fff}
+.md-hint{margin:.35rem 0 0}
+.md-hint code{background:#ffffff14;border-radius:6px;padding:.05rem .35rem;color:var(--text)}

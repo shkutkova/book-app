@@ -62,23 +62,16 @@
   </div>
 </div>
 
-{# Полка: нарисованные корешки с названиями; высота и толщина — от числа страниц, цвет — от книги.
-   Любимая серия (огонёк у серии) стоит целиком, в обёртке с названием. Корешки можно перетаскивать —
-   порядок сохраняется. Клик по книге — окошко с карточкой, по серии — страница серии. #}
+{# Полка: нарисованные корешки с названиями — только книги; высота и толщина — от числа страниц, цвет — от книги.
+   Корешки можно перетаскивать — порядок сохраняется. Наведение — всплывашка с книгой, клик — страница книги. #}
 {% macro size(p) -%}
 {%- set p = [p or 300, 900]|min -%}--h:{{ 132 + (p * 70 / 900)|int }}px;--w:{{ 34 + (p * 16 / 900)|int }}px
 {%- endmacro %}
 {% macro spine(b) -%}
-<button type="button" class="spine tone-{{ b.id % 6 }}" data-key="{{ b.key }}" style="{{ size(b.pages) }}"
-        data-book='{{ {"id": b.id, "t": b.title_ru or b.title, "a": b.authors or "", "c": b.cover_url or "", "s": STATUS[b.status],
-                      "st": b.status, "r": (b.rating|float|round|int) if b.rating is not none else 0, "p": b.pages or 0, "f": b.is_favorite}|tojson }}'>
+<a class="spine tone-{{ b.id % 6 }}" href="/book/{{ b.id }}" data-key="{{ b.key }}" style="{{ size(b.pages) }}" draggable="false"
+   data-book='{{ {"id": b.id, "t": b.title_ru or b.title, "a": b.authors or "", "c": b.cover_url or "", "s": STATUS[b.status],
+                 "st": b.status, "r": (b.rating|float|round|int) if b.rating is not none else 0, "p": b.pages or 0, "f": b.is_favorite}|tojson }}'>
   <span>{{ b.title_ru or b.title }}</span>
-</button>
-{%- endmacro %}
-{% macro series_set(s) -%}
-<a class="spine-set" href="/series/{{ s.id }}" data-key="{{ s.key }}" title="{{ s.title }}" draggable="false">
-  {% for b in s.books[:8] %}<i class="spine mini tone-{{ b.id % 6 }}" style="{{ size(b.pages) }}"></i>{% endfor %}
-  <span class="set-label">{{ s.title }}</span>
 </a>
 {%- endmacro %}
 
@@ -95,7 +88,7 @@
     <section class="shelf">
       <h3 class="shelf-label">{{ title }} <span>{{ items|length }}</span></h3>
       <div class="shelf-row" data-shelf="{{ key }}">
-        {% for it in items %}{{ series_set(it) if it.is_series else spine(it) }}{% endfor %}
+        {% for it in items %}{{ spine(it) }}{% endfor %}
         {% if not items %}<p class="shelf-empty">Пусто. На странице книги из «Хочу прочитать» нажми «Читать следующей» — она встанет сюда.</p>{% endif %}
         {% if key == 'reading' %}
         <span class="shelf-decor" aria-hidden="true">
@@ -114,35 +107,29 @@
   </div>
 </div>
 
-<dialog class="peek" id="peek" aria-labelledby="peek-title">
-  <div class="peek-body">
-    <div class="peek-cover" id="peek-cover"></div>
-    <div>
-      <span class="badge" id="peek-status"></span>
-      <h2 id="peek-title"></h2>
-      <p class="peek-author" id="peek-author"></p>
-      <p class="stars" id="peek-stars"></p>
-      <p class="muted small" id="peek-pages"></p>
-    </div>
+{# всплывашка при наведении на корешок; одна на страницу, ставит её к корешку скрипт ниже #}
+<div class="peek" id="peek" role="tooltip" hidden>
+  <div class="peek-cover" id="peek-cover"></div>
+  <div class="peek-text">
+    <span class="badge" id="peek-status"></span>
+    <b id="peek-title"></b>
+    <span class="peek-author" id="peek-author"></span>
+    <span class="peek-foot"><span class="stars" id="peek-stars"></span><span class="muted" id="peek-pages"></span></span>
   </div>
-  <div class="peek-actions">
-    <button type="button" class="link" onclick="this.closest('dialog').close()">Закрыть</button>
-    <a class="btn" id="peek-open" href="#">Открыть книгу</a>
-  </div>
-</dialog>
+</div>
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <script>
-// Клик по корешку — карточка книги в окошке; закрыть — кнопкой, Esc или кликом мимо
+// Наведение на корешок — всплывашка с книгой над ним; клик — страница книги (это обычная ссылка)
 const peek = document.getElementById('peek');
 if (peek) {
   const $ = id => document.getElementById(id);
-  let dragged = 0;  // после перетаскивания браузер может прислать клик — его не считаем
-  document.querySelectorAll('button.spine').forEach(sp => sp.onclick = () => {
-    if (Date.now() - dragged < 400) return;
+  let dragged = 0, dragging = false;  // после перетаскивания браузер может прислать клик — его не считаем
+  const show = sp => {
+    if (dragging) return;
     const b = JSON.parse(sp.dataset.book);
     $('peek-title').textContent = b.t;
     $('peek-author').textContent = b.a;
@@ -153,20 +140,34 @@ if (peek) {
     const c = $('peek-cover'); c.replaceChildren();
     if (b.c) { const i = new Image(); i.src = b.c; i.alt = ''; c.append(i); }
     else { const t = document.createElement('span'); t.className = 'img tone-' + (b.id % 6); t.textContent = b.t; c.append(t); }
-    $('peek-open').href = '/book/' + b.id;
-    peek.showModal();
+    peek.hidden = false;
+    // над корешком, по центру; не вылезает за край окна; не влезает сверху — под корешком
+    const r = sp.getBoundingClientRect(), w = peek.offsetWidth, h = peek.offsetHeight;
+    const x = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), innerWidth - w - 8);
+    const up = r.top - h - 12 > 8;
+    peek.style.left = x + 'px';
+    peek.style.top = (up ? r.top - h - 12 : r.bottom + 12) + 'px';
+    peek.classList.toggle('below', !up);
+    requestAnimationFrame(() => peek.classList.add('on'));
+  };
+  const hide = () => { peek.classList.remove('on'); peek.hidden = true; };
+  document.querySelectorAll('a.spine').forEach(sp => {
+    sp.addEventListener('mouseenter', () => show(sp));
+    sp.addEventListener('focus', () => show(sp));
+    sp.addEventListener('mouseleave', hide);
+    sp.addEventListener('blur', hide);
+    sp.addEventListener('click', e => { if (Date.now() - dragged < 400) e.preventDefault(); });
   });
-  peek.addEventListener('click', e => { if (e.target === peek) peek.close(); });
-  document.querySelectorAll('.spine-set').forEach(a => a.addEventListener('click', e => {
-    if (Date.now() - dragged < 400) e.preventDefault();
-  }));
+  addEventListener('scroll', hide, {passive: true});
+  document.querySelectorAll('.shelf-row').forEach(r => r.addEventListener('scroll', hide, {passive: true}));
 
   // Перетаскивание корешков внутри полки; на телефоне — после короткого удержания, чтобы не мешать прокрутке
   if (window.Sortable) document.querySelectorAll('.shelf-row').forEach(row => Sortable.create(row, {
-    draggable: '.spine:not(.mini), .spine-set', forceFallback: true, fallbackTolerance: 4,
+    draggable: '.spine', forceFallback: true, fallbackTolerance: 4,
     delay: 220, delayOnTouchOnly: true, animation: 160, ghostClass: 'drag-ghost', chosenClass: 'drag-chosen',
+    onStart: () => { dragging = true; hide(); },
     onEnd: e => {
-      dragged = Date.now();
+      dragging = false; dragged = Date.now();
       if (e.oldIndex === e.newIndex) return;
       const items = [...row.querySelectorAll('[data-key]')].map(x => x.dataset.key);
       fetch('/shelf/order', {method: 'POST', headers: {'Content-Type': 'application/json'},

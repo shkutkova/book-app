@@ -89,7 +89,7 @@ def home(user_id: str) -> dict:
 
 
 def shelf(user_id: str) -> dict:
-    """Полка главной: любимые (серии целиком + книги не из них), читаю, следующие (отметка «Следующая»).
+    """Полка главной: только книги — любимые, читаю, следующие (отметка «Следующая»).
     Ключ третьей полки в shelf_order — 'want' (так она называлась раньше).
     Порядок — свой (shelf_order), кого не двигала — по названию в конце."""
     u = {"u": user_id}
@@ -98,25 +98,11 @@ def shelf(user_id: str) -> dict:
         from library l join books b on b.id = l.book_id
         where l.user_id = %(u)s and (l.is_favorite or l.is_next or l.status = 'reading')
         order by coalesce(b.title_ru, b.title)""", u)
-    fav_series = fetch_all("""
-        select s.id, coalesce(s.name_ru, s.name) as title,
-               (select json_agg(json_build_object('id', b.id, 'title', coalesce(b.title_ru, b.title),
-                                                  'cover_url', b.cover_url, 'pages', b.pages)
-                                order by o.sort_position nulls last)
-                  from series_books_ordered o join books b on b.id = o.book_id
-                 where o.user_id = %(u)s and o.series_id = s.id and o.is_main) as books
-        from user_series us join series s on s.id = us.series_id
-        where us.user_id = %(u)s and us.is_favorite
-        order by title""", u)
     pos = {(r["shelf"], r["item"]): r["pos"] for r in fetch_all(
         "select shelf, item, pos from shelf_order where user_id = %(u)s", u)}
-    for s in fav_series:
-        s.update(key=f"s{s['id']}", is_series=True, books=s["books"] or [])
     for b in rows:
         b["key"] = f"b{b['id']}"
-    # любимая книга из любимой серии уже стоит на полке в своей серии
-    in_series = {b["id"] for s in fav_series for b in s["books"]}
-    shelves = {"fav": fav_series + [b for b in rows if b["is_favorite"] and b["id"] not in in_series],
+    shelves = {"fav": [b for b in rows if b["is_favorite"]],
                "reading": [b for b in rows if b["status"] == "reading"],
                "want": [b for b in rows if b["is_next"] and b["status"] == "want_to_read"]}
     for name, items in shelves.items():

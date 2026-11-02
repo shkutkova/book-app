@@ -48,6 +48,7 @@ def position(p) -> str:
 
 def simple_md(text: str | None) -> Markup:
     """Описание из Notion или от ИИ: **жирный**, [ссылки](https://...) и строки «- пункт» («• », «* ») -> HTML.
+    Строка целиком **жирным** — подзаголовок <h4>, пункт «- **Заголовок:** текст» — <li class="pro">.
     Остальное — как текст (всё экранируется, поэтому HTML внутри описания не выполнится)."""
     out, items = [], []
     for line in (text or "").splitlines():
@@ -57,12 +58,16 @@ def simple_md(text: str | None) -> Markup:
         html = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", html)
         html = html.replace("\\[", "[").replace("\\]", "]")
         if line.strip()[:2] in ("- ", "• ", "* "):
-            items.append(f"<li>{html[2:]}</li>")
+            # «- **Плюс:** пояснение» — пункт с заголовком (на странице книги — «плюсы»)
+            m = re.match(r"<b>(.+?)</b>\s*(.*)", html[2:])
+            items.append(f'<li class="pro"><b>{m[1]}</b> {m[2]}</li>' if m else f"<li>{html[2:]}</li>")
             continue
         if items:
             out.append("<ul>" + "".join(items) + "</ul>")
             items = []
-        if html:
+        if re.fullmatch(r"<b>[^<]+</b>", html):
+            out.append(f"<h4>{html[3:-4]}</h4>")  # строка целиком жирным — подзаголовок («Почему это стоит прочитать?»)
+        elif html:
             out.append(f"<p>{html}</p>")
     if items:
         out.append("<ul>" + "".join(items) + "</ul>")

@@ -212,6 +212,7 @@
     <textarea id="annotation" name="annotation" rows="6">{{ b.description_ru or b.description or '' }}</textarea>
     <label for="my_description">Подробнее <span class="muted small">— своё описание, видно вкладкой рядом с аннотацией</span></label>
     <textarea id="my_description" name="my_description" rows="8">{{ b.my_description or '' }}</textarea>
+    <p class="muted small md-hint">Строка <code>**Почему это стоит прочитать?**</code> — подзаголовок; строки <code>- **Плюс:** пояснение</code> — карточки с номерами.</p>
     {# черновик от ИИ — в поле; сохраняется только кнопкой «Сохранить», после проверки #}
     {# Google ИИ: вкладка с готовым запросом из карточки — ответ копируешь сюда #}
     <p class="ai-row"><a class="link" href="{{ ai.ask_url(b) }}" target="_blank" rel="noopener">{{ icon('sparkle', 16) }} Спросить Google ИИ</a>

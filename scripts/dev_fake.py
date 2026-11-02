@@ -68,7 +68,7 @@ def _book(u, bid):
               "fandoms": ["Гарри Поттер"] if bid == 27 else None,
               "work_status": "finished" if bid == 27 else None, "words": 120000 if bid == 27 else None, "parts": 30 if bid == 27 else None,
               "ficbook_meta": {"direction": "Гет", "rating": "NC-17", "tags": ["Слоуберн", "Hurt/Comfort"]} if bid == 27 else None,
-              "in_library": True, "my_genre_id": 1, "notes": "", "my_description": "Спустя десять лет после окончания войны в волшебном мире назревает скандал. В Британии орудует сеть контрабандистов, торгующая артефактами и порталами.\n\nГлавной неожиданностью становится приказ «сверху»: включить в группу Драко Малфоя.\n\nНикто не знает, где он пропадал десять лет. Его досье запечатано, доступ запрещён даже Поттеру. Малфой возвращается изменившимся — спокойным, уверенным профессионалом.\n\nИ чем глубже они продвигаются в деле, тем очевиднее: самые охраняемые тайны Министерства меркнут перед напряжением между бывшими врагами." if bid == 27 else None, "is_favorite": bid == 6,
+              "in_library": True, "my_genre_id": 1, "notes": "", "my_description": "Спустя десять лет после окончания войны в волшебном мире назревает скандал. В Британии орудует сеть контрабандистов, торгующая артефактами и порталами.\n\nГлавной неожиданностью становится приказ «сверху»: включить в группу Драко Малфоя.\n\nНикто не знает, где он пропадал десять лет. Его досье запечатано, доступ запрещён даже Поттеру. Малфой возвращается изменившимся — спокойным, уверенным профессионалом.\n\nИ чем глубже они продвигаются в деле, тем очевиднее: самые охраняемые тайны Министерства меркнут перед напряжением между бывшими врагами.\n\n**Почему это стоит прочитать?**\n- **Медленное развитие (Slow-burn):** Сюжет не бросает героев в объятия друг друга с первой главы. Отношения развиваются последовательно — от старой ненависти через вынужденное партнёрство к глубокой зависимости.\n- **Детективная интрига:** Расследование держит до последней главы, улики раскладываются честно, и разгадку можно найти самой.\n- **Повзрослевшие герои:** Взгляд на персонажей спустя десять лет после войны: у каждого своя внутренняя драма и своя цена победы." if bid == 27 else None, "is_favorite": bid == 6,
               "series": [] if bid == 27 else [{"id": 3, "name": "Crowns of Nyaxia", "name_ru": None, "sort_position": 1, "books_count": 3}],
               "reads": [{"id": 1, "started_at": date(2026, 10, 1), "finished_at": date(2026, 10, 9) if bid % 2 else None}]})
     return b
@@ -86,9 +86,7 @@ def _home4(u):
     C = ["https://assets.hardcover.app/edition/31173970/920e9d065f6a8cd28ac63e6b326607da89bea878.jpeg", None,
          "https://assets.hardcover.app/edition/30387367/8cb5e1af2d0bbbb3ff0a1b5ac7e0c9b4d2f8f8b2.jpeg"]
     k = lambda b: dict(b, key=f"b{b['id']}")
-    h["shelf"] = {"fav": [{"id": 3, "key": "s3", "is_series": True, "title": "Crowns of Nyaxia",
-                           "books": [{"id": 60 + j, "title": "x", "cover_url": COV, "pages": 400 + 60 * j} for j in range(4)]}]
-                         + [k(B(200 + i, "finished", cov=COV if i % 2 else None, is_favorite=True)) for i in range(9)],
+    h["shelf"] = {"fav": [k(B(200 + i, "finished", cov=COV if i % 2 else None, is_favorite=True)) for i in range(9)],
                   "reading": [k(B(1, "reading", cov=COV)), k(B(2, "reading", kind="fanfic"))],
                   "want": [k(B(300 + i, "want_to_read", is_next=True)) for i in range(5)]}
     return h
