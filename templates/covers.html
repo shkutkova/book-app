@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Обложка — {{ b.title }}{% endblock %}
+{% from "_macros.html" import back %}
 {% block content %}
+{{ back('/book/' ~ b.id) }}
 <h1>Выбрать обложку</h1>
 <p class="sub">Для «<a href="/book/{{ b.id }}">{{ b.title }}</a>»{% if b.title_ru %} ({{ b.title_ru }}){% endif %}. Нажми на понравившуюся.</p>
 {% if failed %}<p class="muted small">Не ответили: {{ failed|join(', ') }} — можно обновить страницу позже.</p>{% endif %}

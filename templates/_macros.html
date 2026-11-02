@@ -1,3 +1,4 @@
+{% from "_icons.html" import icon %}
 {# Обложка книги. Нет картинки — название на пастельном фоне (цвет от id, чтобы не менялся). #}
 {% macro cover(b, link=True, caption=False) -%}
 {#- link=False — внутри другой ссылки: тогда <span>, вложенная <a> ломает разметку -#}
@@ -11,4 +12,10 @@
 
 {% macro book_title(b) -%}
 {{ b.title }}{% if b.title_ru %} <span class="muted">· {{ b.title_ru }}</span>{% endif %}
+{%- endmacro %}
+
+{# «Назад» — туда, откуда пришла (скрипт в base.html: шагом назад в истории, список вернётся с поиском и прокруткой);
+   открыла страницу по ссылке снаружи — обычная ссылка на url #}
+{% macro back(url, label='Назад') -%}
+<a class="back-link" href="{{ url }}" data-back>{{ icon('arrow-left', 16) }} {{ label }}</a>
 {%- endmacro %}

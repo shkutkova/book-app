@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% from "_macros.html" import cover, book_title %}
+{% from "_macros.html" import cover, book_title, back %}
 {% from "_icons.html" import icon %}
 {% block title %}{{ s.name_ru or s.name }}{% endblock %}
 {% block content %}
-<p class="small back"><a href="/series">← Все серии</a></p>
+{{ back('/series') }}
 
 {# Слева — название, автор и книги; справа — полное описание серии #}
 <div class="series-layout {{ 'has-about' if s.description }}">

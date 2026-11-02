@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import cover %}
+{% from "_macros.html" import cover, back %}
 {% from "_icons.html" import icon %}
 {% block title %}{{ b.title_ru or b.title }}{% endblock %}
 {% set MOODS = {'dark': 'мрачная', 'emotional': 'эмоциональная', 'tense': 'напряжённая', 'mysterious': 'загадочная',
@@ -17,6 +17,7 @@
 {% set tags = b.hardcover_tags or {} %}
 {% if b.kind == 'fanfic' and 'genres' not in tags and meta.get('tags') %}{% set tags = dict(tags, genres=meta.tags) %}{% endif %}
 {# Сетка: обложка слева, справа название и строка «моё»; ниже описание и метки. На телефоне — одной колонкой #}
+{{ back('/fanfics' if b.kind == 'fanfic' else '/books') }}
 <section class="book-page">
   <div class="bp-cover book-cover">{{ cover(b, link=False) }}</div>
 
@@ -65,7 +66,7 @@
   </div>
 
   {# «Моё» строкой под названием: статус, даты, звёзды справа #}
-  <div class="bp-mine">
+  <div class="bp-mine st-{{ b.status or 'none' }}">{# st-… — цвет статуса (--st), им же подсвечены даты #}
     {% if not b.in_library %}
     <form method="post" action="/book/{{ b.id }}/add">
       <button class="primary wide">{{ icon('want_to_read') }} Добавить в «Хочу прочитать»</button>
@@ -167,103 +168,151 @@
   {% endif %}
 </section>
 
-<details class="card settings">
-  <summary>{{ icon('gear') }} Настройки книги</summary>
-  <div class="links">
-    {% if meta.get('original_url') %}<a href="{{ meta.original_url }}" target="_blank" rel="noopener">{{ icon('link', 16) }} Оригинал{% if meta.get('original_author') %} · {{ meta.original_author }}{% endif %}</a>{% endif %}
-    {% if b.hardcover_slug %}<a href="https://hardcover.app/books/{{ b.hardcover_slug }}" target="_blank" rel="noopener">{{ icon('link', 16) }} Открыть в Hardcover</a>{% endif %}
-    <a href="/book/{{ b.id }}/covers" id="find-cover">{{ icon('image', 16) }} {{ 'Другая обложка' if b.cover_url else 'Найти обложку' }}</a>
-    <a href="/workshop?book={{ b.id }}" title="Загрузить epub: главы, обложка из карточки, название, страницы для Kindle">{{ icon('pencil', 16) }} Мастерская epub</a>
-    <a href="/add/book?{{ {'link': b.id, 'q': b.title}|urlencode }}">{{ icon('link', 16) }} {{ 'Связать с другой книгой Hardcover' if b.hardcover_slug else 'Найти в Hardcover' }}</a>
-    {% if b.kind == 'fanfic' and b.source_url and 'ficbook.net' in b.source_url %}
-    {# сервер на ficbook не пускают — данные заново собирает закладка на странице фанфика #}
-    <a href="{{ b.source_url }}" target="_blank" rel="noopener" title="Откроется ficbook — там нажми закладку «В мои книги» и «Сохранить»">{{ icon('refresh', 16) }} Обновить с ficbook</a>
-    {% endif %}
-    {% if b.hardcover_slug %}
-    <form method="post" action="/book/{{ b.id }}/refresh"><button class="link" title="{{ 'Обложка и жанры' if b.kind == 'fanfic' else 'Описание, обложка, жанры и вся серия' }}">{{ icon('refresh', 16) }} Обновить из Hardcover</button></form>
-    {% endif %}
+{# Под страницей — две кнопки: слева «Настройки книги» (окно), справа «Мастерская epub» (переход) #}
+<div class="book-tools">
+  <button type="button" class="tool-btn" id="open-settings" aria-haspopup="dialog">{{ icon('gear', 20) }} Настройки книги</button>
+  <a class="tool-btn ws" href="/workshop?book={{ b.id }}" title="Загрузить epub: главы, обложка из карточки, название, страницы для Kindle">{{ icon('pencil', 20) }} Мастерская epub</a>
+</div>
+
+{# Окно настроек — вкладками-плитками: «Книга» (о книге + обложка слева, описание справа), «Синхронизация»
+   (Hardcover, ficbook, файл), «Прочтения», «Метки». Каждая часть — своя форма: сохранение берёт только поля
+   из формы, остальное не трогает. После сохранения окно открывается снова на той же вкладке #}
+{% set has_fic = b.kind == 'fanfic' and b.source_url and 'ficbook.net' in b.source_url %}
+{% set blocks = [('book', 'Книга', 'pencil', 'названия, обложка, описание'), ('sync', 'Синхронизация', 'refresh', 'Hardcover, ficbook, файл')]
+               + ([('reads', 'Прочтения', 'calendar', 'даты, «Перечитала»'), ('tags', 'Метки', 'tag', 'жанры, настроение, предупреждения')] if b.in_library else []) %}
+<dialog class="settings settings-dialog" id="settings" aria-labelledby="settings-title" tabindex="-1">
+  <div class="sd-head">
+    <h2 id="settings-title">{{ icon('gear', 20) }} Настройки книги</h2>
+    <button type="button" class="link" data-close>Закрыть</button>
+  </div>
+  <div class="sd-body">
+  <div class="set-nav" role="tablist" aria-label="Разделы настроек">
+    {% for key, title, ic, sub in blocks %}<a href="#set-{{ key }}" role="tab" class="bc-{{ key }}" data-block="{{ key }}">{{ icon(ic, 16) }} <span>{{ title }}<span class="set-sub">{{ sub }}</span></span></a>{% endfor %}
   </div>
 
-  {% if b.in_library %}
-  {# свой файл книги: ссылка на Google Диск — наверху страницы появится кнопка «Скачать» #}
-  <form method="post" action="/book/{{ b.id }}/file" class="own-cover file-form">
-    <label for="file_url">Файл книги — ссылка на Google Диск
-      {% if f and f.drive %}<a class="small" href="{{ f.open }}" target="_blank" rel="noopener">открыть в Диске</a>{% endif %}</label>
-    <div class="own-row">
-      <input id="file_url" name="file_url" type="url" value="{{ b.file_url or '' }}" placeholder="https://drive.google.com/file/d/…">
-      <button class="primary">Сохранить</button>
-    </div>
-    <p class="muted small">В Диске: файл → «Поделиться» → «Копировать ссылку». Доступ можно оставить «только мне» —
-      скачается там, где ты вошла в Google. Чтобы убрать — сотри ссылку и сохрани.</p>
-  </form>
+  <section class="set-block bc-book" id="set-book">
+    <div class="set-book">
+      <div class="bc-about">
+        <h3 class="set-h"><span class="set-ic">{{ icon('pencil', 16) }}</span> О книге</h3>
+        <div class="set-cover">
+          {{ cover(b, link=False) }}
+          <div class="links"><a href="/book/{{ b.id }}/covers" id="find-cover">{{ icon('image', 16) }} {{ 'Другая обложка' if b.cover_url else 'Найти обложку' }}</a></div>
+        </div>
+        {% if b.in_library %}
+        <form method="post" action="/book/{{ b.id }}" class="settings-form">
+          <div class="form-grid">
+            <div><label for="title">Название в оригинале</label><input id="title" name="title" value="{{ b.title }}" required style="width:100%"></div>
+            <div><label for="title_ru">Название на русском</label><input id="title_ru" name="title_ru" value="{{ b.title_ru or '' }}" style="width:100%"></div>
+            <div><label for="genre">Мой жанр</label>
+              <select id="genre" name="my_genre_id"><option value="">—</option>
+                {% for g in genres %}<option value="{{ g.id }}" {{ 'selected' if b.my_genre_id == g.id }}>{{ g.name }}</option>{% endfor %}</select></div>
+            <div><label for="kind">Это</label>
+              <select id="kind" name="kind">{% for k, v in [('book', 'Книга'), ('fanfic', 'Фанфик')] %}<option value="{{ k }}" {{ 'selected' if b.kind == k }}>{{ v }}</option>{% endfor %}</select></div>
+          </div>
+          <label for="notes">Заметки</label><textarea id="notes" name="notes" rows="4">{{ b.notes or '' }}</textarea>
+          <p class="set-save"><button class="primary">Сохранить</button></p>
+        </form>
+        {% endif %}
+      </div>
 
-  <form method="post" action="/book/{{ b.id }}" class="settings-form">
-    <div class="form-grid">
-      <div><label for="genre">Мой жанр</label>
-        <select id="genre" name="my_genre_id"><option value="">—</option>
-          {% for g in genres %}<option value="{{ g.id }}" {{ 'selected' if b.my_genre_id == g.id }}>{{ g.name }}</option>{% endfor %}</select></div>
-      <div><label for="title">Название в оригинале</label><input id="title" name="title" value="{{ b.title }}" required style="width:100%"></div>
-      <div><label for="title_ru">Название на русском</label><input id="title_ru" name="title_ru" value="{{ b.title_ru or '' }}" style="width:100%"></div>
-      <div><label for="kind">Это</label>
-        <select id="kind" name="kind">{% for k, v in [('book', 'Книга'), ('fanfic', 'Фанфик')] %}<option value="{{ k }}" {{ 'selected' if b.kind == k }}>{{ v }}</option>{% endfor %}</select></div>
+      {% if b.in_library %}
+      <div class="bc-desc">
+        <h3 class="set-h"><span class="set-ic">{{ icon('sparkle', 16) }}</span> Описание</h3>
+        <form method="post" action="/book/{{ b.id }}" class="settings-form">
+          <label for="annotation">Аннотация</label>
+          <textarea id="annotation" name="annotation" rows="6">{{ b.description_ru or b.description or '' }}</textarea>
+          <label for="my_description">Подробнее <span class="muted small">— своё описание, видно вкладкой рядом с аннотацией</span></label>
+          <textarea id="my_description" name="my_description" rows="8">{{ b.my_description or '' }}</textarea>
+          <p class="muted small md-hint">Строка <code>**Почему это стоит прочитать?**</code> — подзаголовок; строки <code>- **Плюс:** пояснение</code> — карточки с номерами.</p>
+          {# черновик от ИИ — в поле; сохраняется только кнопкой «Сохранить», после проверки #}
+          {# Google ИИ: вкладка с готовым запросом из карточки — ответ копируешь сюда #}
+          <p class="ai-row"><a class="link" href="{{ ai.ask_url(b) }}" target="_blank" rel="noopener">{{ icon('sparkle', 16) }} Спросить Google ИИ</a>
+            {% if ai.enabled() %}<button type="button" class="link" id="ai-write">{{ icon('sparkle', 16) }} Написать с ИИ</button>{% endif %}
+            <span class="muted small" id="ai-state" aria-live="polite">{{ '' if ai.enabled() else 'Откроется Google с готовым запросом — скопируй ответ сюда и нажми «Сохранить».' }}</span></p>
+          <p class="set-save"><button class="primary">Сохранить</button></p>
+        </form>
+      </div>
+      {% endif %}
     </div>
-    <label for="notes">Заметки</label><textarea id="notes" name="notes">{{ b.notes or '' }}</textarea>
-    <label for="annotation">Аннотация</label>
-    <textarea id="annotation" name="annotation" rows="6">{{ b.description_ru or b.description or '' }}</textarea>
-    <label for="my_description">Подробнее <span class="muted small">— своё описание, видно вкладкой рядом с аннотацией</span></label>
-    <textarea id="my_description" name="my_description" rows="8">{{ b.my_description or '' }}</textarea>
-    <p class="muted small md-hint">Строка <code>**Почему это стоит прочитать?**</code> — подзаголовок; строки <code>- **Плюс:** пояснение</code> — карточки с номерами.</p>
-    {# черновик от ИИ — в поле; сохраняется только кнопкой «Сохранить», после проверки #}
-    {# Google ИИ: вкладка с готовым запросом из карточки — ответ копируешь сюда #}
-    <p class="ai-row"><a class="link" href="{{ ai.ask_url(b) }}" target="_blank" rel="noopener">{{ icon('sparkle', 16) }} Спросить Google ИИ</a>
-      {% if ai.enabled() %}<button type="button" class="link" id="ai-write">{{ icon('sparkle', 16) }} Написать с ИИ</button>{% endif %}
-      <span class="muted small" id="ai-state" aria-live="polite">{{ '' if ai.enabled() else 'Откроется Google с готовым запросом — скопируй ответ сюда и нажми «Сохранить».' }}</span></p>
-    <p><button class="primary">Сохранить</button></p>
-  </form>
+  </section>
 
-  <h2>История прочтений</h2>
-  {% for r in b.reads %}
-  <form method="post" action="/book/{{ b.id }}/reads/{{ r.id }}" class="read-row">
-    <input type="date" name="started_at" value="{{ r.started_at or '' }}" max="{{ today }}" aria-label="Начала">
-    <span class="muted">—</span>
-    <input type="date" name="finished_at" value="{{ r.finished_at or '' }}" max="{{ today }}" aria-label="Дочитала">
-    <button>Сохранить</button>
-    <button class="link" formaction="/book/{{ b.id }}/reads/{{ r.id }}/delete" onclick="return confirm('Удалить это прочтение?')">Удалить</button>
-  </form>
-  {% else %}<p class="muted small">Прочтений пока нет — появятся, когда поставишь «Читаю» или «Прочитано».</p>{% endfor %}
-  <details class="reread">
-    <summary>Перечитала — добавить прочтение</summary>
-    <form method="post" action="/book/{{ b.id }}/reads" class="read-row">
-      <input type="date" name="started_at" max="{{ today }}" aria-label="Начала">
-      <span class="muted">—</span>
-      <input type="date" name="finished_at" max="{{ today }}" aria-label="Дочитала">
-      <button>Добавить</button>
+  <section class="set-block bc-sync" id="set-sync">
+    <h3 class="set-h"><span class="set-ic">{{ icon('link', 16) }}</span> Hardcover и ficbook</h3>
+    <div class="links">
+      {% if b.hardcover_slug %}<a href="https://hardcover.app/books/{{ b.hardcover_slug }}" target="_blank" rel="noopener">{{ icon('link', 16) }} Открыть в Hardcover</a>{% endif %}
+      {% if b.hardcover_slug %}
+      <form method="post" action="/book/{{ b.id }}/refresh"><button class="link" title="{{ 'Обложка и жанры' if b.kind == 'fanfic' else 'Описание, обложка, жанры и вся серия' }}">{{ icon('refresh', 16) }} Обновить из Hardcover</button></form>
+      {% endif %}
+      <a href="/add/book?{{ {'link': b.id, 'q': b.title}|urlencode }}">{{ icon('link', 16) }} {{ 'Связать с другой книгой Hardcover' if b.hardcover_slug else 'Найти в Hardcover' }}</a>
+      {% if has_fic %}
+      {# сервер на ficbook не пускают — данные заново собирает закладка на странице фанфика #}
+      <a href="{{ b.source_url }}" target="_blank" rel="noopener" title="Откроется ficbook — там нажми закладку «В мои книги» и «Сохранить»">{{ icon('refresh', 16) }} Обновить с ficbook</a>
+      {% endif %}
+      {% if meta.get('original_url') %}<a href="{{ meta.original_url }}" target="_blank" rel="noopener">{{ icon('link', 16) }} Оригинал{% if meta.get('original_author') %} · {{ meta.original_author }}{% endif %}</a>{% endif %}
+    </div>
+    {% if b.hardcover_slug %}<p class="muted small">«Обновить из Hardcover» перезапишет жанры и настроения; свои названия, описание и обложка останутся.</p>{% endif %}
+
+    {% if b.in_library %}
+    {# свой файл книги: ссылка на Google Диск — наверху страницы появится кнопка «Скачать» #}
+    <h3 class="set-h set-h2"><span class="set-ic">{{ icon('download', 16) }}</span> Файл книги</h3>
+    <form method="post" action="/book/{{ b.id }}/file" class="file-form">
+      <label for="file_url">Ссылка на Google Диск
+        {% if f and f.drive %}<a class="small" href="{{ f.open }}" target="_blank" rel="noopener">открыть в Диске</a>{% endif %}</label>
+      <div class="own-row">
+        <input id="file_url" name="file_url" type="url" value="{{ b.file_url or '' }}" placeholder="https://drive.google.com/file/d/…">
+        <button class="primary">Сохранить</button>
+      </div>
+      <p class="muted small">В Диске: файл → «Поделиться» → «Копировать ссылку». Доступ можно оставить «только мне» —
+        скачается там, где ты вошла в Google. Чтобы убрать — сотри ссылку и сохрани.</p>
     </form>
-  </details>
+    {% endif %}
+  </section>
+
+  {% if b.in_library %}
+  <section class="set-block bc-reads" id="set-reads">
+    {% for r in b.reads %}
+    <form method="post" action="/book/{{ b.id }}/reads/{{ r.id }}" class="read-row">
+      <input type="date" name="started_at" value="{{ r.started_at or '' }}" max="{{ today }}" aria-label="Начала">
+      <span class="muted">—</span>
+      <input type="date" name="finished_at" value="{{ r.finished_at or '' }}" max="{{ today }}" aria-label="Дочитала">
+      <button>Сохранить</button>
+      <button class="link" formaction="/book/{{ b.id }}/reads/{{ r.id }}/delete" onclick="return confirm('Удалить это прочтение?')">Удалить</button>
+    </form>
+    {% else %}<p class="muted small">Прочтений пока нет — появятся, когда поставишь «Читаю» или «Прочитано».</p>{% endfor %}
+    <details class="reread">
+      <summary>Перечитала — добавить прочтение</summary>
+      <form method="post" action="/book/{{ b.id }}/reads" class="read-row">
+        <input type="date" name="started_at" max="{{ today }}" aria-label="Начала">
+        <span class="muted">—</span>
+        <input type="date" name="finished_at" max="{{ today }}" aria-label="Дочитала">
+        <button>Добавить</button>
+      </form>
+    </details>
+  </section>
 
   {# Метки — по одной на строку: лишнее стереть, своё дописать #}
-  <h2>Метки</h2>
-  <form method="post" action="/book/{{ b.id }}/tags" class="settings-form">
-    <div class="form-grid tags-grid">
-      {% set fields = [('genres', 'Жанры', tags.get('genres') or []), ('moods', 'Настроение', tags.get('moods') or []), ('content_warnings', 'Предупреждения', tags.get('content_warnings') or [])] %}
-      {% for name, title, items in fields %}
-      <div><label for="t-{{ name }}">{{ title }}</label><textarea id="t-{{ name }}" name="{{ name }}" rows="5">{{ items|join('
+  <section class="set-block bc-tags" id="set-tags">
+    <form method="post" action="/book/{{ b.id }}/tags" class="settings-form">
+      <div class="form-grid tags-grid">
+        {% set fields = [('genres', 'Жанры', tags.get('genres') or []), ('moods', 'Настроение', tags.get('moods') or []), ('content_warnings', 'Предупреждения', tags.get('content_warnings') or [])] %}
+        {% for name, title, items in fields %}
+        <div><label for="t-{{ name }}">{{ title }}</label><textarea id="t-{{ name }}" name="{{ name }}" rows="5">{{ items|join('
 ') }}</textarea></div>
-      {% endfor %}
-    </div>
-    <p class="muted small">По одной на строку. {% if b.hardcover_slug %}«Обновить из Hardcover» заменит их метками из Hardcover.{% endif %}</p>
-    <p><button class="primary">Сохранить метки</button></p>
-  </form>
-  {% endif %}
+        {% endfor %}
+      </div>
+      <p class="muted small">По одной на строку. {% if b.hardcover_slug %}«Обновить из Hardcover» заменит их метками из Hardcover.{% endif %}</p>
+      <p class="set-save"><button class="primary">Сохранить метки</button></p>
+    </form>
+  </section>
 
-  {% if b.in_library %}
   <form method="post" action="/book/{{ b.id }}/delete" class="danger-zone"
         onsubmit="return confirm('Удалить «{{ (b.title_ru or b.title)|replace("'", "’") }}»? Статус, оценка, прочтения и заметки сотрутся. Отменить нельзя.')">
     <button class="danger">Удалить {{ 'фанфик' if b.kind == 'fanfic' else 'книгу' }}</button>
     <span class="muted small">Сотрётся всё твоё по ней: статус, оценка, прочтения, заметки.</span>
   </form>
   {% endif %}
-</details>
+  </div>
+</dialog>
 
 <dialog class="covers-dialog" id="covers">
   <div class="dialog-head"><h2>Обложка</h2><button class="link" onclick="this.closest('dialog').close()">Закрыть</button></div>
@@ -282,6 +331,29 @@
 {% block scripts %}
 <script src="/static/desc.js?v={{ CSS_V }}"></script>
 <script>
+// Настройки — окно с вкладками. После сохранения (страница перезагружается) окно открывается снова на той же вкладке
+(() => {
+  const dlg = document.getElementById('settings');
+  const tabs = [...dlg.querySelectorAll('.set-nav [data-block]')], blocks = [...dlg.querySelectorAll('.set-block')];
+  const pick = key => {
+    tabs.forEach(t => { const on = t.dataset.block === key; t.classList.toggle('on', on); t.setAttribute('aria-selected', on); });
+    blocks.forEach(s => s.hidden = s.id !== 'set-' + key);
+  };
+  const open = key => { pick(key || tabs[0].dataset.block); dlg.showModal(); dlg.focus(); };  // фокус — на окно, а не на «Закрыть»
+  tabs.forEach(t => t.onclick = e => { e.preventDefault(); pick(t.dataset.block); });
+  document.getElementById('open-settings').onclick = () => open();
+  dlg.querySelector('[data-close]').onclick = () => dlg.close();
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });  // клик по затемнению
+  const remember = key => { try { sessionStorage.setItem('settingsTab', key); } catch {} };
+  dlg.addEventListener('submit', e => {
+    if (!e.target.action.endsWith('/delete')) remember(tabs.find(t => t.classList.contains('on'))?.dataset.block || '');
+  });
+  document.getElementById('covers').addEventListener('submit', () => { if (dlg.open) remember('book'); });  // выбрала обложку
+  let again = null;
+  try { again = sessionStorage.getItem('settingsTab'); sessionStorage.removeItem('settingsTab'); } catch {}
+  if (again && tabs.some(t => t.dataset.block === again)) open(again); else pick(tabs[0].dataset.block);
+})();
+
 // Меню статуса закрывается по клику мимо
 document.addEventListener('click', e => document.querySelectorAll('.status-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
 

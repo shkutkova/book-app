@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Добавить фанфик{% endblock %}
+{% from "_macros.html" import back %}
 {% block content %}
+{{ back('/fanfics') }}
 <h1>Добавить фанфик</h1>
 <p class="sub" id="hint">Открой фанфик на ficbook и нажми закладку «В мои книги» — форма заполнится сама. Или заполни вручную. Фанфик есть в Hardcover — <a href="/add/book?fanfic=1">найти там</a>.</p>
 

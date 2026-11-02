@@ -59,6 +59,27 @@
   {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
   {% block content %}{% endblock %}
 </div>
+{% block footer %}
+{# Подвал: имя, «О приложении», ссылки по сайту в две колонки, «Добавить». На телефоне — над нижней панелью разделов #}
+<footer class="site-foot">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <a class="logo" href="/"><img src="/static/img/booky/2-11.webp" alt="">Spooky Book Universe</a>
+      <p>Личный книжный трекер: книги, серии, фанфики и статистика чтения.</p>
+      <a class="foot-about" href="/privacy">О приложении и конфиденциальность</a>
+    </div>
+    <div class="foot-col two">
+      <b>Моя библиотека</b>
+      <a href="/">Главная</a><a href="/books">Книги</a><a href="/series">Серии</a><a href="/fanfics">Фанфики</a><a href="/stats">Статистика</a>
+    </div>
+    <div class="foot-col">
+      <b>Добавить</b>
+      <a href="/add/book">Книгу</a><a href="/add/book?fanfic=1">Фанфик</a><a href="/workshop">Мастерская epub</a>
+    </div>
+    <img class="foot-booky" src="/static/img/booky/1-09.webp" alt="" loading="lazy">
+  </div>
+</footer>
+{% endblock %}
 <script>
 // Крутилка на кнопке, пока идёт сохранение. busy(кнопка, true/false) — и для действий без перезагрузки.
 // disabled не ставим: у отключённой кнопки браузер не отправит её name/value (статус, «Удалить» и т.п.)
@@ -80,6 +101,25 @@ addEventListener('pageshow', e => {
   document.querySelectorAll('.busy').forEach(b => busy(b, false));
   document.querySelectorAll('form[aria-busy]').forEach(f => f.removeAttribute('aria-busy'));
 });
+// «Назад» (a[data-back]): туда, откуда пришла на эту страницу, — шагом назад в истории, чтобы список вернулся
+// с поиском, фильтрами и прокруткой. Сохранения на странице (форма → перезагрузка) добавляют шаги — их тоже проходим.
+// Открыла страницу по ссылке снаружи или в новой вкладке — обычная ссылка (href)
+(() => {
+  const key = 'back:' + location.pathname;
+  let from = null;
+  try {
+    const ref = document.referrer ? new URL(document.referrer) : null;
+    if (ref && ref.origin === location.origin && ref.pathname !== location.pathname)
+      sessionStorage.setItem(key, JSON.stringify({len: history.length}));
+    from = JSON.parse(sessionStorage.getItem(key) || 'null');
+  } catch {}
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[data-back]');
+    if (!a || !from || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    const steps = history.length - from.len + 1;
+    if (steps >= 1 && steps <= 30) { e.preventDefault(); history.go(-steps); }
+  });
+})();
 // Меню «+ Добавить» закрывается по клику мимо и по Esc
 document.addEventListener('click', e => document.querySelectorAll('.add-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.add-menu[open]').forEach(d => d.open = false); });
@@ -101,5 +141,6 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') document.que
 })();
 </script>
 <script src="/static/motion.js?v={{ CSS_V }}"></script>
-{% block scripts %}{% endblock %}</body>
+{% block scripts %}{% endblock %}
+</body>
 </html>

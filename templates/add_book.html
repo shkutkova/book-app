@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Найти в Hardcover' if target else 'Добавить фанфик' if fanfic else 'Добавить книгу' }}{% endblock %}
+{% from "_macros.html" import back %}
 {% block content %}
+{{ back('/book/' ~ target.id if target else '/') }}
 {% if target %}
 <h1>Найти в Hardcover</h1>
 <p class="sub">Для «<a href="/book/{{ target.id }}">{{ target.title }}</a>». Выбери книгу — подтянутся обложка, жанры и автор{% if target.kind == 'fanfic' %}; ссылка на ficbook и описание перевода останутся{% else %}, описание и серия{% endif %}.</p>

@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% from "_icons.html" import icon %}
+{% from "_macros.html" import back %}
 {% block title %}Мастерская epub{% endblock %}
 {% block content %}
+{% if b %}<a class="back-link" href="/book/{{ b.id }}">{{ icon('arrow-left', 16) }} К книге «{{ b.title_ru or b.title }}»</a>
+{% else %}{{ back('/') }}{% endif %}
 <h1>Мастерская epub</h1>
 <p class="sub">Загрузи файл — проверю, что с ним не так, найду книгу, поставлю обложку, главы и страницы для Kindle.
   Отдам исправленный файл; на сайте он не сохраняется.</p>
