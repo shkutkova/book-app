@@ -49,8 +49,9 @@
     <article class="book-card" data-find="{{ ((b.title_ru or '') ~ ' ' ~ b.title ~ ' ' ~ (b.authors or ''))|lower }}"{% if b.is_favorite %} data-fav{% endif %}{% if b.is_next %} data-next{% endif %}{% if no_series_filter and not b.series %} data-noseries{% endif %}>
       {# серия (у фанфика — цикл) — плашкой на обложке: так под обложкой меньше текста, а обложка крупнее #}
       {% set ser = b.series %}
-      <span class="cv">{{ cover(b, link=False) }}{% if ser %}<span class="ser" title="{{ ser }}">{{ ser }}</span>{% endif %}</span>
-      {% if b.is_favorite %}<span class="fav-dot" title="Любимая">{{ icon('flame', 16) }}</span>{% endif %}
+      {# огонёк избранного — в правом верхнем углу обложки, в обоих видах #}
+      <span class="cv">{{ cover(b, link=False) }}{% if ser %}<span class="ser" title="{{ ser }}">{{ ser }}</span>{% endif %}
+        {%- if b.is_favorite %}<span class="fav-dot" title="Любимая">{{ icon('flame', 20) }}</span>{% endif %}</span>
       <span class="info">
         {# ссылка растянута на всю карточку (::after), кроме ленты — там в описании свои кнопки #}
         <a class="ttl" href="/book/{{ b.id }}">{{ b.title_ru or b.title }}</a>

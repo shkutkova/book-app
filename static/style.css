@@ -20,13 +20,13 @@
 [hidden]{display:none!important}
 html{background:var(--ground-deep)}
 body{margin:0;font-family:var(--body);font-size:1.02rem;color:var(--text);line-height:1.5;min-height:100vh;
- background:
+ background:var(--page-bg);background-attachment:fixed}
+:root{--page-bg:
   radial-gradient(55vmax 45vmax at 92% -8%,#ffd88a66,transparent 62%),
   radial-gradient(40vmax 35vmax at 70% 8%,#ff9ad533,transparent 60%),
   radial-gradient(50vmax 45vmax at -12% 105%,#ff9ad540,transparent 62%),
   radial-gradient(45vmax 40vmax at 30% 55%,#8fd0ff1f,transparent 60%),
-  linear-gradient(165deg,#5a1db0 0%,var(--ground) 45%,var(--ground-deep) 100%);
- background-attachment:fixed}
+  linear-gradient(165deg,#5a1db0 0%,var(--ground) 45%,var(--ground-deep) 100%)}
 ::selection{background:var(--p-butter);color:var(--ink)}
 html{scrollbar-color:var(--line) transparent}
 input,textarea{caret-color:var(--accent)}
@@ -478,7 +478,7 @@ a.spine:hover,a.spine:focus-visible{transform:translateY(-10px);text-decoration:
 .book-card .ser{position:absolute;left:6px;right:6px;bottom:6px;font-size:.68rem;font-weight:800;line-height:1.3;color:var(--text);background:#14052cd0;border-radius:6px;padding:.15rem .4rem;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
 .book-card .foot{display:flex;justify-content:space-between;gap:.4rem;font-size:.76rem;color:var(--mut);padding-top:.1rem;min-height:1.5em}
-.fav-dot{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:var(--ink);color:#ff9a5a;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px #000a}
+.fav-dot{position:absolute;z-index:1;top:6px;right:6px;width:36px;height:36px;border-radius:50%;background:var(--ink);color:#ff9a5a;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px #000a}
 .empty-note{color:var(--mut);padding:.5rem 0 1rem}
 
 /* ---------- вид списка: карточки (по умолчанию) / лента с описанием — .lib[data-view] */
@@ -507,7 +507,6 @@ a.spine:hover,a.spine:focus-visible{transform:translateY(-10px);text-decoration:
 .lib[data-view=feed] .au{margin-top:.3rem;font-size:.95rem}
 .lib[data-view=feed] .foot{justify-content:flex-start;gap:1rem;font-size:.85rem}
 .lib[data-view=feed] .foot .pg{margin-left:0}
-.lib[data-view=feed] .fav-dot{top:auto;bottom:-12px;right:calc(130px + 1.8rem)}
 .lib[data-view=feed] .feed-desc{display:block;grid-area:desc;position:relative;z-index:1;margin-top:.4rem}  /* над ссылкой: вкладки и «Читать полностью» нажимаются */
 .feed-desc .desc-tabs{margin-bottom:.5rem}
 .feed-desc .desc{font-size:.95rem;line-height:1.55;text-align:left;hyphens:manual}
@@ -521,7 +520,22 @@ a.spine:hover,a.spine:focus-visible{transform:translateY(-10px);text-decoration:
  .lib[data-view=feed] .book-card{grid-template-columns:minmax(0,1fr) 104px;grid-template-areas:"ser cv" "info cv" "desc desc";padding:1rem;gap:.4rem 1rem}
  .lib[data-view=feed] .cv{margin-top:-2rem}
  .lib[data-view=feed] .ttl{font-size:1.05rem}
- .lib[data-view=feed] .fav-dot{right:auto;left:1rem;bottom:auto;top:-14px}}
+ }
+
+/* ---------- светящаяся рамка карточки (glow.js): цветная дуга по краю, поворачивается за курсором.
+   Карточки: книги в списках, серии, «Читаю сейчас». Маска span'а — кольцо (border-box минус padding-box),
+   маска ::before — дуга ±--glow-spread от угла курсора (одной маской из трёх слоёв Chrome не рисует).
+   Цвета — пастель, как у плиток и статусов */
+.now-card{position:relative}
+.glow{position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+ border:var(--glow-w) solid transparent;opacity:var(--glow-on,0);transition:opacity .3s;
+ -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0) border-box;-webkit-mask-composite:xor;
+ mask:linear-gradient(#fff 0 0) padding-box exclude,linear-gradient(#fff 0 0) border-box}
+.glow::before{content:"";position:absolute;inset:calc(-1 * var(--glow-w));border-radius:inherit;background:var(--glow-bg);
+ -webkit-mask:conic-gradient(from calc((var(--glow-a,0) - var(--glow-spread)) * 1deg),#0000 0deg,#fff,#0000 calc(var(--glow-spread) * 2deg));
+ mask:conic-gradient(from calc((var(--glow-a,0) - var(--glow-spread)) * 1deg),#0000 0deg,#fff,#0000 calc(var(--glow-spread) * 2deg))}
+:root{--glow-w:3px;--glow-spread:40;
+ --glow-bg:repeating-conic-gradient(from 236.84deg at 50% 50%,var(--p-pink) 0%,var(--p-butter) 5%,var(--p-mint) 10%,var(--p-sky) 15%,var(--p-lilac) 20%)}
 
 /* ---------- статистика: плитки сверху, панели сеткой (как на дашбордах) */
 .stats-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin:.6rem 0 .2rem}
@@ -610,9 +624,12 @@ a.spine:hover,a.spine:focus-visible{transform:translateY(-10px);text-decoration:
 /* Крутилка: кнопка, пока сохраняется. Текст прячется, размер кнопки тот же; цвет — как был у текста (--spin) */
 .busy{position:relative;pointer-events:none;cursor:progress;color:transparent!important}
 .busy>*{visibility:hidden}
-.busy::after{content:"";position:absolute;inset:0;margin:auto;width:1.1em;height:1.1em;border-radius:50%;
- border:2.5px solid color-mix(in srgb,var(--spin,currentColor) 28%,transparent);border-top-color:var(--spin,currentColor);
- animation:spin .7s linear infinite}
+/* три точки прыгают по очереди (идея — Aceternity Loader) */
+.busy::after{content:"";position:absolute;inset:0;margin:auto;width:1.7em;height:.85em;
+ --dot:no-repeat radial-gradient(circle closest-side,var(--spin,currentColor) 92%,#0000);
+ background:var(--dot) 0% 50%,var(--dot) 50% 50%,var(--dot) 100% 50%;background-size:calc(100% / 3) 50%;animation:dots .9s infinite linear}
+@keyframes dots{20%{background-position:0% 0%,50% 50%,100% 50%}40%{background-position:0% 100%,50% 0%,100% 50%}
+ 60%{background-position:0% 50%,50% 100%,100% 0%}80%{background-position:0% 50%,50% 50%,100% 100%}}
 .read-dates[aria-busy="true"]{position:relative}
 .read-dates[aria-busy="true"]>svg{visibility:hidden}
 .read-dates[aria-busy="true"]::before{content:"";position:absolute;left:calc(.85rem + 1px);top:50%;width:15px;height:15px;margin-top:-7.5px;border-radius:50%;
@@ -1034,3 +1051,59 @@ a.tile:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 .filters [data-show=all]::before{background:conic-gradient(var(--p-sky),var(--p-butter),var(--p-mint),var(--p-peach),var(--p-pink),var(--p-lilac),var(--p-sky));box-shadow:0 0 8px #fff6}
 .filters [data-show=all][aria-pressed=true]::before{background:conic-gradient(var(--p-sky),var(--p-butter),var(--p-mint),var(--p-peach),var(--p-pink),var(--p-lilac),var(--p-sky));box-shadow:0 0 0 1.5px var(--ink)}
 :is([data-show=noseries]){--tc:#a8e6f0}
+
+/* ---------- эффекты (fx.js). Идеи — Aceternity UI, переписано без React */
+
+/* меню в шапке: полупрозрачная плашка цвета раздела переезжает под пункт, на который навела */
+nav .links{position:relative;isolation:isolate}
+.nav-hl{position:absolute;z-index:-1;left:0;top:50%;height:2.2em;width:calc(var(--hl-w) + 1.3rem);border-radius:999px;pointer-events:none;
+ transform:translate(calc(var(--hl-x) - .65rem),-50%);background:#ffffff17;box-shadow:inset 0 0 0 1px #ffffff26,0 6px 18px -8px #12002d;
+ opacity:0;transition:transform .4s var(--ease-out),width .4s var(--ease-out),opacity .2s}
+.links.hl .nav-hl{opacity:1}
+
+/* поиск-капля: поле и капля — сплошные (фильтр #goo делает края «жидкими» и съедает прозрачность), текст поверх фильтра */
+.gsearch{--g-bg:#3c1c70;position:relative;width:min(100%,420px);height:44px;margin-bottom:.5rem}
+.gsearch.open{--g-bg:#4a2687}
+.find-row .gsearch{margin-bottom:0}
+.gsearch .goo{position:absolute;inset:0;filter:url(#goo);pointer-events:none}
+.gsearch .g-pill,.gsearch .g-drop{position:absolute;top:0;bottom:0;border-radius:999px;background:var(--g-bg);transition:background .25s}
+.gsearch .g-pill{left:0;right:0;transition:right .5s var(--ease-out),background .25s}
+.gsearch .g-drop{left:0;width:44px}
+.gsearch .g-drop,.gsearch .g-btn{transition:left .65s cubic-bezier(.5,-.35,.25,1.3),background .25s,color .25s}
+.gsearch.open .g-pill{right:54px}
+.gsearch.open .g-drop{left:calc(100% - 44px);background:var(--p-pink)}
+.gsearch .g-btn{position:absolute;z-index:1;top:0;left:0;width:44px;height:44px;border:0;padding:0;border-radius:50%;background:none;color:var(--mut);
+ display:flex;align-items:center;justify-content:center;pointer-events:none}
+.gsearch.open .g-btn{left:calc(100% - 44px);color:var(--ink);pointer-events:auto}
+.gsearch .i-clear,.gsearch.filled .i-find{display:none}.gsearch.filled .i-clear{display:block}
+.gsearch .find{position:absolute;inset:0;width:auto;height:44px;margin:0;padding:0 1rem 0 2.8rem;border:0!important;background:transparent!important;
+ box-shadow:none!important;transition:right .5s var(--ease-out),padding .4s var(--ease-out)}
+.gsearch.open .find{right:54px;padding-left:1.15rem}
+.gsearch .find::-webkit-search-cancel-button{display:none}  /* свой крестик — в капле */
+@media (prefers-reduced-motion:reduce){.gsearch *{transition-duration:.01s!important}}
+
+
+/* звёзды и огонёк: без крутилки, нажатая — «прыгает»; у огонька ещё расходится кольцо */
+.rate button.pop .ic,.fav-round.pop{animation:pop .45s var(--ease-out)}
+@keyframes pop{35%{transform:scale(1.3) rotate(-8deg)}}
+.fav-round{position:relative}
+.fav-round.pop.on::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid #ff9a5a;pointer-events:none;animation:ring .55s ease-out forwards}
+@keyframes ring{from{opacity:1;transform:scale(.8)}to{opacity:0;transform:scale(1.6)}}
+
+
+/* у каждого раздела своя пастель: плашка в меню и «пузырь» в нижней панели */
+:is(nav .links,.tabbar) a[href="/"]{--sec:var(--p-butter)}:is(nav .links,.tabbar) a[href="/books"]{--sec:var(--p-sky)}
+:is(nav .links,.tabbar) a[href="/series"]{--sec:var(--p-mint)}:is(nav .links,.tabbar) a[href="/fanfics"]{--sec:var(--p-pink)}
+:is(nav .links,.tabbar) a[href="/stats"]{--sec:var(--p-lilac)}
+/* плашка меню — цветом пункта, подчёркивание открытого раздела — тоже его цветом */
+.nav-hl{background:color-mix(in srgb,var(--hl-c,#fff) 16%,transparent);
+ box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hl-c,#fff) 40%,transparent),0 6px 20px -10px var(--hl-c,#000)}
+nav .links.hl a:hover{color:var(--text)}
+nav .links a.on{text-decoration-color:var(--sec)}
+/* нижняя панель (телефон): иконка открытого раздела всплывает над панелью в кружке цвета раздела */
+@media (max-width:720px){
+ .tabbar a.on .ic{padding:.6rem;border-radius:50%;background:var(--sec);color:var(--ink);transform:translateY(-16px);
+  box-shadow:0 0 0 5px color-mix(in srgb,var(--surface) 92%,#000),0 10px 18px -6px color-mix(in srgb,var(--sec) 70%,#000);animation:bubble-in .5s var(--ease-out)}
+ .tabbar a.on span{color:var(--sec);margin-top:-.75rem}
+ .tabbar a.on:active .ic{transform:translateY(-16px) scale(.92)}}
+@keyframes bubble-in{from{transform:translateY(4px) scale(.4);opacity:0}}

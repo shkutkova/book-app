@@ -21,6 +21,9 @@
 <style>@view-transition{navigation:auto}</style>
 </head>
 <body>
+{# фильтр «жидких» краёв для поиска-капли (fx.js) #}
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="goo"><feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b"/>
+  <feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9"/></filter></svg>
 {% block nav %}
 {% from "_icons.html" import icon %}
 {% set path = request.url.path %}
@@ -93,6 +96,7 @@ document.addEventListener('submit', e => {
   if (e.defaultPrevented || (form.method || '').toLowerCase() !== 'post') return;
   if (form.hasAttribute('aria-busy')) return e.preventDefault();  // второй клик, пока сохраняется
   form.setAttribute('aria-busy', 'true');
+  if (form.matches('.rate, .fav-corner')) return;  // звёзды и огонёк — без крутилки, новое показывает fx.js сразу
   busy(e.submitter || form.querySelector('button:not([type=button])'), true);
 });
 // «Назад» в браузере возвращает страницу из памяти как есть — снимаем крутилки
@@ -141,6 +145,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') document.que
 })();
 </script>
 <script src="/static/motion.js?v={{ CSS_V }}"></script>
+<script src="/static/fx.js?v={{ CSS_V }}"></script>
+<script src="/static/glow.js?v={{ CSS_V }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
