@@ -478,7 +478,7 @@ a.spine:hover,a.spine:focus-visible{transform:translateY(-10px);text-decoration:
 .book-card .ser{position:absolute;left:6px;right:6px;bottom:6px;font-size:.68rem;font-weight:800;line-height:1.3;color:var(--text);background:#14052cd0;border-radius:6px;padding:.15rem .4rem;
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
 .book-card .foot{display:flex;justify-content:space-between;gap:.4rem;font-size:.76rem;color:var(--mut);padding-top:.1rem;min-height:1.5em}
-.fav-dot{position:absolute;z-index:1;top:6px;right:6px;width:36px;height:36px;border-radius:50%;background:var(--ink);color:#ff9a5a;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px #000a}
+.fav-dot{position:absolute;z-index:2;top:-16px;right:-16px;width:36px;height:36px;border-radius:50%;background:#fff3ea;color:#ff6233;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px -4px #000a}
 .empty-note{color:var(--mut);padding:.5rem 0 1rem}
 
 /* ---------- вид списка: карточки (по умолчанию) / лента с описанием — .lib[data-view] */
@@ -1107,3 +1107,32 @@ nav .links a.on{text-decoration-color:var(--sec)}
  .tabbar a.on span{color:var(--sec);margin-top:-.75rem}
  .tabbar a.on:active .ic{transform:translateY(-16px) scale(.92)}}
 @keyframes bubble-in{from{transform:translateY(4px) scale(.4);opacity:0}}
+
+/* огонёк избранного на карточке — матовое стекло на углу карточки (в ленте — на углу обложки), обложку не закрывает */
+.fav-dot .ic{fill:#ff9a5a;filter:drop-shadow(0 1px 3px #0b0020aa)}
+.fav-dot{background:#ffffff1f;color:#ff7a45;box-shadow:inset 0 0 0 1px #ffffff66,0 8px 16px -8px #0b0020;
+ -webkit-backdrop-filter:blur(8px) saturate(1.4);backdrop-filter:blur(8px) saturate(1.4)}
+.lib[data-view=feed] .fav-dot{top:-14px;right:-14px}
+
+/* лента: светящаяся рамка идёт за обложкой, а не поверх неё */
+.lib[data-view=feed] .cv{z-index:1}
+
+/* «Книги», «Фанфики»: большой огонёк справа от заголовка — только избранное (ещё раз — все) */
+.fav-big{position:relative;width:58px;height:58px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;
+ background:#fff3ea;color:#ff6233;border:0;box-shadow:0 0 0 4px #ff9a5a33,0 12px 24px -10px #0b0020;transition:transform .2s var(--ease-out),box-shadow .2s}
+.fav-big .ic{fill:#ff9a5a}
+.fav-big:hover{transform:scale(1.06) rotate(-4deg)}
+.fav-big[aria-pressed=true]{background:linear-gradient(160deg,#ff9a5a,#ff5f8a);color:#fff;box-shadow:0 0 0 4px #ff9a5a55,0 12px 26px -8px #ff5f8acc}
+.fav-big[aria-pressed=true] .ic{fill:#fff}
+.fav-big .n{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;padding:0 .35rem;border-radius:999px;background:var(--ink);color:#fff;
+ font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fff3ea}
+
+/* страница книги: «Читать на ficbook» — ссылка наружу (голубая рамка, стрелка ↗), «Скачать» — заливка (жёлтая) */
+.get-links{display:flex;flex-wrap:wrap;gap:.5rem;margin:0}
+.get-links a{display:inline-flex;align-items:center;gap:.4rem;font-size:.86rem;font-weight:800;border-radius:999px;padding:.42rem .9rem}
+.get-links a:hover{text-decoration:none}
+.go-read{color:var(--p-sky);border:1.5px solid color-mix(in srgb,var(--p-sky) 65%,transparent);background:color-mix(in srgb,var(--p-sky) 10%,transparent)}
+.go-read:hover{background:color-mix(in srgb,var(--p-sky) 22%,transparent)}
+.go-read .ext{font-size:.95em;opacity:.8}
+.go-file{color:var(--ink);background:var(--p-butter);box-shadow:0 6px 14px -8px #ffe08fcc}
+.go-file:hover{background:#fff0b8}

@@ -112,6 +112,26 @@ def set_file(user_id: str, book_id: int, raw: str | None) -> None:
         raise ValidationError("Сначала добавь книгу к себе")
 
 
+def set_source(user_id: str, book_id: int, raw: str | None) -> None:
+    """«Где читать»: ссылка на ficbook или другой сайт. Пустая — убрать. У ficbook запоминается и id фанфика —
+    по нему закладка «В мои книги» потом обновит эту же запись («Обновить с ficbook»), а не заведёт дубль."""
+    from services.ficbook import ficbook_id  # ficbook сам импортирует library
+    url = (raw or "").strip() or None
+    if url and not re.match(r"https?://", url):
+        raise ValidationError("Ссылка должна начинаться с https://")
+    fid = ficbook_id(url) if url else None
+    if fid:
+        url = f"https://ficbook.net/readfic/{fid}"
+    with transaction() as conn:
+        if not conn.execute("select 1 from library where user_id = %s and book_id = %s", (user_id, book_id)).fetchone():
+            raise ValidationError("Сначала добавь книгу к себе")
+        if fid and conn.execute("select 1 from books where ficbook_id = %s and id <> %s", (fid, book_id)).fetchone():
+            raise ValidationError("Этот фанфик с ficbook уже есть в каталоге отдельной записью")
+        # прежний id ficbook не стираем: иначе закладка с ficbook завела бы дубль
+        conn.execute("update books set source_url = %s, ficbook_id = coalesce(%s, ficbook_id) where id = %s",
+                     (url, fid, book_id))
+
+
 def set_cover(book_id: int, raw: str | None) -> None:
     """Обложка, выбранная на странице «Выбрать обложку»."""
     cover = cover_link(raw)

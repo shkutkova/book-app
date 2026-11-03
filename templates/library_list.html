@@ -7,12 +7,15 @@
 {% block content %}
 {% set DOT = {'reading': 'var(--p-butter)', 'want_to_read': 'var(--p-sky)', 'finished': 'var(--p-mint)',
               'paused': 'var(--p-peach)', 'dnf': 'var(--p-pink)', 'skipped': 'var(--p-lilac)'} %}
+{% set total = groups.values()|map('length')|sum %}
+{% set favs = groups.values()|sum(start=[])|selectattr('is_favorite')|list %}
+{# «Добавить» — в шапке; справа от заголовка — большой огонёк: показать только избранное (ещё раз — все) #}
 <div class="list-head">
   <h1 class="with-booky"><img src="{{ booky }}" alt="">{{ title }}</h1>
-  <a class="btn" href="{{ add_url }}">+ Добавить {{ add_what }}</a>
+  {% if favs %}<button type="button" data-show="fav" aria-pressed="false" class="fav-big" aria-label="Избранное: {{ favs|length }}"
+    title="Избранное · {{ favs|length }}">{{ icon('flame', 30) }}<span class="n">{{ favs|length }}</span></button>{% endif %}
 </div>
 
-{% set total = groups.values()|map('length')|sum %}
 {% if total %}
 <div class="filters" role="group" aria-label="Показать">
   <button type="button" data-show="all" aria-pressed="true">Все<span class="n">{{ total }}</span></button>
@@ -22,8 +25,6 @@
   {% if nexts %}<button type="button" data-show="next" aria-pressed="false" class="next-filter">{{ icon('next', 15) }}Следующие<span class="n">{{ nexts|length }}</span></button>{% endif %}
   {% endif %}
   {% endfor %}
-  {% set favs = groups.values()|sum(start=[])|selectattr('is_favorite')|list %}
-  {% if favs %}<button type="button" data-show="fav" aria-pressed="false" class="fav-filter">{{ icon('flame', 15) }}Избранное<span class="n">{{ favs|length }}</span></button>{% endif %}
   {# книги в сериях смотрятся на странице серии, а эти — только здесь #}
   {% if no_series_filter %}{% set alone = groups.values()|sum(start=[])|rejectattr('series')|list %}
   {% if alone %}<button type="button" data-show="noseries" aria-pressed="false">Без серии<span class="n">{{ alone|length }}</span></button>{% endif %}

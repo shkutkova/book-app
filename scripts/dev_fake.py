@@ -117,7 +117,7 @@ _lib.set_next = lambda u, b, on: print("NEXT", b, on)
 _bk = queries.book_detail
 queries.book_detail = lambda u, bid: dict(_bk(u, bid), status="want_to_read", is_next=bid == 8) if bid in (8, 10) else _bk(u, bid)
 _b2 = queries.books
-queries.books = lambda u: [dict(b, is_next=b["status"] == "want_to_read" and b["id"] % 5 == 0,
+queries.books = lambda u: [dict(b, is_next=b["status"] == "want_to_read" and b["id"] % 5 == 0, is_favorite=b["id"] % 7 == 2,
                                 title_ru="Змея и крылья ночи" if b["id"] % 3 == 1 else None) for b in _b2(u)]
 _lib.save_tags = lambda b, f: print("TAGS", b, dict(f))
 _lib.delete_book = lambda u, b: (print("DELETE", b), "fanfic")[1]
@@ -129,6 +129,10 @@ FILES = {6: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/v
 _bk2 = queries.book_detail
 queries.book_detail = lambda u, bid: dict(_bk2(u, bid), file_url=FILES.get(bid))
 _lib.set_file = lambda u, b, url: FILES.__setitem__(b, (url or "").strip() or None)
+SOURCES = {}  # «Где читать» — до перезапуска
+_bk4 = queries.book_detail
+queries.book_detail = lambda u, bid: dict(_bk4(u, bid), **({"source_url": SOURCES[bid]} if bid in SOURCES else {}))
+_lib.set_source = lambda u, b, url: SOURCES.__setitem__(b, (url or "").strip() or None)
 # Настройки книги: тип (книга/фанфик) и аннотации запоминаются до перезапуска
 EDITS = {}
 _bk3 = queries.book_detail

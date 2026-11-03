@@ -33,8 +33,8 @@
   <div class="links">
   <a href="/" class="{{ 'on' if path == '/' }}">Главная</a>
   <a href="/books" class="{{ 'on' if path.startswith('/books') or (path.startswith('/add/book') and not fic_search) }}">Книги</a>
-  <a href="/series" class="{{ 'on' if path.startswith('/series') }}">Серии</a>
   <a href="/fanfics" class="{{ 'on' if path.startswith('/fanfics') or path.startswith('/add/ficbook') or fic_search }}">Фанфики</a>
+  <a href="/series" class="{{ 'on' if path.startswith('/series') }}">Серии</a>
   <a href="/stats" class="{{ 'on' if path.startswith('/stats') }}">Статистика</a>
   </div>
   <details class="add-menu">
@@ -51,8 +51,8 @@
 <div class="tabbar" role="navigation" aria-label="Разделы">
   <a href="/" class="{{ 'on' if path == '/' }}">{{ icon('home', 22) }}<span>Главная</span></a>
   <a href="/books" class="{{ 'on' if path.startswith('/books') or (path.startswith('/add/book') and not fic_search) }}">{{ icon('books', 22) }}<span>Книги</span></a>
-  <a href="/series" class="{{ 'on' if path.startswith('/series') }}">{{ icon('series', 22) }}<span>Серии</span></a>
   <a href="/fanfics" class="{{ 'on' if path.startswith('/fanfics') or path.startswith('/add/ficbook') or fic_search }}">{{ icon('fanfic', 22) }}<span>Фанфики</span></a>
+  <a href="/series" class="{{ 'on' if path.startswith('/series') }}">{{ icon('series', 22) }}<span>Серии</span></a>
   <a href="/stats" class="{{ 'on' if path.startswith('/stats') }}">{{ icon('chart', 22) }}<span>Статистика</span></a>
 </div>
 <button type="button" class="to-top" aria-label="Наверх" title="Наверх">{{ icon('arrow-up', 22) }}</button>
@@ -73,7 +73,7 @@
     </div>
     <div class="foot-col two">
       <b>Моя библиотека</b>
-      <a href="/">Главная</a><a href="/books">Книги</a><a href="/series">Серии</a><a href="/fanfics">Фанфики</a><a href="/stats">Статистика</a>
+      <a href="/">Главная</a><a href="/books">Книги</a><a href="/fanfics">Фанфики</a><a href="/series">Серии</a><a href="/stats">Статистика</a>
     </div>
     <div class="foot-col">
       <b>Добавить</b>

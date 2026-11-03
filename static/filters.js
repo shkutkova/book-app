@@ -26,7 +26,8 @@
     if (nothing) nothing.hidden = any;
   }
   buttons.forEach(b => b.onclick = () => {
-    show = b.dataset.show;
+    // большой огонёк — переключатель: нажала ещё раз — снова все
+    show = b.classList.contains('fav-big') && show === 'fav' ? 'all' : b.dataset.show;
     history.replaceState(null, '', show === 'all' ? location.pathname : '#' + show);
     apply();
   });

@@ -325,6 +325,12 @@ async def book_file(request: Request, book_id: int):
     return await _book_action(request, book_id, lambda f: library.set_file(current_user_id(), book_id, f.get("file_url")))
 
 
+@router.post("/book/{book_id}/source")
+async def book_source(request: Request, book_id: int):
+    """«Где читать»: ссылка на ficbook или другой сайт — на странице кнопка, у ficbook ещё «Обновить с ficbook»."""
+    return await _book_action(request, book_id, lambda f: library.set_source(current_user_id(), book_id, f.get("source_url")))
+
+
 @router.post("/book/{book_id}/tags")
 async def book_tags(request: Request, book_id: int):
     return await _book_action(request, book_id, lambda f: library.save_tags(book_id, f))
