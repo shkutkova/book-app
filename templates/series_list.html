@@ -4,19 +4,21 @@
 {% block content %}
 {% set DOT = {'in_progress': 'var(--p-butter)', 'to_read': 'var(--p-sky)', 'done': 'var(--p-mint)', 'abandoned': 'var(--p-pink)'} %}
 {% set tones = ['t-pink', 't-mint', 't-butter', 't-sky', 't-lilac', 't-peach'] %}
+{% set total = groups.values()|map('length')|sum %}
+{% set favs = groups.values()|sum(start=[])|selectattr('is_favorite')|list %}
+{# справа от заголовка — большой огонёк: только избранные серии (ещё раз — все) #}
 <div class="list-head">
   <h1 class="with-booky"><img src="/static/img/booky/2-19.webp" alt="">Серии</h1>
+  {% if favs %}<button type="button" data-show="fav" aria-pressed="false" class="fav-big" aria-label="Избранное: {{ favs|length }}"
+    title="Избранное · {{ favs|length }}">{{ icon('flame', 30) }}<span class="n">{{ favs|length }}</span></button>{% endif %}
 </div>
 
-{% set total = groups.values()|map('length')|sum %}
 {% if total %}
 <div class="filters" role="group" aria-label="Показать">
   <button type="button" data-show="all" aria-pressed="true">Все<span class="n">{{ total }}</span></button>
   {% for key, items in groups.items() if items %}
   <button type="button" data-show="{{ key }}" aria-pressed="false">{{ SERIES_STATUS[key] }}<span class="n">{{ items|length }}</span></button>
   {% endfor %}
-  {% set favs = groups.values()|sum(start=[])|selectattr('is_favorite')|list %}
-  {% if favs %}<button type="button" data-show="fav" aria-pressed="false" class="fav-filter">{{ icon('flame', 15) }}Избранное<span class="n">{{ favs|length }}</span></button>{% endif %}
 </div>
 <input type="search" id="find" class="find" placeholder="Найти серию или автора" aria-label="Поиск">
 
@@ -26,7 +28,7 @@
   <div class="series-now">
     {% for s in items %}
     <a class="s-card soft {{ tones[s.id % 6] }}" href="/series/{{ s.id }}" data-find="{{ (s.name ~ ' ' ~ (s.name_ru or '') ~ ' ' ~ (s.authors or ''))|lower }}"{% if s.is_favorite %} data-fav{% endif %}>
-      {% if s.is_favorite %}<span class="fav-dot" title="Любимая">{{ icon('flame', 16) }}</span>{% endif %}
+      {% if s.is_favorite %}<span class="fav-dot" title="Любимая">{{ icon('flame', 20) }}</span>{% endif %}
       <span class="lbl">{{ s.finished_books }} из {{ s.total_books }}{% if s.is_reading %} · читаю{% endif %}</span>
       <b>{{ s.name_ru or s.name }}</b>
       {% if s.name_ru %}<span class="meta">{{ s.name }}</span>{% endif %}

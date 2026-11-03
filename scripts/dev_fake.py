@@ -44,7 +44,7 @@ queries.home = lambda u: {"counts": {"finished": 136}, "reading": [
                 "authors": "Jennifer L. Armentrout", "statuses": ["finished"] * 3 + ["want_to_read"] * 7}]}
 queries.books = lambda u: [B(i, st, cov=COV if i % 2 else None, series="Crowns of Nyaxia · 1" if i % 4 == 0 else None)
                            for i, st in enumerate(["reading"] * 2 + ["want_to_read"] * 30 + ["finished"] * 40 + ["paused", "dnf"])]
-queries.fanfics = lambda u: [B(100 + i, st, kind="fanfic") for i, st in enumerate(["reading"] + ["want_to_read"] * 12 + ["finished"] * 9)]
+queries.fanfics = lambda u: [B(100 + i, st, kind="fanfic", is_favorite=i % 6 == 1) for i, st in enumerate(["reading"] + ["want_to_read"] * 12 + ["finished"] * 9)]
 
 # ---- страница книги, серии, обложки, полка
 from services import covers as _covers

@@ -1119,13 +1119,14 @@ nav .links a.on{text-decoration-color:var(--sec)}
 
 /* «Книги», «Фанфики»: большой огонёк справа от заголовка — только избранное (ещё раз — все) */
 .fav-big{position:relative;width:58px;height:58px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;
- background:#fff3ea;color:#ff6233;border:0;box-shadow:0 0 0 4px #ff9a5a33,0 12px 24px -10px #0b0020;transition:transform .2s var(--ease-out),box-shadow .2s}
-.fav-big .ic{fill:#ff9a5a}
-.fav-big:hover{transform:scale(1.06) rotate(-4deg)}
-.fav-big[aria-pressed=true]{background:linear-gradient(160deg,#ff9a5a,#ff5f8a);color:#fff;box-shadow:0 0 0 4px #ff9a5a55,0 12px 26px -8px #ff5f8acc}
-.fav-big[aria-pressed=true] .ic{fill:#fff}
+ color:#ff7a45;border:0;background:#ffffff1f;box-shadow:inset 0 0 0 1px #ffffff66,0 12px 24px -12px #0b0020;
+ -webkit-backdrop-filter:blur(10px) saturate(1.4);backdrop-filter:blur(10px) saturate(1.4);transition:transform .2s var(--ease-out),box-shadow .2s,background .2s}
+.fav-big .ic{fill:#ff9a5a;filter:drop-shadow(0 1px 3px #0b0020aa)}
+.fav-big:hover{transform:scale(1.06) rotate(-4deg);background:#ffffff2b}
+/* включён — то же стекло, но с тёплым оранжевым свечением */
+.fav-big[aria-pressed=true]{background:#ff9a5a33;box-shadow:inset 0 0 0 1.5px #ffb07acc,0 0 22px -2px #ff9a5a99,0 12px 24px -12px #0b0020}
 .fav-big .n{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;padding:0 .35rem;border-radius:999px;background:var(--ink);color:#fff;
- font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #fff3ea}
+ font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px #ffffff66}
 
 /* страница книги: «Читать на ficbook» — ссылка наружу (голубая рамка, стрелка ↗), «Скачать» — заливка (жёлтая) */
 .get-links{display:flex;flex-wrap:wrap;gap:.5rem;margin:0}
@@ -1136,3 +1137,6 @@ nav .links a.on{text-decoration-color:var(--sec)}
 .go-read .ext{font-size:.95em;opacity:.8}
 .go-file{color:var(--ink);background:var(--p-butter);box-shadow:0 6px 14px -8px #ffe08fcc}
 .go-file:hover{background:#fff0b8}
+
+/* серии: у карточки края обрезаны (свечение обложки) — огонёк внутри угла */
+.s-card .fav-dot{top:.7rem;right:.7rem}
