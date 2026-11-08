@@ -10,6 +10,7 @@ import io
 import posixpath
 import re
 import zipfile
+import zlib
 from urllib.parse import quote, unquote, urldefrag
 
 import httpx
@@ -92,7 +93,11 @@ class Book:
             raise EpubError("Файл не открывается как epub (это не zip-архив)")
         if sum(i.file_size for i in z.infolist()) > MAX_UNPACKED:
             raise EpubError("Внутри файла слишком много данных")
-        self.files = {i.filename: z.read(i) for i in z.infolist() if not i.is_dir()}
+        try:
+            self.files = {i.filename: z.read(i) for i in z.infolist() if not i.is_dir()}
+        except (zipfile.BadZipFile, zlib.error, EOFError, RuntimeError, NotImplementedError):
+            # оборванная загрузка, битый архив, пароль или странное сжатие
+            raise EpubError("Файл повреждён — не получается распаковать. Попробуй скачать его заново")
         m = re.search(r'full-path="([^"]+)"', self.text("META-INF/container.xml") or "")
         if not m or m.group(1) not in self.files:
             raise EpubError("Не найдено описание книги (OPF) — похоже, это не epub")
@@ -569,17 +574,21 @@ class Book:
 
     # ---- обложка
 
-    def set_cover(self, image: bytes | None, box: tuple | None) -> str:
+    def set_cover(self, image: bytes | None, box: tuple | None, text: bytes | None = None) -> str:
+        """text — прозрачная картинка с надписью (рисует страница), ложится поверх обрезанной обложки."""
         path = self.cover_path()
+        plus = ", с надписью" if text else ""
         if path:
             src = image or self.files[path]
-            self.files[path] = crop(src, box, "PNG" if path.lower().endswith(".png") else "JPEG")
-            return "обложка заменена" if image else "обложка обрезана"
+            self.files[path] = crop(src, box, "PNG" if path.lower().endswith(".png") else "JPEG", text)
+            if not image and not box:
+                return "на обложку добавлена надпись"
+            return ("обложка заменена" if image else "обложка обрезана") + plus
         if not image:
             return "в файле нет обложки — выбери картинку"
         # обложки нет: картинка + страница-обложка первой в книге
         img, page = posixpath.join(self.base, "fx_cover.jpg"), posixpath.join(self.base, "fx_cover.xhtml")
-        self.files[img] = crop(image, box, "JPEG")
+        self.files[img] = crop(image, box, "JPEG", text)
         self.put(page, '<?xml version="1.0" encoding="utf-8"?>\n<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Cover</title>'
                        '<style type="text/css">@page{margin:0}body{margin:0;text-align:center}img{max-width:100%;max-height:100%}</style>'
                        '</head><body><div><img src="fx_cover.jpg" alt="cover"/></div></body></html>')
@@ -591,11 +600,12 @@ class Book:
         if re.search(r"<(?:opf:)?guide\b", opf):
             opf = re.sub(r"(<(?:opf:)?guide\b[^>]*>)", r'\1<reference type="cover" title="Cover" href="fx_cover.xhtml"/>', opf, count=1)
         self.opf = opf
-        return "обложка добавлена"
+        return "обложка добавлена" + plus
 
 
-def crop(data: bytes, box: tuple | None, fmt: str) -> bytes:
-    """box — доли картинки (x, y, ширина, высота) от 0 до 1, как выбрала в рамке."""
+def crop(data: bytes, box: tuple | None, fmt: str, text: bytes | None = None) -> bytes:
+    """box — доли картинки (x, y, ширина, высота) от 0 до 1, как выбрала в рамке.
+    text — PNG с надписью на прозрачном фоне: растягивается на всю обложку после обрезки."""
     try:
         im = Image.open(io.BytesIO(data))
         im.load()
@@ -606,6 +616,12 @@ def crop(data: bytes, box: tuple | None, fmt: str) -> bytes:
         w, h = im.size
         x, y, bw, bh = (max(0.0, min(1.0, v)) for v in box)
         im = im.crop((round(x * w), round(y * h), round(min(1, x + bw) * w), round(min(1, y + bh) * h)))
+    if text:
+        try:
+            layer = Image.open(io.BytesIO(text)).convert("RGBA").resize(im.size, Image.LANCZOS)
+        except OSError:
+            raise EpubError("Надпись для обложки не открывается — обнови страницу")
+        im = Image.alpha_composite(im.convert("RGBA"), layer).convert("RGB")
     out = io.BytesIO()
     im.save(out, fmt, quality=92)
     return out.getvalue()
@@ -741,7 +757,8 @@ def search_query(meta: dict) -> str:
 
 
 def build(data: bytes, *, fixes: set[str], title: str, authors: list[str], series: str, index: str,
-          cover: bytes | None, box: tuple | None, change_cover: bool, per_page: int | None) -> tuple[bytes, list[str]]:
+          cover: bytes | None, box: tuple | None, change_cover: bool, per_page: int | None,
+          cover_text: bytes | None = None) -> tuple[bytes, list[str]]:
     """fixes — галочки шага 4 (FIXES). Порядок важен: сначала чистка текста, потом главы, потом страницы."""
     book = Book(data)
     report = []
@@ -774,7 +791,7 @@ def build(data: bytes, *, fixes: set[str], title: str, authors: list[str], serie
     book.set_meta(title, authors, series, index, "")
     book.add_lang((lang or book.meta()["language"] or "ru").split("-")[0])
     if change_cover:
-        report.append(book.set_cover(cover, box))
+        report.append(book.set_cover(cover, box, cover_text))
     if per_page:
         state = book.has_pages()
         if state == "own":

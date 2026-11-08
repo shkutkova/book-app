@@ -257,6 +257,7 @@
     const W = Math.round(box.w * img.naturalWidth), H = Math.round(h * img.naturalHeight);
     const [sw, sh] = cropOn.checked ? [W, H] : [img.naturalWidth, img.naturalHeight];
     $('crop-size').textContent = `Получится ${sw}×${sh}` + (sw < 600 ? ' — мелковато, на Kindle может быть мутной' : '');
+    preview();
   }
   ratioIn.addEventListener('input', () => { remember('ratio', ratioIn.value); fit(); });
   cropOn.addEventListener('change', draw);
@@ -280,6 +281,61 @@
     draw();
   });
   ['pointerup', 'pointercancel'].forEach(t => frame.addEventListener(t, () => drag = null));
+
+  // ---- надпись на обложке: рисует cover_text.js на прозрачном холсте, сервер кладёт её поверх обрезанной обложки
+  const txtOn = $('txt-on'), txtPrev = $('txt-preview');
+  const txt = {style: 'modern', mode: 'bottom', color: 'light', size: 'm'};
+  try { Object.assign(txt, JSON.parse(recall('txt') || '{}')); } catch {}
+  const region = () => cropOn.checked && box ? [box.x, box.y, box.w, fh(box)] : [0, 0, 1, 1];  // что останется от картинки
+  const coverText = () => ({title: $('ws-title').value.trim(),
+                            author: $('ws-authors').value.split(',').map(s => s.trim()).filter(Boolean).join(', ')});
+  // стили — кнопками с маленькими обложками
+  const minis = CoverText.STYLES.map(s => {
+    const b = el('button'), c = el('canvas');
+    b.type = 'button'; b.dataset.k = 'style'; b.dataset.v = s.id;
+    b.append(c, el('span', null, s.label));
+    $('txt-styles').append(b);
+    return {id: s.id, c};
+  });
+  function render(canvas, W, style) {  // картинка (как после обрезки) + надпись
+    const [x, y, w, h] = region(), nw = img.naturalWidth, nh = img.naturalHeight;
+    canvas.width = W; canvas.height = Math.round(W * h * nh / (w * nw));
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, x * nw, y * nh, w * nw, h * nh, 0, 0, canvas.width, canvas.height);
+    CoverText.paint(ctx, canvas.width, canvas.height, coverText(), {...txt, style});
+  }
+  const textOn = () => txtOn.checked && !$('ws-cropper').hidden && img.naturalWidth && (coverText().title || coverText().author);
+  let prevQueued = false;
+  async function preview() {
+    $('ws-txt').hidden = !txtOn.checked;
+    form.querySelectorAll('#ws-txt [data-k]').forEach(b => b.classList.toggle('on', txt[b.dataset.k] === b.dataset.v));
+    if (!textOn() || prevQueued) return;
+    prevQueued = true;
+    const t = coverText();
+    await Promise.all(CoverText.STYLES.map(s => CoverText.fonts(t, s.id)));
+    requestAnimationFrame(() => {
+      prevQueued = false;
+      render(txtPrev, 440, txt.style);
+      minis.forEach(m => render(m.c, 150, m.id));
+    });
+  }
+  async function textLayer() {  // PNG с одной надписью — пропорции как у обрезанной обложки (сервер подгонит размер)
+    if (!textOn()) return null;
+    const t = coverText(), [, , w, h] = region();
+    await CoverText.fonts(t, txt.style);
+    const c = el('canvas'), W = 1600;
+    c.width = W; c.height = Math.round(W * h * img.naturalHeight / (w * img.naturalWidth));
+    CoverText.paint(c.getContext('2d'), c.width, c.height, t, txt);
+    return new Promise(res => c.toBlob(res, 'image/png'));
+  }
+  txtOn.checked = recall('txt-on') === '1';
+  txtOn.addEventListener('change', () => { remember('txt-on', txtOn.checked ? '1' : ''); preview(); });
+  $('ws-txt').addEventListener('click', e => {
+    const b = e.target.closest('[data-k]');
+    if (!b) return;
+    txt[b.dataset.k] = b.dataset.v; remember('txt', JSON.stringify(txt)); preview();
+  });
+  ['ws-title', 'ws-authors'].forEach(id => $(id).addEventListener('input', preview));
 
   // ---- номера страниц: «Kindle» (≈ один экран) или «Своё» число
   const perPage = $('per-page'), KINDLE = '950';
@@ -307,9 +363,9 @@
   // ---- скачать или отправить на Kindle: собирает сервер, файл не хранится
   function fileName() {
     const author = $('ws-authors').value.split(',')[0].trim(), title = $('ws-title').value.trim() || 'book';
-    return ((author ? author + ' - ' : '') + title).replace(/[\/:*?"<>|]+/g, ' ').trim() + '.epub';
+    return (title + (author ? ' - ' + author : '')).replace(/[\/:*?"<>|]+/g, ' ').trim() + '.epub';
   }
-  function formData() {  // null — если не выбрана картинка для обложки
+  async function formData() {  // null — если не выбрана картинка для обложки
     const src = form.querySelector('[name=cover_src]:checked');
     if ((src.value === 'url' && !$('ws-cover-url').value) || (src.value === 'file' && !$('ws-cover-file').files[0])) {
       $('ws-state').textContent = 'Выбери картинку для обложки (или «Как в файле»).'; return null;
@@ -317,6 +373,8 @@
     const fd = new FormData(form);
     if (src.value !== 'url') fd.delete('cover_url');
     fd.append('filename', fileName());
+    const layer = await textLayer();
+    if (layer) fd.append('cover_text', layer, 'text.png');
     return fd;
   }
   function showReport(report) {
@@ -330,10 +388,10 @@
     finally { btns.forEach(b => b.disabled = false); busy(btn, false); }
   }
 
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', async e => {
     e.preventDefault();
     if (!fileInput.files[0]) return;
-    const fd = formData(), state = $('ws-state');
+    const fd = await formData(), state = $('ws-state');
     if (!fd) return;
     run($('ws-build'), async () => {
       state.textContent = 'Собираю файл…';
@@ -348,9 +406,9 @@
     });
   });
 
-  $('ws-kindle')?.addEventListener('click', () => {
+  $('ws-kindle')?.addEventListener('click', async () => {
     if (!fileInput.files[0]) return;
-    const fd = formData(), state = $('ws-state');
+    const fd = await formData(), state = $('ws-state');
     if (!fd) return;
     run($('ws-kindle'), async () => {
       state.textContent = 'Собираю и отправляю на Kindle…';

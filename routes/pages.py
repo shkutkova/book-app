@@ -83,7 +83,7 @@ templates.env.globals.update(LOGIN_ON=auth.password, STATUS=queries.STATUS_NAMES
                              # ?v=<хеш> у стилей и скриптов: после выкладки браузер берёт новые файлы, а не из кэша
                              CSS_V=hashlib.md5(b"".join((Path(__file__).parent.parent / "static" / f).read_bytes()
                                                         for f in ("style.css", "filters.js", "desc.js", "views.js",
-                                                                  "workshop.js", "motion.js", "glow.js", "fx.js"))).hexdigest()[:8])
+                                                                  "workshop.js", "cover_text.js", "motion.js", "glow.js", "fx.js"))).hexdigest()[:8])
 
 
 def back(url: str, error: str | None = None) -> RedirectResponse:
@@ -614,13 +614,14 @@ async def _workshop_epub(form) -> tuple[bytes, list[str]] | JSONResponse:
         elif cover_src == "file" and hasattr(form.get("cover_file"), "read"):
             image = await form["cover_file"].read()
         box = tuple(float(x) for x in form["crop"].split(",")) if form.get("crop") else None
+        text = await form["cover_text"].read() if hasattr(form.get("cover_text"), "read") else None  # надпись — PNG со страницы
         per_page = int(form["per_page"]) if form.get("pages") and form.get("per_page") else None
         content, report = await run_in_threadpool(
             epub.build, data, fixes={f for f in epub.FIXES if form.get(f)},
             title=form.get("title", "").strip(), authors=[a.strip() for a in form.get("authors", "").split(",") if a.strip()],
             series=form.get("series", "").strip(), index=form.get("series_index", "").strip(),
-            cover=image, box=box, change_cover=cover_src != "none" and (image is not None or box is not None),
-            per_page=max(200, min(per_page, 20000)) if per_page else None)
+            cover=image, box=box, change_cover=cover_src != "none" and (image is not None or box is not None or bool(text)),
+            per_page=max(200, min(per_page, 20000)) if per_page else None, cover_text=text or None)
     except epub.EpubError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
     except ValueError:

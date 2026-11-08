@@ -98,6 +98,32 @@
         <input id="ratio" type="number" step="0.01" min="0.4" max="1.5" value="0.73" style="width:7rem">
         <p class="muted small">Двигай рамку, тяни за уголок — меняй размер. Что вне рамки — обрежется.</p>
         <p class="small" id="crop-size"></p>
+        <label class="check"><input type="checkbox" id="txt-on"> Надпись: название и автор</label>
+        <div class="ws-txt" id="ws-txt" hidden>
+          <span class="ws-txt-h">Стиль</span>
+          <div class="ws-txt-styles" id="txt-styles" role="group" aria-label="Стиль надписи"></div>
+          <span class="ws-txt-h">Где</span>
+          <div class="ws-presets" role="group" aria-label="Где надпись">
+            <button type="button" data-k="mode" data-v="top">Сверху</button>
+            <button type="button" data-k="mode" data-v="bottom">Снизу</button>
+            <button type="button" data-k="mode" data-v="split">Название сверху, автор снизу</button>
+          </div>
+          <div class="ws-txt-row">
+            <div><span class="ws-txt-h">Цвет текста</span>
+              <div class="ws-presets" role="group" aria-label="Цвет текста">
+                <button type="button" data-k="color" data-v="light">Светлый</button>
+                <button type="button" data-k="color" data-v="dark">Тёмный</button>
+              </div></div>
+            <div><span class="ws-txt-h">Размер</span>
+              <div class="ws-presets" role="group" aria-label="Размер текста">
+                <button type="button" data-k="size" data-v="s">Мельче</button>
+                <button type="button" data-k="size" data-v="m">Обычный</button>
+                <button type="button" data-k="size" data-v="l">Крупнее</button>
+              </div></div>
+          </div>
+          <p class="muted small">Текст — из полей «Название» и «Автор» (шаг 2). Так будет:</p>
+          <canvas id="txt-preview" class="ws-txt-preview" aria-label="Обложка с надписью"></canvas>
+        </div>
       </div>
     </div>
   </section>
@@ -113,4 +139,7 @@
 </form>
 {% endblock %}
 
-{% block scripts %}<script src="/static/workshop.js?v={{ CSS_V }}"></script>{% endblock %}
+{% block scripts %}{# шрифты для надписи на обложке — только здесь #}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,600&family=Cormorant+SC:wght@600&family=Oswald:wght@600&family=Playfair+Display:wght@700&display=swap">
+<script src="/static/cover_text.js?v={{ CSS_V }}"></script>
+<script src="/static/workshop.js?v={{ CSS_V }}"></script>{% endblock %}
