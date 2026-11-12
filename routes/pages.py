@@ -302,7 +302,8 @@ def book_page(request: Request, book_id: int, error: str | None = None):
     if not b:
         raise HTTPException(404, "Книга не найдена")
     return templates.TemplateResponse(request, "book.html", {
-        "b": b, "genres": queries.genres(user_id), "error": error, "today": date.today().isoformat()})
+        "b": b, "genres": queries.genres(user_id), "series_names": queries.series_names(),
+        "error": error, "today": date.today().isoformat()})
 
 
 async def _book_action(request: Request, book_id: int, action) -> RedirectResponse:
@@ -329,6 +330,12 @@ async def book_file(request: Request, book_id: int):
 async def book_source(request: Request, book_id: int):
     """«Где читать»: ссылка на ficbook или другой сайт — на странице кнопка, у ficbook ещё «Обновить с ficbook»."""
     return await _book_action(request, book_id, lambda f: library.set_source(current_user_id(), book_id, f.get("source_url")))
+
+
+@router.post("/book/{book_id}/series")
+async def book_series(request: Request, book_id: int):
+    """Уже добавленную книгу — в серию (новую или существующую), с номером."""
+    return await _book_action(request, book_id, lambda f: catalog.add_to_series(book_id, f.get("series_name"), f.get("series_position")))
 
 
 @router.post("/book/{book_id}/tags")

@@ -264,3 +264,27 @@ def known(user_id: str, hc_ids: list[int]) -> dict[int, dict]:
                left join library l on l.book_id = b.id and l.user_id = %s
                where b.hardcover_id = any(%s)""", (user_id, hc_ids)).fetchall()
     return {r["hardcover_id"]: r for r in rows}
+
+
+def add_to_series(book_id: int, raw_name: str | None, raw_position: str | None) -> int:
+    """Уже добавленную книгу — в серию (из настроек книги). Серия ищется по названию
+    (оригинал или русское, без регистра и знаков); нет такой — создаётся."""
+    raw_name = (raw_name or "").strip()
+    if not raw_name:
+        raise ValidationError("Укажи серию")
+    position = (raw_position or "").strip().replace(",", ".")
+    try:
+        position = float(position) if position else None
+    except ValueError:
+        raise ValidationError(f"Номер в серии должен быть числом: {position}")
+    name, name_ru = split_title(raw_name)
+    with transaction() as conn:
+        row = conn.execute(
+            f"""select id from series where {NORM.format('name')} = {NORM.format('%s')}
+                   or {NORM.format('name_ru')} = {NORM.format('%s')} order by id limit 1""", (name, name)).fetchone()
+        series_id = row["id"] if row else conn.execute(
+            "insert into series (name, name_ru) values (%s, %s) returning id", (name, name_ru)).fetchone()["id"]
+        conn.execute("""insert into series_books (series_id, book_id, official_position) values (%s, %s, %s)
+                        on conflict (series_id, book_id) do update set official_position = excluded.official_position""",
+                     (series_id, book_id, position))
+    return series_id

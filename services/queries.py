@@ -271,3 +271,8 @@ def find_books(user_id: str, q: str) -> list[dict]:
 
 def genres(user_id: str) -> list[dict]:
     return fetch_all("select id, name, color from my_genres where user_id = %s order by name", (user_id,))
+
+
+def series_names() -> list[str]:
+    """Названия всех серий — подсказка в поле «Серия» в настройках книги."""
+    return [r["n"] for r in fetch_all("select distinct coalesce(name_ru, name) as n from series order by 1")]

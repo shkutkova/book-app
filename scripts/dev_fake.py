@@ -124,6 +124,9 @@ _lib.delete_book = lambda u, b: (print("DELETE", b), "fanfic")[1]
 _lib.set_series_extra = lambda u, s, b, extra: EXTRA.__setitem__(b, extra)
 _lib.remove_from_series = lambda s, b: print("REMOVE", s, b)
 _lib.delete_series = lambda s: print("DELETE SERIES", s)
+queries.series_names = lambda: ["Crowns of Nyaxia", "Короны Никсии", "Deception", "Пространство между мирами"]
+from services import catalog as _cat
+_cat.add_to_series = lambda b, name, pos: print("TO SERIES", b, name, pos)
 _lib.set_cover = lambda b, url: print("COVER", b, _lib.cover_link(url))
 FILES = {6: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing"}
 _bk2 = queries.book_detail

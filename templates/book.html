@@ -217,6 +217,29 @@
           <label for="notes">Заметки</label><textarea id="notes" name="notes" rows="4">{{ b.notes or '' }}</textarea>
           <p class="set-save"><button class="primary">Сохранить</button></p>
         </form>
+        {# в серию — уже добавленную книгу: серия ищется по названию, нет такой — создаётся; убрать — на странице серии #}
+        <form method="post" action="/book/{{ b.id }}/series" class="settings-form">
+          <div class="form-grid">
+            <div><label for="series_name">{{ 'Ещё в серию' if b.series else 'В серию' }}</label>
+              <input id="series_name" name="series_name" list="series-names" required placeholder="Название серии" style="width:100%">
+              {# список пуст, пока поле пустое: подсказки — только совпадения с тем, что начала вводить #}
+              <datalist id="series-names" data-names="{{ series_names|tojson|forceescape }}"></datalist></div>
+            <div><label for="series_position">Номер</label>
+              <input id="series_position" name="series_position" inputmode="decimal" style="width:100%"></div>
+          </div>
+          <p class="set-save"><button class="primary">Добавить в серию</button></p>
+        </form>
+        <script>
+          (() => {
+            const input = document.getElementById('series_name'), list = document.getElementById('series-names');
+            const names = JSON.parse(list.dataset.names);
+            input.addEventListener('input', () => {
+              const q = input.value.trim().toLowerCase();
+              list.replaceChildren(...(q ? names.filter(n => n.toLowerCase().includes(q) && n.toLowerCase() !== q).slice(0, 8) : [])
+                .map(n => new Option(n)));
+            });
+          })();
+        </script>
         {% endif %}
       </div>
 
