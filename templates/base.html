@@ -17,6 +17,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Unbounded:wght@600;700;800&display=swap">
 <link rel="stylesheet" href="/static/style.css?v={{ CSS_V }}">
+{# Пробный новый вид (look.css / look.js): включается переключателем «Вид»; выбор ставим до отрисовки, чтобы страница не мигала #}
+<script>try{if(localStorage.getItem('look')==='new')document.documentElement.dataset.look='new'}catch(e){}</script>
+<link rel="stylesheet" href="/static/look.css?v={{ CSS_V }}">
 {# Плавная смена страниц. Именно здесь, а не в style.css: из внешнего файла Chrome переход не включал #}
 <style>@view-transition{navigation:auto}</style>
 </head>
@@ -24,12 +27,14 @@
 {# фильтр «жидких» краёв для поиска-капли (fx.js) #}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="goo"><feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b"/>
   <feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9"/></filter></svg>
+<div class="look-bg" aria-hidden="true"></div>
 {% block nav %}
 {% from "_icons.html" import icon %}
 {% set path = request.url.path %}
 {% set fic_search = path == '/add/book' and request.query_params.get('fanfic') %}
 <nav>
-  <a class="logo" href="/"><img src="/static/img/booky/2-11.webp" alt="">Spooky Book Universe</a>
+  <a class="logo" href="/" aria-label="Spooky Book Universe"><img src="/static/img/booky/2-11.webp" alt=""><span class="logo-t">Spooky Book Universe</span>
+    <span class="wm" aria-hidden="true"><span>Sp<i class="oo"><i><b></b></i><i><b></b></i></i>ky</span><span>Book</span><em>Universe</em></span></a>
   <div class="links">
   <a href="/" class="{{ 'on' if path == '/' }}">Главная</a>
   <a href="/books" class="{{ 'on' if path.startswith('/books') or (path.startswith('/add/book') and not fic_search) }}">Книги</a>
@@ -56,6 +61,19 @@
   <a href="/stats" class="{{ 'on' if path.startswith('/stats') }}">{{ icon('chart', 22) }}<span>Статистика</span></a>
 </div>
 <button type="button" class="to-top" aria-label="Наверх" title="Наверх">{{ icon('arrow-up', 22) }}</button>
+{# Пробный новый вид: переключатель и привидение-помощник (видно только в новом виде) #}
+<div class="look-switch" role="group" aria-label="Вид сайта"><button type="button" data-v="old">как сейчас</button><button type="button" data-v="new">новый</button></div>
+<div class="bot">
+  <p class="bubble off" id="say" aria-live="polite"></p>
+  <button type="button" id="ghost" aria-label="Привидение-помощник: следующая подсказка">
+    <svg viewBox="0 0 120 130" aria-hidden="true"><defs><linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#f1d9c6"/></linearGradient></defs>
+      <path fill="url(#gg)" d="M60 8c-28 0-44 22-44 50v58c0 6 6 8 10 4l8-8 10 10c2 2 5 2 7 0l9-10 9 10c2 2 5 2 7 0l10-10 8 8c4 4 10 2 10-4V58c0-28-16-50-44-50z"/>
+      <ellipse cx="31" cy="74" rx="7" ry="4" fill="#ffb9a0" opacity=".8"/><ellipse cx="89" cy="74" rx="7" ry="4" fill="#ffb9a0" opacity=".8"/>
+      <g fill="none" stroke="#26113f" stroke-width="3" stroke-linecap="round"><circle cx="44" cy="56" r="14"/><circle cx="76" cy="56" r="14"/><path d="M58 55h4M54 78q6 5 12 0"/></g>
+      <g class="eyes" fill="#26113f"><ellipse cx="44" cy="57" rx="4" ry="6"/><ellipse cx="76" cy="57" rx="4" ry="6"/></g>
+    </svg>
+  </button>
+</div>
 {% endblock %}
 <div class="wrap">
   {% if not LOGIN_ON() %}<div class="error" role="status">Вход по паролю выключен: не задан APP_PASSWORD. Локально это нормально, на хостинге — обязательно задать.</div>{% endif %}
@@ -148,5 +166,6 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') document.que
 <script src="/static/fx.js?v={{ CSS_V }}"></script>
 <script src="/static/glow.js?v={{ CSS_V }}"></script>
 {% block scripts %}{% endblock %}
+<script src="/static/look.js?v={{ CSS_V }}"></script>
 </body>
 </html>

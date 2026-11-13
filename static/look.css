@@ -1,0 +1,174 @@
+/* Новый вид (пробный): включается переключателем «Вид» внизу слева — html[data-look=new]. Старый вид не трогает.
+   Фон — цвет читаемой книги на фиолетовом, сдвигается при прокрутке; стекло с переливающимся контуром;
+   «Читаю сейчас» — обложки веером; очередь «Следующие» по номерам; привидение-помощник. Скрипт — look.js. */
+html:not([data-look=new]) :is(.look-new,.look-bg,.wm,.bot){display:none}
+.look-switch{position:fixed;left:max(.8rem,env(safe-area-inset-left));bottom:max(.8rem,env(safe-area-inset-bottom));z-index:60;display:flex;gap:2px;padding:3px;
+ border-radius:99px;background:#111c;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);font:600 .78rem/1 system-ui,sans-serif}
+.look-switch button{all:unset;cursor:pointer;padding:.55em .9em;border-radius:99px;color:#ddd}
+.look-switch button[aria-pressed=true]{background:#fff;color:#111}
+.look-switch button:focus-visible{outline:2px solid #ffe08f;outline-offset:2px}
+@media (max-width:720px){.look-switch{bottom:calc(4.9rem + env(safe-area-inset-bottom))}}
+
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes look-spin{to{--a:360deg}}
+@keyframes look-rise{from{opacity:0;transform:translateY(14px)}}
+@keyframes look-marq{to{transform:translateX(-50%)}}
+@keyframes look-shim{to{background-position:-200% 0}}
+@keyframes look-bob{50%{translate:0 -9px;rotate:-3deg}}
+@keyframes look-hop{40%{translate:0 -22px}}
+@keyframes look-pop{from{opacity:0;scale:.6}}
+@keyframes look-blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+
+html[data-look=new]{
+ background:#2a0d55;
+ --butter:#ffe08f;--mint:#a6ecd0;--sky:#b5dbff;--lilac:#dacbff;--peach:#ffcdb5;--e:cubic-bezier(.16,1,.3,1);
+
+ body{background:none}
+ .look-old{display:none}
+ .to-top{bottom:9.5rem}
+
+ /* ---- фон: пятно цвета книги (--amb), при прокрутке (--sc: 0 наверху, 1 внизу) едет вправо и меняет оттенок */
+ .look-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;background-color:var(--amb,#7d1f66);transition:background-color 1.2s;
+  filter:saturate(1.7) brightness(1.55) hue-rotate(calc(var(--sc,0)*-70deg));
+  background-image:radial-gradient(42vmax 40vmax at 96% 100%,#ffb44a3d,transparent 62%),
+   radial-gradient(100vmax 78vmax at calc(24% + var(--sc,0)*55%) calc(var(--sc,0)*40%),transparent,#1b0838 72%)}
+
+ /* ---- название сайта: «oo» в Spooky — очки привидения с глазами (моргают, следят за курсором), Universe переливается */
+ nav .logo img,nav .logo .logo-t{display:none}
+ .wm{display:inline-flex;align-items:center;gap:.34em;font:800 clamp(1.05rem,.8rem + 1vw,1.6rem)/1 var(--display);letter-spacing:-.03em;color:#fff;white-space:nowrap}
+ .wm .oo{display:inline-flex;gap:.04em;margin:0 .04em;vertical-align:-.06em}
+ .wm .oo i{width:.68em;height:.68em;border:.13em solid #fff;border-radius:50%;display:grid;place-items:center;box-sizing:border-box}
+ .wm .oo b{width:.2em;height:.2em;border-radius:50%;background:var(--butter);animation:look-blink 5s infinite;transition:translate .15s}
+ .wm em{font-style:normal;color:transparent;-webkit-background-clip:text;background-clip:text;animation:look-shim 8s linear infinite;
+  background-image:linear-gradient(90deg,var(--butter),var(--mint),var(--sky),var(--lilac),var(--peach),var(--butter));background-size:200% 100%}
+ .wm em::after{content:"✦";font-size:.5em;vertical-align:.9em;margin-left:.15em}
+ nav .logo:hover .wm .oo i{border-color:var(--butter)}
+
+ /* ---- стекло с переливающимся контуром */
+ .gl{position:relative;background:#ffffff14;-webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);border-radius:24px;
+  box-shadow:inset 0 1px 0 #ffffff2e,0 26px 50px -30px #000a}
+ .gl::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;
+  background:conic-gradient(from var(--a),var(--butter),var(--mint),var(--sky),var(--lilac),var(--peach),var(--butter));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:.3;transition:opacity .4s;animation:look-spin 9s linear infinite}
+ .gl:hover::before{opacity:1}
+
+ .nh{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin:2.4rem 0 1rem}
+ .nh h1,.nh h2{font:600 1.05rem var(--display);margin:0}
+ .nh small{font:400 .88rem var(--body);color:#ffffffb8;margin-left:.6em}
+ .nh a{font-weight:700;font-size:.92rem}
+ .nh:first-child{margin-top:.6rem}
+ .nb{font:700 .92rem var(--body);padding:.65em 1.2em;border-radius:99px;border:1px solid #ffffff4d;color:#fff;background:none;cursor:pointer;display:inline-block;transition:transform .2s var(--e)}
+ .nb:hover{transform:translateY(-2px);text-decoration:none}
+ .nb.main{background:var(--butter);color:var(--ink);border-color:transparent}
+
+ /* ---- «Читаю сейчас»: обложки веером, нажми на боковую — выйдет вперёд (look.js). --s — сторона (-1/1), --d — глубина */
+ .stage{display:grid;gap:.6rem;padding:1.2rem;border-radius:32px}
+ .st-fan{display:flex;justify-content:center;align-items:center;min-height:250px;padding:.6rem 0}
+ .fc,.qc{--kp:color-mix(in oklab,var(--k,#7d1f66) 40%,#fff)}
+ .fc{all:unset;box-sizing:border-box;cursor:pointer;flex:none;position:relative;aspect-ratio:2/3;border-radius:8px;overflow:hidden;
+  order:calc(var(--s)*var(--d));z-index:calc(10 - var(--d));width:calc(clamp(92px,13vw,150px) - var(--d)*12px);rotate:calc(var(--s)*var(--d)*8deg);margin-inline:-14px;
+  filter:brightness(.72);box-shadow:0 14px 30px -14px #000c;transition:width .5s var(--e),rotate .5s var(--e),filter .4s,translate .4s var(--e)}
+ .fc:focus-visible{outline:2px solid var(--butter);outline-offset:3px}
+ .fc img,.fc .img{width:100%;height:100%;object-fit:cover;display:block}
+ .fc .img,.qc .qv .img{background:var(--lilac)}
+ .site-foot .logo img,.foot-booky{display:none}
+ .fc .img{display:grid;place-items:center;padding:.6em;text-align:center;color:var(--ink);font:700 .78rem/1.2 var(--display);overflow-wrap:anywhere}
+ .fc:not(.act):hover{filter:none;translate:0 -8px}
+ .fc.act{--d:0;--s:0;width:clamp(140px,19vw,220px);margin-inline:0;filter:none;box-shadow:0 40px 80px -24px #000,0 0 80px -10px var(--kp)}
+ .st-b{display:none}
+ .st-b.act{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.55rem;animation:look-rise .6s var(--e)}
+ .st-b h3{font:700 clamp(1.4rem,1rem + 2vw,2.5rem)/1.1 var(--display);letter-spacing:-.02em;margin:0;text-wrap:balance}
+ .st-b .by{color:#ffffffb8;margin:0}
+ .st-b .tagl{font-size:.8rem;font-weight:700;padding:.25em .8em;border-radius:99px;background:#ffffff24}
+ .st-acts{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem}
+ .st-acts form{margin:0}
+ .st-empty{padding:2rem 1rem;text-align:center}.st-empty p{color:#ffffffb8;margin:0 0 1rem}
+
+ /* ---- бегущая строка: наведи — остановится */
+ .ticker{overflow:hidden;margin-top:1.6rem;padding:.7rem 0;border-radius:99px;background:#ffffff14;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+ .ticker div{display:inline-flex;gap:2.2em;padding-right:2.2em;white-space:nowrap;animation:look-marq 50s linear infinite}
+ .ticker:hover div{animation-play-state:paused}
+ .ticker span::before{content:"✦";margin-right:2.2em;color:#ffffff66;font-size:.7em;vertical-align:.15em}
+ .ticker b{font-weight:800}
+ :is(.ticker span,.nt):nth-child(5n+1){--tc:var(--butter)}:is(.ticker span,.nt):nth-child(5n+2){--tc:var(--mint)}:is(.ticker span,.nt):nth-child(5n+3){--tc:var(--sky)}
+ :is(.ticker span,.nt):nth-child(5n+4){--tc:var(--lilac)}:is(.ticker span,.nt):nth-child(5n){--tc:var(--peach)}
+ .ticker b,.nt b{color:var(--tc)}
+
+ /* ---- плитки цифр: стоят не вровень */
+ .nts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:1.6rem}
+ .nt{padding:18px 20px;display:flex;flex-direction:column;justify-content:flex-end;min-height:104px;color:#fff;transition:translate .35s var(--e);
+  background:linear-gradient(145deg,color-mix(in oklab,var(--tc) 30%,transparent),#ffffff0f 85%)}
+ .nt:hover{text-decoration:none;translate:0 -5px}
+ .nt b{font:700 clamp(1.5rem,1rem + 1.4vw,2.1rem)/1 var(--display);font-variant-numeric:tabular-nums}
+ .nt span{color:#ffffffb8;font-size:.9rem;margin-top:.35em}
+ .nt:nth-child(even){translate:0 14px}.nt:nth-child(even):hover{translate:0 8px}
+
+ /* ---- очередь «Следующие»: по номерам, номер — цветом обложки; карточки можно перетаскивать */
+ .q-row{display:grid;grid-auto-flow:column;grid-auto-columns:46%;gap:18px;overflow-x:auto;padding:10px 4px 14px;counter-reset:q}
+ .qc{counter-increment:q;position:relative;padding-left:32%;color:#fff;display:flex;flex-direction:column;gap:2px;min-width:0;transition:opacity .4s}
+ .qc:hover{text-decoration:none}
+ .qc::before{content:counter(q);position:absolute;left:-2px;top:.25em;font:800 clamp(3.4rem,2rem + 4vw,5.4rem)/1 var(--display);letter-spacing:-.08em;
+  color:transparent;-webkit-text-stroke:2px var(--kp);transition:color .3s}
+ .qc:hover::before{color:var(--kp)}
+ .qc .qv{position:relative;z-index:1;aspect-ratio:2/3;border-radius:8px;overflow:hidden;margin-bottom:10px;box-shadow:0 14px 30px -14px #000c;transition:transform .35s var(--e),box-shadow .35s}
+ .qc .qv img,.qc .qv .img{width:100%;height:100%;object-fit:cover;display:block}
+ .qc .qv .img{display:grid;place-items:center;padding:.5em;text-align:center;color:var(--ink);font:700 .72rem/1.2 var(--display);overflow-wrap:anywhere}
+ .qc>b{font-size:.92rem;line-height:1.25}.qc>span{color:#ffffffb8;font-size:.82rem}
+ .q-row:hover .qc:not(:hover){opacity:.5}
+ .qc:hover .qv{transform:scale(1.06);box-shadow:0 20px 44px -14px var(--kp)}
+ .qc.drag-ghost{opacity:.3}
+ .q-empty{color:#ffffffb8}
+
+ /* ---- привидение-помощник: моргает, следит глазами, по нажатию говорит следующую подсказку */
+ .bot{display:flex;position:fixed;right:max(1rem,env(safe-area-inset-right));bottom:max(1rem,env(safe-area-inset-bottom));z-index:43;align-items:flex-end;gap:6px;pointer-events:none}
+ .bot button{all:unset;cursor:pointer;pointer-events:auto;width:92px;flex:none;animation:look-bob 4s ease-in-out infinite;filter:drop-shadow(0 16px 18px #0008)}
+ .bot button.hop{animation:look-hop .5s var(--e)}
+ .bot button:focus-visible{outline:2px solid var(--butter);outline-offset:4px;border-radius:20px}
+ .bot svg{width:100%;display:block}
+ .bot .eyes{transition:transform .15s}
+ .bot .eyes ellipse{transform-box:fill-box;transform-origin:center;animation:look-blink 5s infinite}
+ .bubble{pointer-events:auto;max-width:250px;background:#fffffff2;color:var(--ink);font:600 .92rem/1.35 var(--body);padding:12px 16px;border-radius:20px 20px 4px 20px;margin:0 0 50px;
+  box-shadow:0 18px 36px -16px #000a;transform-origin:100% 100%;transition:opacity .4s}
+ .bubble.pop{animation:look-pop .5s var(--e)}
+ .bubble.off{opacity:0;pointer-events:none}
+
+ @media (min-width:761px){
+  .stage{grid-template-columns:1fr 1fr;align-items:center;padding:1.4rem 2.8rem;min-height:390px}
+  .st-text{order:-1}
+  .st-b.act{align-items:flex-start;text-align:left}
+  .st-acts{justify-content:flex-start}
+  .st-fan{min-height:340px}
+  .nts{grid-template-columns:repeat(5,1fr)}
+  .q-row{grid-auto-flow:row;grid-template-columns:repeat(6,1fr);overflow:visible}
+ }
+ @media (max-width:720px){
+  .bot{bottom:calc(4.8rem + env(safe-area-inset-bottom))}.bot button{width:64px}.bubble{max-width:200px;margin-bottom:34px;font-size:.84rem}
+  .wm{font-size:1rem}
+ }
+}
+
+/* ---- правки 14.11: фон яркий, как был; шапка без плашки — мягкая дымка сверху вниз и белый текст с тенью;
+   смена цвета при прокрутке слабее и плавная; плитки — молочное цветное стекло с рамкой;
+   у «Читаю сейчас» ободок почти прозрачный, пастельная дуга идёт за курсором (glow.js, как у карточек) */
+@property --sc{syntax:'<number>';inherits:true;initial-value:0}
+html[data-look=new]{
+ transition:--sc 1s ease-out;
+ .look-bg{filter:saturate(1.6) brightness(1.45) hue-rotate(calc(var(--sc)*-26deg));
+  background-image:radial-gradient(42vmax 40vmax at 96% 100%,#ffb44a3d,transparent 62%),
+   radial-gradient(100vmax 78vmax at calc(24% + var(--sc)*20%) calc(var(--sc)*16%),transparent,#1b0838 72%)}
+ nav,html.scrolled nav{background:linear-gradient(#1b083873,#1b083800);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;padding-bottom:1.6rem}
+ html.scrolled nav{background:linear-gradient(#1b0838d0,#1b083880 60%,#1b083800)}
+ nav .links a{color:#fff;text-shadow:0 1px 10px #1b0838b0}
+ .wm{filter:drop-shadow(0 1px 8px #1b083899)}
+ .stage::before,.stage:hover::before{animation:none;background:#ffffff24;opacity:1}
+ .ticker{background:#ffffff1f}
+ /* плитки: каждая залита своим полупрозрачным пастельным цветом, цифры и подписи тёмные; при наведении цвет плотнее */
+ .nt{background:color-mix(in oklab,var(--tc) 50%,transparent);border:2px solid color-mix(in oklab,var(--tc) 80%,#fff);box-shadow:inset 0 1px 0 #ffffff66,0 18px 34px -22px #000a;color:var(--ink);
+  -webkit-backdrop-filter:blur(16px) saturate(.55) brightness(1.2);backdrop-filter:blur(16px) saturate(.55) brightness(1.2);transition:translate .35s var(--e),background-color .3s}
+ .nt::before{display:none}
+ .nt:hover{background:color-mix(in oklab,var(--tc) 75%,transparent)}
+ .nt b{color:var(--ink)}
+ .nt span{color:var(--ink);opacity:.78}
+}

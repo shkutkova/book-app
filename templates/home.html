@@ -5,7 +5,9 @@
 {%- set a = n % 10 -%}{%- set b = n % 100 -%}
 {{ one if a == 1 and b != 11 else (few if 2 <= a <= 4 and (b < 12 or b > 14) else many) }}
 {%- endmacro %}
+{% macro nf(x) -%}{{ '{:,}'.format(x or 0).replace(',', ' ') }}{%- endmacro %}
 {% block content %}
+<div class="look-old">{# вид «как сейчас»; новый пробный вид — ниже, .look-new (переключатель «Вид» внизу слева) #}
 <section class="hello">
   <div class="hello-text">
     <img class="hello-booky" src="/static/img/booky/1-00.webp" alt="">
@@ -118,6 +120,88 @@
   </div>
 </div>
 {% endif %}
+</div>{# /look-old #}
+
+{# ===== Новый вид (пробный): look.css / look.js. Обложки веером, бегущая строка, плитки, очередь по номерам; шкафа нет ===== #}
+<div class="look-new">
+  <div class="nh"><h1>Читаю сейчас{% if reading %}<small>{{ reading|length }} {{ plural(reading|length, 'книга', 'книги', 'книг') }}</small>{% endif %}</h1></div>
+  {% if reading %}
+  <section class="stage gl">
+    <div class="st-fan">
+      {% for b in reading %}
+      {% set k = loop.index0 - 1 %}
+      <button type="button" class="fc{{ ' act' if loop.first }}" data-id="{{ b.id }}" data-cover="{{ b.cover_url or '' }}" data-href="/book/{{ b.id }}"
+              {% if not loop.first %}style="--s:{{ 1 if k % 2 else -1 }};--d:{{ k // 2 + 1 }}"{% endif %} aria-label="{{ b.title_ru or b.title }}">
+        {% if b.cover_url %}<img src="{{ b.cover_url }}" alt="">{% else %}<span class="img tone-{{ b.id % 6 }}">{{ b.title_ru or b.title }}</span>{% endif %}
+      </button>
+      {% endfor %}
+    </div>
+    <div class="st-text">
+      {% for b in reading %}
+      <div class="st-b{{ ' act' if loop.first }}">
+        {% if b.kind == 'fanfic' %}<span class="tagl">фанфик</span>
+        {% elif b.series %}<span class="tagl">{{ b.series.name ~ ', ' if b.series.name }}{% if b.series.pos is not none %}книга {{ b.series.pos }} из {{ b.series.total }}{% else %}в серии{% endif %}</span>{% endif %}
+        <h3>{{ b.title_ru or b.title }}</h3>
+        <p class="by">{{ b.authors or '' }}{% if b.pages %}{{ ', ' if b.authors }}{{ b.pages }} стр.{% endif %}</p>
+        <div class="st-acts">
+          <form method="post" action="/book/{{ b.id }}"><button class="nb main" name="status" value="finished">Дочитала</button></form>
+          <a class="nb" href="/book/{{ b.id }}">Открыть книгу</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% else %}
+  <section class="stage gl st-empty"><div><p>Сейчас ничего не открыто.</p><a class="nb main" href="/books">Выбрать, что читать</a></div></section>
+  {% endif %}
+
+  {% set bm = board.best_month %}
+  <div class="ticker" aria-hidden="true"><div>
+    {% for _ in range(2) %}
+    <span><b>{{ nf(board.year_reads) }}</b> прочитано за год</span>
+    <span><b>{{ nf(board.year_pages) }}</b> страниц за год</span>
+    <span><b>{{ nf(board.month_reads) }}</b> прочитано в этом месяце</span>
+    <span><b>{{ nf(board.month_pages) }}</b> страниц в этом месяце</span>
+    <span><b>{{ nf(board.series_done) }}</b> серий закончено</span>
+    <span><b>{{ nf(board.year_fanfics) }}</b> фанфиков за год</span>
+    {% if bm %}<span><b>{{ bm.n }}</b> в лучшем месяце — {{ MONTHS[bm.month - 1] }}</span>{% endif %}
+    <span><b>{{ nf(counts.get('finished', 0)) }}</b> прочитано всего</span>
+    {% endfor %}
+  </div></div>
+
+  <div class="nts">
+    <a class="nt gl" href="/stats"><b>{{ nf(board.month_reads) }}</b><span>в этом месяце</span></a>
+    <a class="nt gl" href="/stats"><b>{{ nf(counts.get('finished', 0)) }}</b><span>прочитано всего</span></a>
+    <a class="nt gl" href="/stats"><b>{{ nf(board.year_pages) }}</b><span>страниц за год</span></a>
+    <a class="nt gl" href="/series"><b>{{ nf(board.series_done) }}</b><span>серий закончено</span></a>
+    <a class="nt gl" href="/stats"><b>{{ nf(board.year_fanfics) }}</b><span>фанфиков за год</span></a>
+  </div>
+
+  <div class="nh"><h2>Следующие на полке<small>по порядку; карточки можно перетаскивать</small></h2><a href="/stats">Вся статистика</a></div>
+  {% if shelf.want %}
+  <div class="q-row">
+    {% for b in shelf.want %}
+    <a class="qc" href="/book/{{ b.id }}" data-key="{{ b.key }}" data-id="{{ b.id }}" data-cover="{{ b.cover_url or '' }}" draggable="false">
+      <span class="qv">{% if b.cover_url %}<img src="{{ b.cover_url }}" alt="" loading="lazy" draggable="false">{% else %}<span class="img tone-{{ b.id % 6 }}">{{ b.title_ru or b.title }}</span>{% endif %}</span>
+      <b>{{ b.title_ru or b.title }}</b>
+      <span>{{ b.authors or '' }}</span>
+      {% if b.pages %}<span>{{ b.pages }} стр.</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="q-empty">Очередь пуста. На странице книги из «Хочу прочитать» нажми «Читать следующей» — она встанет сюда.</p>
+  {% endif %}
+
+  {# подсказки привидения-помощника — из тех же цифр #}
+  {% set say = [] %}
+  {% if reading %}{% set _ = say.append('Сейчас читаешь: ' ~ reading|length ~ ' ' ~ plural(reading|length, 'книгу', 'книги', 'книг')|trim ~ '.') %}{% endif %}
+  {% if shelf.want %}{% set _ = say.append('Следующая в очереди — «' ~ (shelf.want[0].title_ru or shelf.want[0].title) ~ '».') %}{% endif %}
+  {% set _ = say.append('В этом месяце прочитано: ' ~ board.month_reads ~ '.') %}
+  {% if bm and bm.n > board.month_reads %}{% set _ = say.append('Рекорд года — ' ~ MONTHS[bm.month - 1] ~ ', ' ~ bm.n ~ '. До него не хватает ' ~ (bm.n - board.month_reads) ~ '.') %}{% endif %}
+  {% set _ = say.append('Серий закончено: ' ~ board.series_done ~ '.') %}
+  <script type="application/json" id="say-data">{{ say|tojson }}</script>
+</div>
 {% endblock %}
 
 {% block scripts %}
