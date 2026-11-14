@@ -21,7 +21,7 @@
   }));
 
   // ---- свечение цветом обложки: размытая копия первой обложки в углу цветной карточки
-  document.querySelectorAll('.s-card.soft, .now-card').forEach(c => {
+  document.querySelectorAll('.s-card.soft').forEach(c => {
     const img = c.querySelector('img');
     if (!img) return;
     const glow = img.cloneNode(); glow.className = 'glow-img'; glow.alt = '';

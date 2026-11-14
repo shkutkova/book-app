@@ -1,10 +1,10 @@
-// Светящаяся рамка карточек (книги в списках, серии, «Читаю сейчас»): пятно света по краю поворачивается за курсором.
+// Светящаяся рамка карточек и блоков (книги в списках, серии, «Читаю сейчас», панели): пятно света по краю поворачивается за курсором.
 // Идея — Aceternity «Glowing effect», переписано без React. Стили — style.css (.glow).
 (() => {
   if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;   // телефон: мыши нет — рамки нет
   const PROXIMITY = 64, INACTIVE = 0.01;   // рамка загорается, когда курсор ближе 64px к карточке
 
-  const cards = [...document.querySelectorAll('.book-card, .s-card, .now-card, .stage, .card, .glass, .title-block')].map(el => {
+  const cards = [...document.querySelectorAll('.book-card, .s-card, .stage, .card, .glass, .title-block')].map(el => {
     const g = document.createElement('span');
     g.className = 'glow'; g.setAttribute('aria-hidden', 'true');
     el.append(g);

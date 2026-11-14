@@ -316,53 +316,11 @@ h1.with-booky{display:flex;align-items:center;gap:.7rem}
 h1.with-booky img{width:clamp(56px,8vw,84px);height:auto;margin:-.6rem 0;filter:drop-shadow(0 8px 12px #12002d66)}
 
 /* ---------- главная */
-.hello{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:2rem;align-items:center;margin:1.5rem 0 3rem}
-.hello h1{font-size:clamp(2rem,1.2rem + 3.4vw,3.6rem);font-weight:800;letter-spacing:-.035em;line-height:1.02;margin:0 0 1rem}
-.hello p{color:var(--mut);font-size:1.05rem;max-width:36ch;margin:0}
-.hello-text{display:grid;grid-template-columns:auto 1fr;column-gap:1.2rem;align-items:center}
-.hello-booky{grid-row:span 2;width:clamp(110px,14vw,170px);height:auto;filter:drop-shadow(0 14px 18px #12002d80)}
-.hello-text h1{align-self:end}.hello-text p{align-self:start}
-.now-wrap{position:relative}
-.now-wrap .blur{position:absolute;width:150px;aspect-ratio:2/3;object-fit:cover;border-radius:16px;filter:blur(26px) saturate(1.3);opacity:.6;pointer-events:none}
-.now-wrap .b1{top:-70px;right:18%}.now-wrap .b2{top:-30px;right:-4%}.now-wrap .b3{bottom:-80px;left:18%}
-.now{position:relative;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:.9rem}
-.now-card{display:flex;gap:.9rem;background:color-mix(in oklab,var(--tone,var(--p-lilac)) 26%,transparent);color:var(--text);border:1px solid color-mix(in oklab,var(--tone,var(--p-lilac)) 45%,transparent);border-radius:var(--r);padding:.8rem;box-shadow:var(--shadow);align-items:center}
-.now-card:hover{text-decoration:none;transform:translateY(-2px);transition:transform .2s cubic-bezier(.2,.8,.2,1)}
-.now-card .cover{flex:0 0 70px;width:70px}.now-card .cover .t{display:none}
-.now-card b{display:block;line-height:1.25;font-size:1rem}
-.now-card .meta{color:var(--mut);font-size:.82rem}
-.now-card:nth-child(4n+1){--tone:var(--p-pink)}.now-card:nth-child(4n+2){--tone:var(--p-sky)}.now-card:nth-child(4n+3){--tone:var(--p-mint)}.now-card:nth-child(4n){--tone:var(--p-butter)}
 .tag{display:inline-block;font-size:.72rem;font-weight:800;border-radius:999px;padding:.05rem .55rem;margin-bottom:.3rem;background:var(--p-sky);color:var(--ink)}
 .tag.fanfic{background:var(--p-pink)}
-.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin:3rem 0 1.1rem}
-.section-head h2{font-size:clamp(1.3rem,1rem + 1.2vw,1.9rem);font-weight:800;margin:0}
-.section-head a{font-weight:800}
 
-/* хаотичная доска: колонки разной высоты со сдвигом, цифры крупнее картинок */
-.board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;align-items:start;padding-top:22px;max-width:1040px;margin:0 auto}
-.board .col-b{display:grid;gap:12px}
-.board .col-b:nth-child(1){margin-top:26px}.board .col-b:nth-child(2){margin-top:-22px}
-.board .col-b:nth-child(3){margin-top:40px}.board .col-b:nth-child(4){margin-top:4px}.board .col-b:nth-child(5){margin-top:54px}
-.tile{border-radius:18px;padding:.8rem .85rem .9rem;color:var(--ink);position:relative;overflow:hidden;min-height:150px;
- display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 16px 30px -18px #12002d}
-.tile .lbl{font-weight:800;font-size:.8rem;line-height:1.2}
-.tile .big{display:block;white-space:nowrap;font-family:var(--display);font-weight:800;font-size:clamp(2.1rem,1.3rem + 2vw,3.1rem);line-height:.95;letter-spacing:-.045em;margin-top:.5rem}
-.tile .big.word{font-size:clamp(1.1rem,.8rem + 1vw,1.45rem);letter-spacing:-.02em;text-transform:none}
-.tile .big.long{font-size:clamp(1.5rem,.95rem + 1.3vw,2.1rem)}
-.tile .note{display:block;font-weight:700;font-size:.74rem;color:var(--ink-mut);margin-top:.3rem}
-.tile.dark{background:var(--ink);color:var(--text)}.tile.dark .big{color:var(--accent)}.tile.dark .note{color:var(--mut)}
-.tile.pic{min-height:150px;display:flex;align-items:center;justify-content:center;padding:.8rem}
-.tile.pic img{width:82%;max-height:160px;object-fit:contain;filter:drop-shadow(0 8px 10px #2611403d)}
 .t-pink{background:var(--p-pink)}.t-butter{background:var(--p-butter)}.t-mint{background:var(--p-mint)}
 .t-sky{background:var(--p-sky)}.t-lilac{background:var(--p-lilac)}.t-peach{background:var(--p-peach)}
-/* плитки доски — переход в соседний пастельный цвет, как плитки статистики */
-.tile.t-pink{background:linear-gradient(140deg,var(--p-pink),var(--p-lilac))}.tile.t-mint{background:linear-gradient(140deg,var(--p-mint),var(--p-sky))}
-.tile.t-butter{background:linear-gradient(140deg,var(--p-butter),var(--p-peach))}.tile.t-peach{background:linear-gradient(140deg,var(--p-peach),var(--p-pink))}
-.tile.t-sky{background:linear-gradient(140deg,var(--p-sky),var(--p-lilac))}.tile.t-lilac{background:linear-gradient(140deg,var(--p-lilac),var(--p-sky))}
-@media (max-width:900px){.board{grid-template-columns:repeat(3,minmax(0,1fr))}.board .col-b{margin-top:0!important}
- .board .col-b:nth-child(even){margin-top:24px!important}}
-@media (max-width:560px){.board{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.board .col-b{gap:10px}
- .tile.pic{min-height:120px}.hello{grid-template-columns:1fr;gap:1.4rem}}
 
 /* серии сейчас */
 .series-now{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:14px}
@@ -387,54 +345,8 @@ h1.with-booky img{width:clamp(56px,8vw,84px);height:auto;margin:-.6rem 0;filter:
 .s-covers .more{font-size:.78rem;font-weight:800;color:var(--ink-mut);align-self:center}
 .s-card .bar{background:#26113f22}.s-card .bar i{background:var(--ink)}
 
-/* полка: три доски, на каждой корешки в один ряд; не влезли — прокрутка внутри полки, за рамку ничего не вылезает */
-.shelf-scene{display:grid;grid-template-columns:120px minmax(0,1fr) 120px;gap:.8rem;align-items:stretch}
-.scene-side{display:flex;flex-direction:column;justify-content:space-around;align-items:center;gap:1rem;pointer-events:none}
-.scene-side img{width:112px;height:auto;filter:drop-shadow(0 8px 10px #12002d80)}
-.scene-side:first-child img:nth-child(2){transform:rotate(-6deg) translateX(-6px)}
-.scene-side:last-child img:nth-child(1){transform:rotate(5deg)}
-.bookcase{display:grid;gap:1.4rem;min-width:0;background:#ffffff0a;border:1px solid #ffffff14;border-radius:28px;padding:1.2rem 1.2rem .4rem}
-.shelf{min-width:0}
-.shelf-label{font-family:var(--body);font-weight:800;font-size:.95rem;margin:0 0 .5rem;color:var(--mut)}
-.shelf-label span{opacity:.7;font-weight:700;margin-left:.2rem}
-.shelf-row{position:relative;display:flex;align-items:flex-end;gap:4px;min-height:210px;padding:12px .6rem 0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;
- border-bottom:12px solid #3a1a6e;box-shadow:0 14px 16px -12px #000a}
-.spine{flex:none;width:var(--w);height:var(--h);border:0;background:var(--p-lilac);border-radius:5px 5px 2px 2px;padding:.5rem 0;color:var(--ink);cursor:pointer;
- display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;
- box-shadow:inset -5px 0 0 #26113f1f,inset 0 7px 0 #ffffff55,inset 0 -9px 0 #26113f26;transition:transform .2s cubic-bezier(.2,.8,.2,1)}
-.spine span{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:800;font-size:.72rem;line-height:1.1;max-height:100%;overflow:hidden;
- text-overflow:ellipsis;white-space:nowrap;padding:0 .1rem}
-a.spine:hover,a.spine:focus-visible{transform:translateY(-10px);text-decoration:none}
-.shelf-row>.spine:nth-child(5n+3){transform:rotate(-4deg);transform-origin:bottom left;margin-left:8px}
-.shelf-row>.spine:nth-child(5n+3):hover{transform:rotate(-4deg) translateY(-10px)}
-/* «Читаю» обычно короткая: стопка лежащих книг и приведения */
-.shelf-decor{display:flex;align-items:flex-end;gap:.4rem;margin-left:auto;flex:none;pointer-events:none}
-.shelf-decor img{height:140px;width:auto;filter:drop-shadow(0 8px 10px #12002d80)}
-.shelf-decor img:first-of-type{height:96px}
-.stack{display:flex;flex-direction:column;align-items:center;gap:2px;margin-right:.6rem}
-.stack i{display:block;height:22px;border-radius:3px;box-shadow:inset 0 -5px 0 #26113f26,inset 6px 0 0 #ffffff55}
-.stack i:nth-child(1){width:96px;transform:translateX(6px)}.stack i:nth-child(2){width:112px}.stack i:nth-child(3){width:104px;transform:translateX(-4px)}
-.shelf-empty{align-self:center;margin:0 auto;color:var(--mut);font-size:.9rem;max-width:34ch;text-align:center}
 .drag-ghost{opacity:.35}
 .sortable-fallback{transform:rotate(4deg)!important;box-shadow:0 18px 30px -10px #000c!important}
-.shelf-hint{justify-content:flex-start;align-items:baseline;gap:.8rem}
-@media (max-width:900px){.shelf-scene{grid-template-columns:minmax(0,1fr)}.scene-side{display:none}}
-@media (max-width:560px){.bookcase{padding:1rem .7rem .3rem}.shelf-decor img{height:104px}.shelf-decor img:first-of-type{display:none}.stack{display:none}}
-/* всплывашка над корешком: обложка + название, автор, статус, звёзды; мышь сквозь неё проходит */
-.peek{position:fixed;z-index:60;width:300px;display:grid;grid-template-columns:88px minmax(0,1fr);gap:.85rem;align-items:start;padding:.75rem;
- border-radius:18px;background:color-mix(in srgb,var(--surface) 88%,transparent);border:1px solid #ffffff26;color:var(--text);box-shadow:0 24px 40px -16px #0b0020;
- -webkit-backdrop-filter:blur(16px) saturate(1.3);backdrop-filter:blur(16px) saturate(1.3);pointer-events:none;
- opacity:0;transform:translateY(6px) scale(.97);transform-origin:50% 100%;transition:opacity .16s,transform .22s var(--ease-out)}
-.peek.below{transform-origin:50% 0;transform:translateY(-6px) scale(.97)}
-.peek.on{opacity:1;transform:none}
-.peek-cover img,.peek-cover .img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:10px;display:flex;align-items:center;justify-content:center;
- text-align:center;font-weight:800;font-size:.7rem;padding:.4rem;color:var(--ink);box-shadow:0 10px 18px -10px #000c}
-.peek-cover img{padding:0}
-.peek-text{display:flex;flex-direction:column;align-items:flex-start;gap:.25rem;min-width:0}
-.peek-text b{font-size:.98rem;line-height:1.25;margin-top:.2rem;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.peek-author{color:var(--p-lilac);font-weight:800;font-size:.82rem}
-.peek-foot{display:flex;gap:.6rem;align-items:center;font-size:.8rem;margin-top:.15rem}
-.peek-foot .stars{font-size:.9rem}
 
 /* ---------- списки книг и фанфиков */
 .list-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
@@ -527,7 +439,6 @@ a.spine:hover,a.spine:focus-visible{transform:translateY(-10px);text-decoration:
    Карточки: книги в списках, серии, «Читаю сейчас». Маска span'а — кольцо (border-box минус padding-box),
    маска ::before — дуга ±--glow-spread от угла курсора (одной маской из трёх слоёв Chrome не рисует).
    Цвета — пастель, как у плиток и статусов */
-.now-card{position:relative}
 .glow{position:absolute;inset:0;border-radius:inherit;pointer-events:none;
  border:var(--glow-w) solid transparent;opacity:var(--glow-on,0);transition:opacity .3s;
  -webkit-mask:linear-gradient(#fff 0 0) padding-box,linear-gradient(#fff 0 0) border-box;-webkit-mask-composite:xor;
@@ -833,40 +744,32 @@ nav{view-transition-name:site-nav}
 @media (prefers-reduced-motion:reduce){
  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
 
-/* Блоки главной и плитки статистики выплывают снизу, пока въезжают в экран (привязано к прокрутке;
+/* Плитки статистики выплывают снизу, пока въезжают в экран (привязано к прокрутке;
    где браузер не умеет — просто стоят). Что видно при открытии — сразу на месте */
 @supports (animation-timeline:view()){
- :is(.hello,.section-head,.board .tile,.shelf-scene,.kpi){animation:rv-rise linear both;animation-timeline:view();animation-range:entry 0% entry 60%}}
+ .kpi{animation:rv-rise linear both;animation-timeline:view();animation-range:entry 0% entry 60%}}
 @keyframes rv-rise{from{opacity:0;transform:translateY(56px)}}
 
 /* ---------- блоки и цветные карточки ----------
    Блоки — матовое стекло: светлый полупрозрачный фон, под ним всё размыто, поэтому блики и обложки не «просвечивают» сквозь текст.
    Цветные карточки (серии, «Читаю сейчас») — то же стекло, а свой цвет «светится» из верхнего угла; текст всегда белый */
-:is(.card,.dash .card,.bookcase,.glass,.title-block){
+:is(.card,.dash .card,.glass,.title-block){
  background:#ffffff12;border:1px solid #ffffff1f;box-shadow:0 14px 34px -22px #12002d;
  -webkit-backdrop-filter:blur(18px) saturate(1.25);backdrop-filter:blur(18px) saturate(1.25)}
 /* карточек книг много — без размытия, чтобы список не тормозил на телефоне */
 .book-card{background:#ffffff12;border:1px solid #ffffff1a}
 .book-card:hover{background:#ffffff1f}
-:is(.s-card.soft,.now-card){border:1px solid color-mix(in srgb,var(--tone) 38%,transparent);color:var(--text);
+.s-card.soft{border:1px solid color-mix(in srgb,var(--tone) 38%,transparent);color:var(--text);
  background:radial-gradient(130% 100% at 0% 0%,color-mix(in srgb,var(--tone) 58%,transparent),transparent 72%),#ffffff0d!important}
-.now-wrap .blur{display:none}
 .lib[data-view=feed] .book-card:hover{background:#ffffff12}
 
 /* Доска на главной: цифры — ссылки в статистику. При наведении плитка приподнимается и чуть поворачивается, наклейка покачивается.
    translate/rotate, а не transform: transform занят «выплыванием» при прокрутке */
-a.tile{transition:translate .25s var(--ease-out),rotate .25s var(--ease-out),box-shadow .25s}
-a.tile:hover{text-decoration:none;translate:0 -5px;rotate:-1.2deg;box-shadow:0 26px 36px -20px #12002d}
-.board .col-b:nth-child(even) a.tile:hover{rotate:1.2deg}
-a.tile:active{translate:0 -1px;transition-duration:.1s}
-a.tile:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
-.tile.pic img{transition:rotate .4s var(--ease-out),scale .4s var(--ease-out)}
-.tile.pic:hover img{rotate:-7deg;scale:1.07}
 .kpi{transition:translate .25s var(--ease-out),box-shadow .25s}
 .kpi:hover{translate:0 -3px;box-shadow:0 22px 30px -18px #000c}
 /* Свечение цветом обложки: в углу цветной карточки — размытая копия её первой обложки (ставит motion.js).
    Без обложки остаётся пастельное свечение */
-:is(.s-card.soft,.now-card):has(>.glow-img){position:relative;overflow:hidden;isolation:isolate;background:#ffffff0d!important}
+.s-card.soft:has(>.glow-img){position:relative;overflow:hidden;isolation:isolate;background:#ffffff0d!important}
 .glow-img{position:absolute;z-index:-1;left:-15%;top:-25%;width:75%;height:110%;object-fit:cover;filter:blur(34px) saturate(1.6);opacity:.75;pointer-events:none}
 
 /* Карточки книг: под мышкой карточка целиком мягко приподнимается, картинка чуть приближается внутри рамки.
