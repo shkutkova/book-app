@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-look="new">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -17,8 +17,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Unbounded:wght@600;700;800&display=swap">
 <link rel="stylesheet" href="/static/style.css?v={{ CSS_V }}">
-{# Пробный новый вид (look.css / look.js): включается переключателем «Вид»; выбор ставим до отрисовки, чтобы страница не мигала #}
-<script>try{if(localStorage.getItem('look')==='new')document.documentElement.dataset.look='new'}catch(e){}</script>
+{# Вид сайта: фон от обложки, стекло, веер, привидение-помощник — look.css / look.js поверх style.css.
+#}
 <link rel="stylesheet" href="/static/look.css?v={{ CSS_V }}">
 {# Плавная смена страниц. Именно здесь, а не в style.css: из внешнего файла Chrome переход не включал #}
 <style>@view-transition{navigation:auto}</style>
@@ -33,7 +33,7 @@
 {% set path = request.url.path %}
 {% set fic_search = path == '/add/book' and request.query_params.get('fanfic') %}
 <nav>
-  <a class="logo" href="/" aria-label="Spooky Book Universe"><img src="/static/img/booky/2-11.webp" alt=""><span class="logo-t">Spooky Book Universe</span>
+  <a class="logo" href="/" aria-label="Spooky Book Universe">
     <span class="wm" aria-hidden="true"><span>Sp<i class="oo"><i><b></b></i><i><b></b></i></i>ky</span><span>Book</span><em>Universe</em></span></a>
   <div class="links">
   <a href="/" class="{{ 'on' if path == '/' }}">Главная</a>
@@ -61,8 +61,7 @@
   <a href="/stats" class="{{ 'on' if path.startswith('/stats') }}">{{ icon('chart', 22) }}<span>Статистика</span></a>
 </div>
 <button type="button" class="to-top" aria-label="Наверх" title="Наверх">{{ icon('arrow-up', 22) }}</button>
-{# Пробный новый вид: переключатель и привидение-помощник (видно только в новом виде) #}
-<div class="look-switch" role="group" aria-label="Вид сайта"><button type="button" data-v="old">как сейчас</button><button type="button" data-v="new">новый</button></div>
+{# Привидение-помощник: подсказки со страницы (#say-data), глаза следят за курсором — look.js #}
 <div class="bot">
   <p class="bubble off" id="say" aria-live="polite"></p>
   <button type="button" id="ghost" aria-label="Привидение-помощник: следующая подсказка">

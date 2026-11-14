@@ -4,7 +4,7 @@
   if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;   // телефон: мыши нет — рамки нет
   const PROXIMITY = 64, INACTIVE = 0.01;   // рамка загорается, когда курсор ближе 64px к карточке
 
-  const cards = [...document.querySelectorAll('.book-card, .s-card, .now-card, .stage')].map(el => {
+  const cards = [...document.querySelectorAll('.book-card, .s-card, .now-card, .stage, .card, .glass, .title-block')].map(el => {
     const g = document.createElement('span');
     g.className = 'glow'; g.setAttribute('aria-hidden', 'true');
     el.append(g);

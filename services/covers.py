@@ -112,3 +112,37 @@ def candidates(book: dict) -> tuple[list[dict], list[str]]:
             seen.add(c["url"])
             unique.append(c)
     return unique, failed
+
+
+# ---- цвет обложки для фона нового вида (look.js): браузеру чужую картинку читать нельзя, поэтому считает сервер
+TONE_HOSTS = ("hardcover.app", "openlibrary.org", "archive.org", "googleusercontent.com", "google.com", "ficbook.net")
+_tones: dict = {}
+
+
+def tone(url: str):
+    """Средний цвет обложки [r, g, b]: насыщенные точки весят больше. None — адрес чужой или картинку не прочитать."""
+    from io import BytesIO
+    from urllib.parse import urlparse
+    if url in _tones:
+        return _tones[url]
+    p = urlparse(url or "")
+    host = p.hostname or ""
+    if p.scheme != "https" or not any(host == h or host.endswith("." + h) for h in TONE_HOSTS):
+        return None
+    rgb = None
+    try:
+        from PIL import Image
+        r = httpx.get(url, timeout=10, headers=HEADERS)
+        r.raise_for_status()
+        px = Image.open(BytesIO(r.content)).convert("RGB").resize((16, 16)).getdata()
+        tr = tg = tb = n = 0
+        for cr, cg, cb in px:
+            w = max(cr, cg, cb) - min(cr, cg, cb) + 8
+            tr += cr * w; tg += cg * w; tb += cb * w; n += w
+        rgb = [round(tr / n), round(tg / n), round(tb / n)]
+    except Exception:
+        pass
+    if len(_tones) > 3000:
+        _tones.clear()
+    _tones[url] = rgb
+    return rgb

@@ -62,7 +62,7 @@
   const seen = new IntersectionObserver(entries => entries.forEach(en => {
     if (en.isIntersecting) { seen.unobserve(en.target); countUp(en.target); }
   }), {threshold: .6});
-  document.querySelectorAll('.board .big:not(.word)').forEach(el => seen.observe(el));
+  document.querySelectorAll('.nt b').forEach(el => seen.observe(el));  // плитки на главной
   // статистика пишет цифры сама (и при смене года) — ловим запись и досчитываем от прежнего числа
   document.querySelectorAll('.kpi b').forEach(el => {
     let prev = 0;

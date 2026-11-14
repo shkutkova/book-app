@@ -131,6 +131,12 @@ def logout():
 
 # ------------------------------------------------------------------ главная
 
+@router.get("/cover-tone")
+def cover_tone(u: str = ""):
+    """Цвет обложки для фона нового вида: {"rgb": [r, g, b]} или {"rgb": null}."""
+    return {"rgb": covers.tone(u)}
+
+
 @router.get("/", response_class=HTMLResponse)
 def home(request: Request):
     data = queries.home(current_user_id())
