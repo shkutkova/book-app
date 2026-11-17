@@ -212,6 +212,24 @@ create table library_liked_tags (
 );
 
 
+-- Отзыв после прочтения (опросник). Тропы — в library_liked_tags
+create table reviews (
+    user_id     uuid   not null,
+    book_id     bigint not null,
+    summary     text,                                  -- «о чём была», коротко для себя
+    is_spoiler  boolean not null default false,
+    moods       text[] not null default '{}',          -- ключи как у Hardcover: dark, tense, …
+    pace        text check (pace in ('slow', 'medium', 'fast')),
+    driven      text check (driven in ('plot', 'mix', 'character')),
+    liked       text[] not null default '{}',          -- plot, characters, world, romance, …
+    reread      text check (reread in ('yes', 'maybe', 'no')),
+    updated_at  timestamptz not null default now(),
+    primary key (user_id, book_id),
+    foreign key (user_id, book_id) references library(user_id, book_id)
+        on delete cascade on update cascade
+);
+
+
 -- ---------------------------------------------------------------------
 -- 4. ИНДЕКСЫ: чтобы частые выборки работали быстро
 -- ---------------------------------------------------------------------
@@ -315,6 +333,7 @@ alter table shelf_order        enable row level security;
 alter table series_removed     enable row level security;
 alter table liked_tags         enable row level security;
 alter table library_liked_tags enable row level security;
+alter table reviews            enable row level security;
 
 alter view series_progress      set (security_invoker = true);
 alter view series_books_ordered set (security_invoker = true);

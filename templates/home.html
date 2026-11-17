@@ -30,7 +30,7 @@
         <h3>{{ b.title_ru or b.title }}</h3>
         <p class="by">{{ b.authors or '' }}{% if b.pages %}{{ ', ' if b.authors }}{{ b.pages }} стр.{% endif %}</p>
         <div class="st-acts">
-          <form method="post" action="/book/{{ b.id }}"><button class="nb main" name="status" value="finished">Дочитала</button></form>
+          <form method="post" action="/book/{{ b.id }}"><button class="nb main" name="status" value="finished">Прочитано</button></form>
           <a class="nb" href="/book/{{ b.id }}">Открыть книгу</a>
         </div>
       </div>
@@ -63,7 +63,7 @@
     <a class="nt gl" href="/stats"><b>{{ nf(board.year_fanfics) }}</b><span>фанфиков за год</span></a>
   </div>
 
-  <div class="nh"><h2>Следующие на полке<small>по порядку; карточки можно перетаскивать</small></h2><a href="/stats">Вся статистика</a></div>
+  <div class="nh"><h2>Следующие на полке</h2></div>
   {% if shelf.want %}
   <div class="q-row">
     {% for b in shelf.want %}

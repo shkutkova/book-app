@@ -147,6 +147,29 @@ _lib.save_book = lambda u, b, f: EDITS.setdefault(b, {}).update(
     **({"status": f["status"]} if f.get("status") else {}),
     **({"rating": float(f["rating"]) if f["rating"] else None} if "rating" in f else {}),
     **({"is_favorite": f["is_favorite"] == "on"} if "is_favorite" in f else {}))
+# Отзыв после прочтения — запоминается до перезапуска; у книги 9 уже заполнен, у 7 — пусто.
+# «Прочитано» на странице книги открывает окно отзыва (как на сайте, когда статус только что сменился)
+REVIEWS = {9: {"summary": "Кассандра служит богу смерти и ищет убийцу. Медленно, мрачно, а финал ||убийца — её наставник, и она его отпускает||.\nВторая книга — обязательно.",
+               "is_spoiler": False, "moods": ["dark", "tense", "emotional"], "pace": "medium", "driven": "mix",
+               "liked": ["characters", "atmosphere"], "reread": "maybe"}}
+BOOK_TROPES = {9: ["враги → возлюбленные", "морально серый герой"]}
+MY_TROPES = ["ангст", "слоуберн", "враги → возлюбленные"]
+_bk5 = queries.book_detail
+queries.book_detail = lambda u, bid: dict(_bk5(u, bid), review=REVIEWS.get(bid), tropes=BOOK_TROPES.get(bid, []))
+queries.tropes = lambda u: MY_TROPES
+_sb = _lib.save_book
+_lib.save_book = lambda u, b, f: (_sb(u, b, f), f.get("status") == "finished")[1]
+def _save_review(u, bid, f):
+    REVIEWS[bid] = {"summary": (f.get("summary") or "").strip() or None, "is_spoiler": bool(f.get("is_spoiler")),
+                    "moods": [m for m in f.getlist("moods") if m in _lib.MOODS], "liked": [x for x in f.getlist("liked") if x in _lib.LIKED],
+                    **{k: f.get(k) or None for k in ("pace", "driven", "reread")}}
+    tr = [t.strip() for t in f.getlist("tropes") + (f.get("new_tropes") or "").split(",") if t.strip()]
+    BOOK_TROPES[bid] = list(dict.fromkeys(tr))
+    MY_TROPES[:] = list(dict.fromkeys(MY_TROPES + tr))
+    if f.get("rating"):
+        EDITS.setdefault(bid, {})["rating"] = float(f["rating"])
+    print("REVIEW", bid, ascii(REVIEWS[bid]), ascii(BOOK_TROPES[bid]))
+_lib.save_review = _save_review
 # Поиск в Hardcover — выдуманные результаты; «Добавить» открывает книгу 6 или фанфик 27
 from services import catalog as _cat, hardcover_api as _hc
 _hc.search = lambda q: [{"id": 900 + i, "title": f"{q} — вариант {i}", "authors": "SenLinYu", "year": 2021, "pages": 800,

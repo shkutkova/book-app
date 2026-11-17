@@ -171,6 +171,36 @@
     {% endif %}
   </div>
   {% endif %}
+
+  {# Мой отзыв — у прочитанной или брошенной книги, под метками: что записала после прочтения; пусто — приглашение написать.
+     Спойлер — весь текст (галочка) или кусок ||так|| — размыт до нажатия #}
+  {% if b.in_library and b.status in ('finished', 'dnf') %}
+  {% set rv = b.review or {} %}
+  <section class="bp-review glass">
+    {% if rv or b.tropes %}
+    <div class="rv-head"><h2>Мой отзыв</h2><button type="button" class="link" data-review>{{ icon('pencil', 16) }} Изменить</button></div>
+    {% if rv.summary %}
+    {% if rv.is_spoiler %}<p class="rv-hint muted small">Тут спойлеры — нажми на текст, чтобы прочитать</p>{% endif %}
+    <div class="rv-text {{ 'spoiler' if rv.is_spoiler }}" {% if rv.is_spoiler %}tabindex="0" role="button" aria-label="Спойлер: показать текст"{% endif %}>
+      {{ rv.summary|spoilers }}
+    </div>
+    {% endif %}
+    <div class="rv-chips">
+      {% for m in rv.moods or [] %}<span class="chip {{ TONES[loop.index0 % 6] }}">{{ icon('m-' ~ m if m in MOODS else 'm-other', 14) }}{{ RV.moods.get(m, m) }}</span>{% endfor %}
+      {% for t in b.tropes %}<span class="chip trope">{{ t }}</span>{% endfor %}
+    </div>
+    {% set liked %}{% for x in rv.liked or [] %}{{ RV.liked.get(x, x) }}{{ ', ' if not loop.last }}{% endfor %}{% endset %}
+    {% set facts = [('Темп', RV.paces.get(rv.pace)), ('Главное в истории', RV.driven.get(rv.driven)),
+                    ('Понравилось', liked|trim), ('Перечитала бы', RV.reread.get(rv.reread))] %}
+    <dl class="rv-facts">{% for k, v in facts if v %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}</dl>
+    {% else %}
+    <div class="rv-empty">
+      <p><b>Как тебе книга?</b></p>
+      <button type="button" class="primary" data-review>{{ icon('pencil', 18) }} Написать отзыв</button>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
 </section>
 
 {# Под страницей — две кнопки: слева «Настройки книги» (окно), справа «Мастерская epub» (переход) #}
@@ -249,14 +279,14 @@
         <form method="post" action="/book/{{ b.id }}" class="settings-form">
           <label for="annotation">Аннотация</label>
           <textarea id="annotation" name="annotation" rows="6">{{ b.description_ru or b.description or '' }}</textarea>
-          <label for="my_description">Подробнее <span class="muted small">— своё описание, видно вкладкой рядом с аннотацией</span></label>
+          <label for="my_description">Подробнее <span class="muted small">— своё описание</span></label>
           <textarea id="my_description" name="my_description" rows="8">{{ b.my_description or '' }}</textarea>
           <p class="muted small md-hint">Строка <code>**Почему это стоит прочитать?**</code> — подзаголовок; строки <code>- **Плюс:** пояснение</code> — карточки с номерами.</p>
           {# черновик от ИИ — в поле; сохраняется только кнопкой «Сохранить», после проверки #}
           {# Google ИИ: вкладка с готовым запросом из карточки — ответ копируешь сюда #}
           <p class="ai-row"><a class="link" href="{{ ai.ask_url(b) }}" target="_blank" rel="noopener">{{ icon('sparkle', 16) }} Спросить Google ИИ</a>
             {% if ai.enabled() %}<button type="button" class="link" id="ai-write">{{ icon('sparkle', 16) }} Написать с ИИ</button>{% endif %}
-            <span class="muted small" id="ai-state" aria-live="polite">{{ '' if ai.enabled() else 'Откроется Google с готовым запросом — скопируй ответ сюда и нажми «Сохранить».' }}</span></p>
+            <span class="muted small" id="ai-state" aria-live="polite">{{ '' if ai.enabled() else 'Откроется Google с готовым запросом' }}</span></p>
           <p class="set-save"><button class="primary">Сохранить</button></p>
         </form>
       </div>
@@ -274,7 +304,7 @@
       <a href="/add/book?{{ {'link': b.id, 'q': b.title}|urlencode }}">{{ icon('link', 16) }} {{ 'Связать с другой книгой Hardcover' if b.hardcover_slug else 'Найти в Hardcover' }}</a>
       {% if meta.get('original_url') %}<a href="{{ meta.original_url }}" target="_blank" rel="noopener">{{ icon('link', 16) }} Оригинал{% if meta.get('original_author') %} · {{ meta.original_author }}{% endif %}</a>{% endif %}
     </div>
-    {% if b.hardcover_slug %}<p class="muted small">«Обновить из Hardcover» перезапишет жанры и настроения; свои названия, описание и обложка останутся.</p>{% endif %}
+    {% if b.hardcover_slug %}<p class="muted small"></p>{% endif %}
 
     {% if b.in_library %}
     {# где читать: ficbook или другой сайт — наверху появится «Читать на ficbook», а здесь «Обновить с ficbook» #}
@@ -285,7 +315,7 @@
         <input id="source_url" name="source_url" type="url" value="{{ b.source_url or '' }}" placeholder="https://ficbook.net/readfic/…">
         <button class="primary">Сохранить</button>
       </div>
-      <p class="muted small">Чтобы убрать — сотри ссылку и сохрани.</p>
+      <p class="muted small"></p>
     </form>
     {% if has_fic %}
     {# сервер на ficbook не пускают — данные заново собирает закладка на странице фанфика #}
@@ -293,7 +323,7 @@
     <p class="muted small">Откроется фанфик на ficbook — там нажми закладку «В мои книги», потом «Сохранить».
       Подтянутся описание, метки, части и слова; свои названия и обложка останутся.</p>
     {% else %}
-    <p class="muted small">Сохрани ссылку на ficbook — здесь появится «Обновить с ficbook».</p>
+    <p class="muted small"></p>
     {% endif %}
 
     {# свой файл книги: ссылка на Google Диск — наверху страницы появится кнопка «Скачать» #}
@@ -305,8 +335,7 @@
         <input id="file_url" name="file_url" type="url" value="{{ b.file_url or '' }}" placeholder="https://drive.google.com/file/d/…">
         <button class="primary">Сохранить</button>
       </div>
-      <p class="muted small">В Диске: файл → «Поделиться» → «Копировать ссылку». Доступ можно оставить «только мне» —
-        скачается там, где ты вошла в Google. Чтобы убрать — сотри ссылку и сохрани.</p>
+      <p class="muted small">В Диске: файл → «Поделиться» → «Копировать ссылку».</p>
     </form>
     {% endif %}
   </section>
@@ -323,7 +352,7 @@
     </form>
     {% else %}<p class="muted small">Прочтений пока нет — появятся, когда поставишь «Читаю» или «Прочитано».</p>{% endfor %}
     <details class="reread">
-      <summary>Перечитала — добавить прочтение</summary>
+      <summary>Добавить прочтение</summary>
       <form method="post" action="/book/{{ b.id }}/reads" class="read-row">
         <input type="date" name="started_at" max="{{ today }}" aria-label="Начала">
         <span class="muted">—</span>
@@ -343,7 +372,7 @@
 ') }}</textarea></div>
         {% endfor %}
       </div>
-      <p class="muted small">По одной на строку. {% if b.hardcover_slug %}«Обновить из Hardcover» заменит их метками из Hardcover.{% endif %}</p>
+      <p class="muted small">По одной на строку. {% if b.hardcover_slug %}{% endif %}</p>
       <p class="set-save"><button class="primary">Сохранить метки</button></p>
     </form>
   </section>
@@ -351,11 +380,66 @@
   <form method="post" action="/book/{{ b.id }}/delete" class="danger-zone"
         onsubmit="return confirm('Удалить «{{ (b.title_ru or b.title)|replace("'", "’") }}»? Статус, оценка, прочтения и заметки сотрутся. Отменить нельзя.')">
     <button class="danger">Удалить {{ 'фанфик' if b.kind == 'fanfic' else 'книгу' }}</button>
-    <span class="muted small">Сотрётся всё твоё по ней: статус, оценка, прочтения, заметки.</span>
+    <span class="muted small"></span>
   </form>
   {% endif %}
   </div>
 </dialog>
+
+{# Отзыв — окно в 3 шага (без JS видны все шаги сразу). Открывается само, когда книга только что стала «Прочитано» #}
+{% if b.in_library and b.status in ('finished', 'dnf') %}
+{% set rv = b.review or {} %}
+{% set rr = b.rating|float|round|int if b.rating is not none else 0 %}
+<dialog class="review-dialog" id="review" aria-labelledby="rv-title" {{ 'data-auto' if open_review }}>
+  <form method="post" action="/book/{{ b.id }}/review">
+    <div class="rv-top">
+      <div class="rv-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+      <button type="button" class="link" data-close>Потом</button>
+    </div>
+    <fieldset class="rv-step" data-title="О книге">
+      <legend id="rv-title"><span class="rv-n">1 из 3 · </span>«{{ b.title_ru or b.title }}» — как тебе?</legend>
+      <div class="rv-stars" role="radiogroup" aria-label="Оценка">
+        {# в разметке 5→1, на экране (row-reverse) 1→5: так «выбранная и все до неё» — это ~ в CSS #}
+        {% for n in range(5, 0, -1) %}<label><input type="radio" name="rating" value="{{ n }}" {{ 'checked' if rr == n }}><span aria-label="{{ n }} из 5">{{ icon('star', 30) }}</span></label>{% endfor %}
+      </div>
+      <label class="rv-q" for="rv-summary">О чём была, коротко для себя</label>
+      <textarea id="rv-summary" name="summary" rows="4" placeholder="Сюжет в двух словах, чем закончилось, что запомнилось">{{ rv.summary or '' }}</textarea>
+      <div class="rv-spoil-row">
+        <label class="rv-check"><input type="checkbox" name="is_spoiler" value="on" {{ 'checked' if rv.is_spoiler }}> Тут спойлеры</label>
+        <button type="button" class="rv-spoil-btn" data-spoil title="Выдели кусок текста и нажми — спрячется только он">{{ icon('eye-off', 15) }} Спрятать выделенное</button>
+      </div>
+      <p class="rv-tip muted small">Галочка прячет весь текст. Чтобы спрятать кусок — выдели его и нажми «Спрятать выделенное», он станет ||вот таким||.</p>
+    </fieldset>
+
+    <fieldset class="rv-step" data-title="Что зацепило">
+      <legend><span class="rv-n">2 из 3 · </span>Что зацепило</legend>
+      <p class="rv-q">Настроение</p>
+      <div class="rv-opts">{% for k, v in RV.moods.items() %}<label class="ck"><input type="checkbox" name="moods" value="{{ k }}" {{ 'checked' if k in (rv.moods or []) }}><span>{{ v }}</span></label>{% endfor %}</div>
+      <p class="rv-q">Тропы, которые понравились</p>
+      <div class="rv-opts tropes">{% for t in RV.tropes %}<label class="ck"><input type="checkbox" name="tropes" value="{{ t }}" {{ 'checked' if t in b.tropes }}><span>{{ t }}</span></label>{% endfor %}</div>
+      <label class="rv-q" for="rv-new">Свой троп <span class="muted small">— через запятую</span></label>
+      <input id="rv-new" name="new_tropes" type="text" maxlength="300" placeholder="например: соседи по комнате, ведьмы">
+    </fieldset>
+
+    <fieldset class="rv-step" data-title="Итог">
+      <legend><span class="rv-n">3 из 3 · </span>Итог</legend>
+      {% for key, q, opts in [('pace', 'Темп', RV.paces), ('driven', 'Что главное в истории', RV.driven), ('reread', 'Перечитала бы?', RV.reread)] %}
+      <p class="rv-q">{{ q }}</p>
+      <div class="rv-opts">{% for k, v in opts.items() %}<label class="ck"><input type="radio" name="{{ key }}" value="{{ k }}" {{ 'checked' if rv[key] == k }}><span>{{ v }}</span></label>{% endfor %}</div>
+      {% endfor %}
+      <p class="rv-q">Что понравилось больше всего</p>
+      <div class="rv-opts">{% for k, v in RV.liked.items() %}<label class="ck"><input type="checkbox" name="liked" value="{{ k }}" {{ 'checked' if k in (rv.liked or []) }}><span>{{ v }}</span></label>{% endfor %}</div>
+    </fieldset>
+
+    <div class="rv-nav">
+      <button type="button" class="link" data-prev hidden>Назад</button>
+      <button type="button" class="link" data-skip>Пропустить</button>
+      <button type="button" class="primary" data-next hidden>Дальше</button>
+      <button class="primary" data-save>Сохранить</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
 
 <dialog class="covers-dialog" id="covers">
   <div class="dialog-head"><h2>Обложка</h2><button class="link" onclick="this.closest('dialog').close()">Закрыть</button></div>
@@ -395,6 +479,58 @@
   let again = null;
   try { again = sessionStorage.getItem('settingsTab'); sessionStorage.removeItem('settingsTab'); } catch {}
   if (again && tabs.some(t => t.dataset.block === again)) open(again); else pick(tabs[0].dataset.block);
+})();
+
+// Отзыв — окно по шагам: «Дальше»/«Назад», «Пропустить» — к следующему шагу (на последнем — сохранить).
+// Радио-ответ можно снять повторным нажатием. Спойлер в карточке открывается по нажатию
+(() => {
+  const dlg = document.getElementById('review');
+  document.querySelectorAll('.rv-text.spoiler').forEach(t => {
+    const show = () => { t.classList.remove('spoiler'); t.removeAttribute('role'); t.removeAttribute('aria-label');
+                         t.parentNode.querySelector('.rv-hint')?.remove(); };
+    t.addEventListener('click', show); t.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') show(); });
+  });
+  // Кусок-спойлер ||так|| — открывается сам по себе (если весь текст ещё размыт — сначала открывается весь)
+  document.querySelectorAll('.rv-text .spoil').forEach(s => {
+    const show = e => { if (s.closest('.rv-text.spoiler')) return; e.preventDefault();
+                        s.classList.add('open'); s.removeAttribute('role'); s.removeAttribute('aria-label'); s.removeAttribute('tabindex'); };
+    s.addEventListener('click', show); s.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') show(e); });
+  });
+  if (!dlg) return;
+  // «Спрятать выделенное» — оборачивает выделенный кусок в ||…||; ничего не выделено — вставляет ||спойлер|| и выделяет слово
+  const area = dlg.querySelector('#rv-summary');
+  dlg.querySelector('[data-spoil]').onclick = () => {
+    const [a, z] = [area.selectionStart, area.selectionEnd], v = area.value;
+    const part = v.slice(a, z).replace(/\|\|/g, '').trim() || 'спойлер';
+    area.value = v.slice(0, a) + '||' + part + '||' + v.slice(z);
+    area.focus(); area.setSelectionRange(a + 2, a + 2 + part.length);
+  };
+  const steps = [...dlg.querySelectorAll('.rv-step')], dots = [...dlg.querySelectorAll('.rv-dots i')];
+  const [prev, skip, next, save] = ['prev', 'skip', 'next', 'save'].map(k => dlg.querySelector(`[data-${k}]`));
+  let i = 0;
+  const go = n => {
+    i = Math.max(0, Math.min(steps.length - 1, n));
+    steps.forEach((s, k) => s.hidden = k !== i);
+    dots.forEach((d, k) => d.classList.toggle('on', k <= i));
+    const last = i === steps.length - 1;
+    prev.hidden = i === 0; next.hidden = last; save.hidden = !last; skip.hidden = last;
+    dlg.querySelector('form').scrollTop = 0;
+  };
+  next.onclick = skip.onclick = () => go(i + 1);
+  prev.onclick = () => go(i - 1);
+  dlg.querySelector('[data-close]').onclick = () => dlg.close();
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+  dlg.querySelectorAll('input[type=radio]').forEach(r => {
+    let was = false;
+    r.addEventListener('pointerdown', () => was = r.checked);
+    r.addEventListener('click', () => { if (was) { r.checked = false; was = false; } });
+  });
+  document.querySelectorAll('[data-review]').forEach(b => b.onclick = () => { go(0); dlg.showModal(); });
+  go(0);
+  if (dlg.hasAttribute('data-auto')) {
+    dlg.showModal();
+    history.replaceState(null, '', location.pathname);  // чтобы F5 не открывал окно снова
+  }
 })();
 
 // Меню статуса закрывается по клику мимо

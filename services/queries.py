@@ -253,7 +253,20 @@ def book_detail(user_id: str, book_id: int) -> dict | None:
         select id, started_at, finished_at from reads
         where user_id = %(u)s and book_id = %(b)s
         order by coalesce(finished_at, started_at) desc nulls first""", p)
+    # Отзыв после прочтения и тропы, которые понравились (миграция 012)
+    b["review"] = fetch_one("""select summary, is_spoiler, moods, pace, driven, liked, reread
+                               from reviews where user_id = %(u)s and book_id = %(b)s""", p)
+    b["tropes"] = [r["name"] for r in fetch_all("""
+        select t.name from library_liked_tags x join liked_tags t on t.id = x.tag_id
+        where x.user_id = %(u)s and x.book_id = %(b)s order by t.name""", p)]
     return b
+
+
+def tropes(user_id: str) -> list[str]:
+    """Свои тропы — сначала те, что отмечены чаще (для выбора в отзыве)."""
+    return [r["name"] for r in fetch_all("""
+        select t.name from liked_tags t left join library_liked_tags x on x.tag_id = t.id
+        where t.user_id = %s group by t.id, t.name order by count(x.book_id) desc, t.name""", (user_id,))]
 
 
 def find_books(user_id: str, q: str) -> list[dict]:

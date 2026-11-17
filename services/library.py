@@ -11,6 +11,23 @@ from services.hardcover_api import is_main
 
 STATUSES = {"want_to_read", "reading", "finished", "paused", "dnf", "skipped"}
 
+# Отзыв после прочтения. Ключи настроений — как у Hardcover (hardcover_tags.moods),
+# чтобы потом сравнивать с метками непрочитанных книг для рекомендаций
+MOODS = {"dark": "мрачная", "tense": "напряжённая", "emotional": "эмоциональная", "sad": "грустная",
+         "mysterious": "загадочная", "adventurous": "приключенческая", "funny": "смешная", "lighthearted": "лёгкая",
+         "hopeful": "обнадёживающая", "inspiring": "вдохновляющая", "reflective": "вдумчивая", "relaxing": "спокойная",
+         "challenging": "непростая", "informative": "познавательная"}
+PACES = {"slow": "медленный", "medium": "средний", "fast": "быстрый"}
+DRIVEN = {"plot": "сюжет", "mix": "сюжет и герои", "character": "герои"}
+LIKED = {"plot": "сюжет", "characters": "персонажи", "world": "мир", "romance": "романтика", "humor": "юмор",
+         "style": "как написано", "atmosphere": "атмосфера", "dialogs": "диалоги"}
+REREAD = {"yes": "да", "maybe": "может быть", "no": "нет"}
+# Тропы на выбор, пока своих мало; свои (liked_tags) добавляются к списку
+TROPES = ["враги → возлюбленные", "друзья → возлюбленные", "медленное сближение", "вынужденная близость",
+          "фальшивые отношения", "второй шанс", "найденная семья", "морально серый герой", "злодей-герой",
+          "сильная героиня", "избранный", "тёмная академия", "магическая система", "политические интриги",
+          "квест", "загадка / детектив", "месть", "hurt/comfort", "ангст", "хэппи-энд"]
+
 
 class ValidationError(ValueError):
     """Ошибка в данных от пользователя: текст показывается на странице как есть."""
@@ -141,13 +158,14 @@ def set_cover(book_id: int, raw: str | None) -> None:
         conn.execute("update books set cover_url = %s where id = %s", (cover, book_id))
 
 
-def save_book(user_id: str, book_id: int, form: dict) -> None:
+def save_book(user_id: str, book_id: int, form: dict) -> bool:
     """Сохраняет «мою» часть книги. При смене статуса автоматически ведёт прочтения:
     - стала «Читаю» → открывается прочтение с датой начала (сегодня, если не указана);
     - стала «Прочитано» → открытое прочтение закрывается (или создаётся новое) с датой окончания.
     Просто изменить оценку у прочитанной книги — новое прочтение НЕ создаётся.
     Поля, которых нет в форме, не меняются: на странице книги статус, «избранное»
-    и настройки — отдельные формы."""
+    и настройки — отдельные формы.
+    Возвращает True, если книга только что стала «Прочитано» (тогда открывается отзыв)."""
     keep = fetch_one("""select l.status, l.rating, l.is_favorite, l.my_genre_id, l.notes, l.my_description, b.title_ru
                         from books b left join library l on l.book_id = b.id and l.user_id = %s
                         where b.id = %s""", (user_id, book_id)) or {}
@@ -218,7 +236,7 @@ def save_book(user_id: str, book_id: int, form: dict) -> None:
             conn.execute("update books set cover_url = %s where id = %s", (cover, book_id))
 
         if status == old_status:
-            return
+            return False
         open_read = conn.execute(
             """select id, started_at from reads where user_id = %s and book_id = %s and finished_at is null
                order by id desc limit 1""", (user_id, book_id)).fetchone()
@@ -233,6 +251,43 @@ def save_book(user_id: str, book_id: int, form: dict) -> None:
             else:
                 conn.execute("""insert into reads (user_id, book_id, started_at, finished_at)
                                 values (%s, %s, %s, %s)""", (user_id, book_id, started, end))
+        return status == "finished"
+
+
+def save_review(user_id: str, book_id: int, form) -> None:
+    """Отзыв из окна после прочтения. form — FormData (getlist для отметок).
+    Всё необязательно: пустые ответы так и сохраняются. Оценка — только если выбрана.
+    Тропы: отмеченные + свои через запятую; новые попадают в общий список liked_tags."""
+    pick = lambda key, allowed: form.get(key) if form.get(key) in allowed else None
+    moods = [m for m in dict.fromkeys(form.getlist("moods")) if m in MOODS]
+    liked = [x for x in dict.fromkeys(form.getlist("liked")) if x in LIKED]
+    tropes = [t.strip()[:60] for t in form.getlist("tropes") + (form.get("new_tropes") or "").split(",") if t.strip()]
+    tropes = list(dict.fromkeys(tropes))[:30]
+    rating = parse_rating(form.get("rating"))
+    with transaction() as conn:
+        row = conn.execute("select status from library where user_id = %s and book_id = %s", (user_id, book_id)).fetchone()
+        if not row:
+            raise ValidationError("Сначала добавь книгу в библиотеку")
+        if rating:
+            if row["status"] not in ("finished", "dnf"):
+                raise ValidationError("Оценку можно поставить только прочитанной или брошенной книге")
+            conn.execute("update library set rating = %s where user_id = %s and book_id = %s", (rating, user_id, book_id))
+        conn.execute(
+            """insert into reviews (user_id, book_id, summary, is_spoiler, moods, pace, driven, liked, reread, updated_at)
+               values (%s, %s, %s, %s, %s, %s, %s, %s, %s, now())
+               on conflict (user_id, book_id) do update set
+                 summary = excluded.summary, is_spoiler = excluded.is_spoiler, moods = excluded.moods,
+                 pace = excluded.pace, driven = excluded.driven, liked = excluded.liked,
+                 reread = excluded.reread, updated_at = now()""",
+            (user_id, book_id, (form.get("summary") or "").strip() or None, bool(form.get("is_spoiler")), moods,
+             pick("pace", PACES), pick("driven", DRIVEN), liked, pick("reread", REREAD)))
+        conn.execute("delete from library_liked_tags where user_id = %s and book_id = %s", (user_id, book_id))
+        for name in tropes:
+            tag = conn.execute("""insert into liked_tags (user_id, name) values (%s, %s)
+                                  on conflict (user_id, name) do update set name = excluded.name returning id""",
+                               (user_id, name)).fetchone()
+            conn.execute("insert into library_liked_tags (user_id, book_id, tag_id) values (%s, %s, %s) on conflict do nothing",
+                         (user_id, book_id, tag["id"]))
 
 
 def add_to_library(user_id: str, book_id: int) -> None:

@@ -140,9 +140,9 @@ details summary{cursor:pointer}
 /* страница книги */
 /* сетка: обложка (220) слева; справа название (тянется до низа обложки) → кнопки вровень с её краем;
    ниже описание и метки во всю ширину, метки — тремя колонками */
-.book-page{display:grid;grid-template-columns:220px minmax(0,1fr);grid-template-areas:"cover title" "cover mine" "desc desc" "tags tags";
- grid-template-rows:1fr auto auto auto;gap:1rem 2rem;align-items:start;margin:1.2rem 0 1.4rem}
-.bp-cover{grid-area:cover}.bp-title{grid-area:title;align-self:stretch;align-content:space-between}.bp-mine{grid-area:mine}.bp-desc{grid-area:desc}.bp-tags{grid-area:tags}
+.book-page{display:grid;grid-template-columns:220px minmax(0,1fr);grid-template-areas:"cover title" "cover mine" "desc desc" "tags tags" "review review";
+ grid-template-rows:1fr auto auto auto auto;gap:1rem 2rem;align-items:start;margin:1.2rem 0 1.4rem}
+.bp-cover{grid-area:cover}.bp-title{grid-area:title;align-self:stretch;align-content:space-between}.bp-mine{grid-area:mine}.bp-review{grid-area:review}.bp-desc{grid-area:desc}.bp-tags{grid-area:tags}
 /* светлый полупрозрачный блок — название, описание */
 .glass{background:#ffffff0d;border:1px solid #ffffff1a;border-radius:var(--r);padding:1.1rem 1.3rem;color:var(--text)}
 .book-cover .cover{width:100%;flex:none}.book-cover .cover img,.book-cover .cover .img{border-radius:16px;box-shadow:0 22px 40px -18px #000c}
@@ -277,7 +277,7 @@ input[type=date].blank:not(:focus){color:transparent}
 .own-cover{margin-top:1.2rem;border-top:1px solid var(--line);padding-top:.6rem}
 .own-row{display:flex;gap:.5rem}.own-row input{flex:1;min-width:0}
 @media (max-width:980px){.book-page{grid-template-columns:200px minmax(0,1fr)}}
-@media (max-width:640px){.book-page{grid-template-columns:minmax(0,1fr);grid-template-areas:"cover" "title" "mine" "desc" "tags";grid-template-rows:none;gap:1rem}
+@media (max-width:640px){.book-page{grid-template-columns:minmax(0,1fr);grid-template-areas:"cover" "title" "mine" "desc" "tags" "review";grid-template-rows:none;gap:1rem}
  .book-page .bp-tags,.book-page .tag-group{grid-template-columns:none}
  .book-cover{width:150px;margin:0 auto}.bp-title{padding:1.1rem 1.2rem}.bp-desc{padding:1.1rem 1.2rem}
  .status-menu .menu{min-width:min(86vw,300px)}}
@@ -1054,3 +1054,74 @@ nav .links a.on{text-decoration-color:var(--sec)}
 
 /* серии: у карточки края обрезаны (свечение обложки) — огонёк внутри угла */
 .s-card .fav-dot{top:.7rem;right:.7rem}
+
+/* ---- отзыв после прочтения: карточка «Мой отзыв» на странице книги и окно в 3 шага */
+.bp-review{padding:1.2rem 1.6rem}
+.rv-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:.6rem}
+.rv-head h2{margin:0;font-size:1.05rem}
+.rv-head .link{display:inline-flex;align-items:center;gap:.35rem}
+.rv-text p{margin:0 0 .5rem;max-width:72ch;text-indent:1.4em}
+.rv-text.spoiler{filter:blur(7px);cursor:pointer;user-select:none;transition:filter .3s}
+.rv-text.spoiler:hover{filter:blur(5px)}
+.rv-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0 0}
+.rv-chips:empty{display:none}
+.chip.trope{background:var(--p-peach)}
+.rv-facts{display:flex;flex-wrap:wrap;gap:.5rem 1.6rem;margin:.9rem 0 0;font-size:.92rem}
+.rv-facts:empty{display:none}
+.rv-facts dt{color:var(--mut);font-size:.8rem}.rv-facts dd{margin:0;font-weight:800}
+.rv-empty{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.8rem 1.4rem}
+.rv-empty p{margin:0;max-width:60ch}
+.rv-empty .primary{display:inline-flex;align-items:center;gap:.4rem}
+
+.review-dialog{border:0;padding:0;width:min(94vw,560px);max-height:92vh;border-radius:26px;background:#fffaff;color:var(--ink);
+ box-shadow:0 30px 60px -30px #000c;overscroll-behavior:contain}
+.review-dialog::backdrop{background:#14052cb8;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.review-dialog[open]{animation:dlg-in .3s var(--ease-out)}
+.review-dialog form{display:flex;flex-direction:column;max-height:92vh;overflow:auto;padding:1.1rem 1.3rem 0}
+.rv-top{display:flex;align-items:center;gap:1rem;margin-bottom:.6rem}
+.rv-dots{display:flex;gap:5px;flex:1}.rv-dots i{height:5px;flex:1;border-radius:5px;background:#26113f1a;transition:background .3s}.rv-dots i.on{background:#9b7be0}
+.review-dialog .link{color:#5b4479}
+.rv-step{border:0;margin:0;padding:0;min-width:0}
+.rv-step legend{font:700 1.05rem/1.3 var(--display);padding:0;margin-bottom:.4rem}
+.rv-n{color:#9b7be0}
+.rv-q{display:block;font-weight:800;font-size:.86rem;color:#5b4479;margin:.9rem 0 .4rem}
+.review-dialog textarea,.review-dialog input[type=text]{width:100%;border-radius:14px;border:1px solid #26113f30;padding:.6rem .75rem;font:inherit;font-size:.95rem;
+ background:#fff;color:var(--ink);resize:vertical}
+.review-dialog textarea:focus,.review-dialog input[type=text]:focus{outline:2px solid #9b7be0;outline-offset:1px}
+.rv-check{display:flex;gap:.5rem;align-items:center;font-size:.88rem;margin-top:.5rem;color:#5b4479}
+.rv-check input{accent-color:#7b55d6;width:17px;height:17px}
+.rv-stars{display:flex;gap:.2rem;flex-direction:row-reverse;justify-content:flex-end;margin:.3rem 0 .2rem}
+.rv-stars input,.ck input{position:absolute;opacity:0;width:1px;height:1px}
+.rv-stars span{display:block;color:#26113f40;cursor:pointer;transition:color .15s}
+.rv-stars .ic{fill:none;transition:fill .15s}
+.rv-stars label:has(input:checked) span,.rv-stars label:has(input:checked)~label span,
+.rv-stars:hover label:hover span,.rv-stars:hover label:hover~label span{color:#f0b43a}
+.rv-stars label:has(input:checked) .ic,.rv-stars label:has(input:checked)~label .ic,
+.rv-stars:hover label:hover .ic,.rv-stars:hover label:hover~label .ic{fill:#f0b43a}
+.rv-stars:hover label:not(:hover):not(:has(~label:hover)) span{color:#26113f40}
+.rv-stars:hover label:not(:hover):not(:has(~label:hover)) .ic{fill:none}
+.rv-stars label:has(input:focus-visible) span{outline:2px solid #9b7be0;border-radius:8px}
+.rv-opts{display:flex;flex-wrap:wrap;gap:.35rem}
+.ck{position:relative;display:flex}
+.ck span{display:inline-block;line-height:1.25;border-radius:999px;padding:.32rem .8rem;font-weight:800;font-size:.86rem;cursor:pointer;color:var(--ink);
+ background:#26113f0d;border:1px solid #26113f26;transition:background .15s,border-color .15s}
+.ck span:hover{background:#26113f17}
+.ck input:checked+span{background:var(--p-lilac);border-color:transparent}
+.tropes .ck input:checked+span{background:var(--p-peach)}
+.ck input:focus-visible+span{outline:2px solid #9b7be0;outline-offset:2px}
+.rv-nav{position:sticky;bottom:0;display:flex;align-items:center;gap:.6rem;margin-top:1.1rem;padding:.8rem 0 1.1rem;background:#fffaff}
+.rv-nav [data-skip],.rv-nav [data-prev]{margin-right:auto}
+.rv-nav [data-prev]+[data-skip]{margin-right:auto}
+.rv-nav [data-prev]:not([hidden])~[data-skip]{margin-right:0}
+.rv-hint{margin:0 0 .3rem}
+/* кусок-спойлер ||так|| в отзыве: размыт, открывается по нажатию */
+.rv-text .spoil{filter:blur(5px);background:#ffffff1f;border-radius:6px;padding:0 .2em;cursor:pointer;transition:filter .3s,background .3s}
+.rv-text .spoil:hover{filter:blur(4px)}
+.rv-text .spoil:focus-visible{outline:2px solid var(--p-lilac,#c9b6ff);outline-offset:2px}
+.rv-text .spoil.open{filter:none;background:#ffffff14;cursor:auto}
+.rv-spoil-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.4rem 1rem;margin-top:.5rem}
+.rv-spoil-row .rv-check{margin:0}
+.rv-spoil-btn{display:inline-flex;align-items:center;gap:.35rem;border:1px solid #26113f26;background:#fff;color:#5b4479;border-radius:99px;
+ padding:.3rem .75rem;font:inherit;font-size:.84rem;font-weight:700;cursor:pointer}
+.rv-spoil-btn:hover{background:#f3ecff}
+.rv-tip{margin:.35rem 0 0;color:#7a6a92}

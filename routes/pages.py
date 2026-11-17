@@ -74,7 +74,18 @@ def simple_md(text: str | None) -> Markup:
     return Markup("".join(out))
 
 
-templates.env.filters.update(ru_date=ru_date, stars=stars, position=position, md=simple_md)
+def spoilers(text: str | None) -> Markup:
+    """Отзыв: абзацы, а ||кусок|| — спойлер, размыт до нажатия (как в Discord). Всё остальное экранируется"""
+    out = []
+    for par in (text or "").splitlines():
+        html = str(escape(par.strip()))
+        html = re.sub(r"\|\|(.+?)\|\|", r'<span class="spoil" tabindex="0" role="button" aria-label="Спойлер: показать">\1</span>', html)
+        if html:
+            out.append(f"<p>{html}</p>")
+    return Markup("".join(out))
+
+
+templates.env.filters.update(ru_date=ru_date, stars=stars, position=position, md=simple_md, spoilers=spoilers)
 templates.env.globals.update(ai=ai)  # «Спросить Google ИИ» / «Написать с ИИ» на странице книги
 templates.env.globals.update(file_links=library.file_links)  # кнопка «Скачать» своего файла книги
 templates.env.globals.update(KINDLE_ON=kindle.enabled)  # кнопка «Отправить на Kindle» в мастерской
@@ -302,14 +313,19 @@ async def add_book(request: Request):
 
 
 @router.get("/book/{book_id}", response_class=HTMLResponse)
-def book_page(request: Request, book_id: int, error: str | None = None):
+def book_page(request: Request, book_id: int, error: str | None = None, review: str | None = None):
     user_id = current_user_id()
     b = queries.book_detail(user_id, book_id)
     if not b:
         raise HTTPException(404, "Книга не найдена")
+    # Тропы на выбор в отзыве: отмеченные у этой книги, свои (частые первыми), потом общий список
+    tropes = list(dict.fromkeys(b["tropes"] + queries.tropes(user_id) + library.TROPES))
     return templates.TemplateResponse(request, "book.html", {
         "b": b, "genres": queries.genres(user_id), "series_names": queries.series_names(),
-        "error": error, "today": date.today().isoformat()})
+        "error": error, "today": date.today().isoformat(),
+        "open_review": review == "1" and b.get("status") in ("finished", "dnf"),
+        "RV": {"moods": library.MOODS, "paces": library.PACES, "driven": library.DRIVEN,
+               "liked": library.LIKED, "reread": library.REREAD, "tropes": tropes}})
 
 
 async def _book_action(request: Request, book_id: int, action) -> RedirectResponse:
@@ -323,7 +339,23 @@ async def _book_action(request: Request, book_id: int, action) -> RedirectRespon
 
 @router.post("/book/{book_id}")
 async def book_save(request: Request, book_id: int):
-    return await _book_action(request, book_id, lambda f: library.save_book(current_user_id(), book_id, f))
+    form = dict(await request.form())
+    try:
+        just_finished = library.save_book(current_user_id(), book_id, form)
+    except library.ValidationError as e:
+        return back(f"/book/{book_id}", str(e))
+    # Только что дочитала (на странице книги или «Дочитала» на главной) — сразу окно отзыва
+    return back(f"/book/{book_id}?review=1" if just_finished else f"/book/{book_id}")
+
+
+@router.post("/book/{book_id}/review")
+async def book_review(request: Request, book_id: int):
+    form = await request.form()
+    try:
+        library.save_review(current_user_id(), book_id, form)
+    except library.ValidationError as e:
+        return back(f"/book/{book_id}", str(e))
+    return back(f"/book/{book_id}")
 
 
 @router.post("/book/{book_id}/file")
