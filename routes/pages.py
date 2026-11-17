@@ -8,7 +8,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, unquote, urlencode
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
@@ -85,7 +85,7 @@ def spoilers(text: str | None) -> Markup:
     return Markup("".join(out))
 
 
-templates.env.filters.update(ru_date=ru_date, stars=stars, position=position, md=simple_md, spoilers=spoilers)
+templates.env.filters.update(ru_date=ru_date, stars=stars, position=position, md=simple_md, spoilers=spoilers, unquote=unquote)
 templates.env.globals.update(ai=ai)  # «Спросить Google ИИ» / «Написать с ИИ» на странице книги
 templates.env.globals.update(file_links=library.file_links)  # кнопка «Скачать» своего файла книги
 templates.env.globals.update(KINDLE_ON=kindle.enabled)  # кнопка «Отправить на Kindle» в мастерской
@@ -98,8 +98,12 @@ templates.env.globals.update(LOGIN_ON=auth.password, STATUS=queries.STATUS_NAMES
 
 
 def back(url: str, error: str | None = None) -> RedirectResponse:
-    """После сохранения возвращаемся на страницу (303 — чтобы F5 не отправил форму повторно)."""
-    return RedirectResponse(url + ("?" + urlencode({"error": error}) if error else ""), status_code=303)
+    """После сохранения возвращаемся на страницу (303 — чтобы F5 не отправил форму повторно).
+    Ошибка — не в адресе, а в куке flash на минуту: base.html покажет её один раз и сотрёт"""
+    resp = RedirectResponse(url, status_code=303)
+    if error:
+        resp.set_cookie("flash", quote(error), max_age=60, path="/", samesite="lax")
+    return resp
 
 
 # ------------------------------------------------------------------ вход
@@ -344,7 +348,7 @@ async def book_save(request: Request, book_id: int):
         just_finished = library.save_book(current_user_id(), book_id, form)
     except library.ValidationError as e:
         return back(f"/book/{book_id}", str(e))
-    # Только что дочитала (на странице книги или «Дочитала» на главной) — сразу окно отзыва
+    # Только что дочитала (на странице книги или «Прочитано» на главной) — сразу окно отзыва
     return back(f"/book/{book_id}?review=1" if just_finished else f"/book/{book_id}")
 
 
@@ -355,6 +359,12 @@ async def book_review(request: Request, book_id: int):
         library.save_review(current_user_id(), book_id, form)
     except library.ValidationError as e:
         return back(f"/book/{book_id}", str(e))
+    return back(f"/book/{book_id}")
+
+
+@router.post("/book/{book_id}/review/delete")
+def book_review_delete(book_id: int):
+    library.delete_review(current_user_id(), book_id)
     return back(f"/book/{book_id}")
 
 

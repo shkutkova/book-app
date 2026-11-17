@@ -76,7 +76,11 @@
 {% endblock %}
 <div class="wrap">
   {% if not LOGIN_ON() %}<div class="error" role="status">Вход по паролю выключен: не задан APP_PASSWORD. Локально это нормально, на хостинге — обязательно задать.</div>{% endif %}
-  {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
+  {# Ошибка после сохранения приходит в куке flash (не в адресе); показывается один раз — скрипт ниже её стирает #}
+  {% set error = error or (request.cookies.get('flash')|unquote if request.cookies.get('flash')) %}
+  {% if error %}<div class="error" role="alert">{{ error }}</div>
+  <script>document.cookie = 'flash=; Max-Age=0; path=/';
+    if (new URLSearchParams(location.search).has('error')) { const u = new URL(location); u.searchParams.delete('error'); history.replaceState(null, '', u); }</script>{% endif %}
   {% block content %}{% endblock %}
 </div>
 {% block footer %}

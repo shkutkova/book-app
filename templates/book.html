@@ -178,7 +178,12 @@
   {% set rv = b.review or {} %}
   <section class="bp-review glass">
     {% if rv or b.tropes %}
-    <div class="rv-head"><h2>Мой отзыв</h2><button type="button" class="link" data-review>{{ icon('pencil', 16) }} Изменить</button></div>
+    <div class="rv-head"><h2>Мой отзыв</h2>
+      <div class="rv-acts">
+        <button type="button" class="link" data-review>{{ icon('pencil', 16) }} Изменить</button>
+        <form method="post" action="/book/{{ b.id }}/review/delete" onsubmit="return confirm('Удалить отзыв? Текст, ответы и тропы этой книги сотрутся, оценка останется.')">
+          <button class="link rv-del">{{ icon('dnf', 16) }} Удалить</button></form>
+      </div></div>
     {% if rv.summary %}
     {% if rv.is_spoiler %}<p class="rv-hint muted small">Тут спойлеры — нажми на текст, чтобы прочитать</p>{% endif %}
     <div class="rv-text {{ 'spoiler' if rv.is_spoiler }}" {% if rv.is_spoiler %}tabindex="0" role="button" aria-label="Спойлер: показать текст"{% endif %}>

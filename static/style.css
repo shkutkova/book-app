@@ -1125,3 +1125,5 @@ nav .links a.on{text-decoration-color:var(--sec)}
  padding:.3rem .75rem;font:inherit;font-size:.84rem;font-weight:700;cursor:pointer}
 .rv-spoil-btn:hover{background:#f3ecff}
 .rv-tip{margin:.35rem 0 0;color:#7a6a92}
+.rv-acts{display:flex;align-items:center;gap:1rem}.rv-acts form{margin:0}
+.rv-acts .rv-del{display:inline-flex;align-items:center;gap:.35rem;color:#ffb3c4}

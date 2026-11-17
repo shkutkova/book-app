@@ -170,6 +170,7 @@ def _save_review(u, bid, f):
         EDITS.setdefault(bid, {})["rating"] = float(f["rating"])
     print("REVIEW", bid, ascii(REVIEWS[bid]), ascii(BOOK_TROPES[bid]))
 _lib.save_review = _save_review
+_lib.delete_review = lambda u, bid: (REVIEWS.pop(bid, None), BOOK_TROPES.pop(bid, None))
 # Поиск в Hardcover — выдуманные результаты; «Добавить» открывает книгу 6 или фанфик 27
 from services import catalog as _cat, hardcover_api as _hc
 _hc.search = lambda q: [{"id": 900 + i, "title": f"{q} — вариант {i}", "authors": "SenLinYu", "year": 2021, "pages": 800,
