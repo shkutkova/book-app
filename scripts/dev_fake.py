@@ -88,8 +88,13 @@ def _home4(u):
     k = lambda b: dict(b, key=f"b{b['id']}")
     h["shelf"] = {"fav": [k(B(200 + i, "finished", cov=COV if i % 2 else None, is_favorite=True)) for i in range(9)],
                   "reading": [k(B(1, "reading", cov=COV)), k(B(2, "reading", kind="fanfic"))],
-                  "want": [k(B(300 + i, "want_to_read", is_next=True)) for i in range(5)]}
+                  "want": [k(B(300 + i, "want_to_read", is_next=True, cov=COV if i != 1 else None)) for i in range(5)]}
+    if HOME_MODE[0] in ("empty", "nonext"):  # /fake/home/… — проверить заглушку «ничего не читаю»
+        h["reading"] = []
+    if HOME_MODE[0] == "nonext":
+        h["shelf"] = dict(h["shelf"], want=[])
     return h
+HOME_MODE = ["normal"]
 queries.home = _home4
 EXTRA = {50: True}  # книга -> в «Дополнительно» (перенос кнопкой меняет это)
 def _series(u, sid):
@@ -189,4 +194,10 @@ _kindle.send = lambda data, name, title="": (print("KINDLE", name, len(data)), "
 
 import uvicorn
 from main import app
+from fastapi.responses import RedirectResponse as _Redir
+@app.get("/fake/home/{mode}")
+def _fake_home(mode: str):
+    """Главная без «Читаю» (empty) или ещё и без очереди «Следующие» (nonext); normal — как обычно"""
+    HOME_MODE[0] = mode
+    return _Redir("/", 303)
 uvicorn.run(app, host="127.0.0.1", port=8011)

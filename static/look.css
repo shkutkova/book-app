@@ -196,3 +196,23 @@ html[data-look=new]{
   -webkit-backdrop-filter:blur(16px) saturate(.55) brightness(1.2);backdrop-filter:blur(16px) saturate(.55) brightness(1.2)}
  .kpi:hover{background:color-mix(in oklab,var(--tc) 75%,transparent)}
 }
+
+/* ---- «Читаю сейчас» пусто: веер из очереди «Следующие» (.ste-b); очередь пуста — пустое место (.ste-c): контуры обложек, «+», привидение */
+html[data-look=new]{
+ .ste{display:flex;align-items:center;justify-content:center;gap:clamp(1rem,4vw,3rem);padding:clamp(1.4rem,4vw,2.6rem);min-height:250px}
+ .ste-body{display:flex;flex-direction:column;align-items:flex-start;gap:.55rem;max-width:30rem}
+ .ste-body h3{font:700 clamp(1.4rem,1rem + 2vw,2.3rem)/1.1 var(--display);letter-spacing:-.02em;margin:0;text-wrap:balance}
+ .ste-body .by{color:var(--mut);margin:0}
+ .ste .st-acts{justify-content:flex-start}
+ .ste-b .fc.act{filter:saturate(.85)}
+ .ste-slots{position:relative;width:clamp(150px,22vw,220px);aspect-ratio:2/3;flex:none}
+ .ste-slots i{position:absolute;inset:8%;border:2px dashed #ffffff40;border-radius:12px;rotate:var(--r);translate:var(--x) 4%}
+ .ste-plus{position:absolute;inset:0;display:grid;place-items:center;border:2px dashed #ffffff8c;border-radius:14px;background:#ffffff0f;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font:300 4rem/1 var(--display);color:#ffffffb3;text-decoration:none;transition:background .2s,color .2s}
+ .ste-plus:hover{background:#ffffff1f;color:var(--butter);text-decoration:none}
+ .ste-peek{position:absolute;width:56%;left:-40%;bottom:-6%;filter:drop-shadow(0 10px 18px #0008);rotate:-8deg}
+ @media (max-width:640px){
+  .ste{flex-direction:column;text-align:center}
+  .ste-body{align-items:center}.ste .st-acts{justify-content:center}
+ }
+}

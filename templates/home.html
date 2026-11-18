@@ -38,7 +38,46 @@
     </div>
   </section>
   {% else %}
-  <section class="stage gl st-empty"><div><p>Сейчас ничего не открыто.</p><a class="nb main" href="/books">Выбрать, что читать</a></div></section>
+  {# Ничего не читаю: веер из очереди «Следующие» (как «Читаю сейчас») — «Начать читать» ставит «Читаю» и оставляет на главной.
+     Очередь пуста — пустое место: контуры обложек и «+», привидение с книгами #}
+  {% if shelf.want %}
+  <section class="stage gl ste-b">
+    <div class="st-fan">
+      {% for b in shelf.want[:3] %}{% set k = loop.index0 - 1 %}
+      <button type="button" class="fc{{ ' act' if loop.first }}" data-id="{{ b.id }}" data-cover="{{ b.cover_url or '' }}" data-href="/book/{{ b.id }}"
+              {% if not loop.first %}style="--s:{{ 1 if k % 2 else -1 }};--d:{{ k // 2 + 1 }}"{% endif %} aria-label="{{ b.title_ru or b.title }}">
+        {% if b.cover_url %}<img src="{{ b.cover_url }}" alt="">{% else %}<span class="img tone-{{ b.id % 6 }}">{{ b.title_ru or b.title }}</span>{% endif %}
+      </button>
+      {% endfor %}
+    </div>
+    <div class="st-text">
+      {% for b in shelf.want[:3] %}
+      <div class="st-b{{ ' act' if loop.first }}">
+        <span class="tagl">Следующая по очереди</span>
+        <h3>{{ b.title_ru or b.title }}</h3>
+        <p class="by">{{ b.authors or '' }}{% if b.pages %}{{ ', ' if b.authors }}{{ b.pages }} стр.{% endif %}</p>
+        <div class="st-acts">
+          <form method="post" action="/book/{{ b.id }}"><input type="hidden" name="back" value="/"><button class="nb main" name="status" value="reading">Начать читать</button></form>
+          <a class="nb" href="/book/{{ b.id }}">Открыть книгу</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% else %}
+  <section class="stage gl ste ste-c">
+    <div class="ste-slots" aria-hidden="true">
+      <i style="--r:-12deg;--x:-38%"></i><i style="--r:12deg;--x:38%"></i>
+      <a class="ste-plus" href="/books#want_to_read" tabindex="-1">+</a>
+      <img class="ste-peek" src="/static/img/booky/2-13.webp" alt="">
+    </div>
+    <div class="ste-body">
+      <h3>Тут будет твоя книга</h3>
+      <p class="by">Выбери, что читать дальше.</p>
+      <div class="st-acts"><a class="nb main" href="/books#want_to_read">Выбрать в «Хочу прочитать»</a></div>
+    </div>
+  </section>
+  {% endif %}
   {% endif %}
 
   {% set bm = board.best_month %}

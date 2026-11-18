@@ -348,8 +348,11 @@ async def book_save(request: Request, book_id: int):
         just_finished = library.save_book(current_user_id(), book_id, form)
     except library.ValidationError as e:
         return back(f"/book/{book_id}", str(e))
-    # Только что дочитала (на странице книги или «Прочитано» на главной) — сразу окно отзыва
-    return back(f"/book/{book_id}?review=1" if just_finished else f"/book/{book_id}")
+    # Только что дочитала (на странице книги или «Прочитано» на главной) — сразу окно отзыва.
+    # «Начать читать» с главной (back=/) — остаёмся на главной
+    if just_finished:
+        return back(f"/book/{book_id}?review=1")
+    return back("/" if form.get("back") == "/" else f"/book/{book_id}")
 
 
 @router.post("/book/{book_id}/review")
