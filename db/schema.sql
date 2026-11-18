@@ -230,6 +230,29 @@ create table reviews (
 );
 
 
+-- Свои подборки (как сборники на ficbook): название, цвет; книги — из своей библиотеки
+create table collections (
+    id          bigint generated always as identity primary key,
+    user_id     uuid not null references profiles(id) on delete cascade on update cascade,
+    name        text not null check (length(trim(name)) between 1 and 60),
+    color       text not null default 'lilac'
+                check (color in ('lilac', 'butter', 'peach', 'mint', 'sky', 'pink')),
+    created_at  timestamptz not null default now(),
+    unique (user_id, name)
+);
+
+create table collection_books (
+    collection_id bigint not null references collections(id) on delete cascade,
+    user_id       uuid   not null,
+    book_id       bigint not null,
+    added_at      timestamptz not null default now(),
+    primary key (collection_id, book_id),
+    foreign key (user_id, book_id) references library(user_id, book_id)
+        on delete cascade on update cascade
+);
+create index collection_books_book on collection_books (user_id, book_id);
+
+
 -- ---------------------------------------------------------------------
 -- 4. ИНДЕКСЫ: чтобы частые выборки работали быстро
 -- ---------------------------------------------------------------------
@@ -334,6 +357,8 @@ alter table series_removed     enable row level security;
 alter table liked_tags         enable row level security;
 alter table library_liked_tags enable row level security;
 alter table reviews            enable row level security;
+alter table collections        enable row level security;
+alter table collection_books   enable row level security;
 
 alter view series_progress      set (security_invoker = true);
 alter view series_books_ordered set (security_invoker = true);

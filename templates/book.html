@@ -23,8 +23,16 @@
 
   <div class="bp-title title-block glass">
     {% set f = file_links(b.file_url) %}
-    {# справа сверху — только огонёк избранного #}
+    {# справа сверху — «Следующая» и огонёк избранного #}
     <div class="corner">
+      {# «Следующая» — кружок у огонька, только у «Хочу прочитать»: пустой — нет, голубой — на полке «Следующие». Нажатие переключает #}
+      {% if b.in_library and b.status == 'want_to_read' %}
+      <form method="post" action="/book/{{ b.id }}/next" class="next-corner">
+        <input type="hidden" name="is_next" value="{{ '' if b.is_next else 'on' }}">
+        {% set nt = 'Следующая — нажми, чтобы убрать с полки «Следующие»' if b.is_next else 'Читать следующей' %}
+        <button class="next-round {{ 'on' if b.is_next }}" aria-pressed="{{ 'true' if b.is_next else 'false' }}" aria-label="{{ nt }}" title="{{ nt }}">{{ icon('next', 20) }}</button>
+      </form>
+      {% endif %}
       {% if b.in_library %}
       <form method="post" action="/book/{{ b.id }}" class="fav-corner">
         <input type="hidden" name="is_favorite" value="{{ '' if b.is_favorite else 'on' }}">
@@ -86,13 +94,32 @@
       </form>
     </details>
 
-    {% if b.status == 'want_to_read' %}
-    <form method="post" action="/book/{{ b.id }}/next">
-      <input type="hidden" name="is_next" value="{{ '' if b.is_next else 'on' }}">
-      <button class="next-btn {{ 'on' if b.is_next }}" aria-pressed="{{ 'true' if b.is_next else 'false' }}"
-              title="{{ 'Убрать из «Следующих»' if b.is_next else 'Поставить на полку «Следующие»' }}">{{ icon('next', 18) }}{{ 'Следующая' if b.is_next else 'Читать следующей' }}</button>
-    </form>
-    {% endif %}
+
+    {# Подборки — выпадающий список, как у статуса: в кнопке — где книга сейчас (цветные квадратики),
+       в списке — все подборки, нажатие кладёт/убирает (галочка справа), внизу — новая подборка. Без перезагрузки #}
+    {% set inc = cols|selectattr('has')|list %}
+    <details class="col-menu" data-book="{{ b.id }}">
+      <summary>
+        <span class="col-dots" aria-hidden="true">{% for c in inc[:3] %}<i class="c-{{ c.color }}"></i>{% else %}{{ icon('collection', 18) }}{% endfor %}</span>
+        <span class="col-sum">{% if not inc %}В подборку{% elif inc|length == 1 %}{{ inc[0].name }}{% else %}В {{ inc|length }} подборках{% endif %}</span>
+        {{ icon('chevron', 16) }}
+      </summary>
+      <div class="menu col-pop">
+        <template class="col-tpl"><span class="col-ic">{{ icon('collection', 18) }}</span><span class="col-ok"><span class="box" aria-hidden="true">{{ icon('check', 15) }}</span></span></template>
+        {% if cols %}<p class="col-h">Отметь подборки — сохраняется сразу</p>{% endif %}
+        {% for c in cols %}
+        <button type="button" class="col-row c-{{ c.color }}" data-col="{{ c.id }}" aria-pressed="{{ 'true' if c.has else 'false' }}">
+          <i class="sw"></i><span class="nm">{{ c.name }}</span><span class="box" aria-hidden="true">{{ icon('check', 15) }}</span></button>
+        {% endfor %}
+        <form class="col-new" method="post" action="/collections">
+          <input type="hidden" name="book_id" value="{{ b.id }}">
+          <input name="name" maxlength="60" required placeholder="{{ 'Новая подборка' if cols else 'Название первой подборки' }}" aria-label="Название новой подборки">
+          <button>Создать</button>
+        </form>
+        <p class="col-err" role="alert" hidden></p>
+        <div class="col-foot"><a class="col-all" href="/collections">Все подборки</a><button type="button" class="col-done">Готово</button></div>
+      </div>
+    </details>
 
     {# Звёзды. Пока оценки нет — прозрачные; ставить можно прочитанной или брошенной книге #}
     {% set can_rate = b.status in ('finished', 'dnf') %}
@@ -539,7 +566,48 @@
 })();
 
 // Меню статуса закрывается по клику мимо
-document.addEventListener('click', e => document.querySelectorAll('.status-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
+document.addEventListener('click', e => document.querySelectorAll('.status-menu[open], .col-menu[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
+
+// Подборки: нажатие на строку кладёт/убирает книгу (сразу, без перезагрузки), подпись в кнопке обновляется;
+// новая подборка создаётся с этой книгой внутри
+(() => {
+  const box = document.querySelector('.col-menu[data-book]');
+  if (!box) return;
+  const book = box.dataset.book, err = box.querySelector('.col-err'), pop = box.querySelector('.col-pop');
+  const tpl = box.querySelector('.col-tpl').content;
+  const say = t => { err.textContent = t || ''; err.hidden = !t; };
+  const label = () => {
+    const on = [...pop.querySelectorAll('.col-row[aria-pressed=true]')];
+    box.querySelector('.col-sum').textContent = !on.length ? 'В подборку' : on.length === 1 ? on[0].querySelector('.nm').textContent : `В ${on.length} подборках`;
+    const dots = box.querySelector('.col-dots');
+    dots.innerHTML = on.length ? on.slice(0, 3).map(r => `<i class="${[...r.classList].find(c => c.startsWith('c-'))}"></i>`).join('')
+                               : tpl.querySelector('.col-ic').innerHTML;
+  };
+  const toggle = row => {
+    const on = row.getAttribute('aria-pressed') !== 'true';
+    row.setAttribute('aria-pressed', on); label(); say();
+    fetch(`/collections/${row.dataset.col}/books/${book}`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({on})})
+      .then(r => { if (!r.ok) throw r; window.bookAppChanged?.(); })
+      .catch(() => { row.setAttribute('aria-pressed', !on); label(); say('Не сохранилось — попробуй ещё раз'); });
+  };
+  pop.addEventListener('click', e => { const row = e.target.closest('.col-row'); if (row) toggle(row); });
+  box.querySelector('.col-done').onclick = () => { box.open = false; };
+  box.querySelector('.col-new').addEventListener('submit', e => {
+    e.preventDefault(); e.stopImmediatePropagation();  // без крутилки busy(): страница не перезагружается
+    const f = e.target;
+    fetch(f.action, {method: 'POST', headers: {'Accept': 'application/json'}, body: new FormData(f)})
+      .then(r => r.json().then(d => ({ok: r.ok, d})))
+      .then(({ok, d}) => {
+        if (!ok) return say(d.error || 'Не получилось');
+        const row = document.createElement('button');
+        row.type = 'button'; row.className = `col-row c-${d.color}`; row.dataset.col = d.id; row.setAttribute('aria-pressed', 'true');
+        row.innerHTML = `<i class="sw"></i><span class="nm"></span>${tpl.querySelector('.col-ok').innerHTML}`;
+        row.querySelector('.nm').textContent = d.name;
+        f.before(row); f.reset(); f.querySelector('[name=name]').placeholder = 'Новая подборка'; say(); label(); window.bookAppChanged?.();
+      })
+      .catch(() => say('Не получилось — попробуй ещё раз'));
+  }, true);
+})();
 
 // Даты прочтения: календарь — по клику на дату (своего значка нет), сохраняются сразу при выборе
 document.querySelectorAll('[data-autosave] input').forEach(i => {

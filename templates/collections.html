@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Подборки{% endblock %}
+{% macro plural(n, one, few, many) -%}
+{%- set a = n % 10 -%}{%- set b = n % 100 -%}
+{{ one if a == 1 and b != 11 else (few if 2 <= a <= 4 and (b < 12 or b > 14) else many) }}
+{%- endmacro %}
+{% macro cv(x) -%}
+{% if x and x.cover_url %}<img src="{{ x.cover_url }}" alt="" loading="lazy">{% elif x %}<span class="img tone-{{ x.id % 6 }}">{{ x.title_ru or x.title }}</span>{% else %}<span class="ph"></span>{% endif %}
+{%- endmacro %}
+{% block content %}
+{# Свои подборки — плитки как в Fable: рамка своего цвета, большая обложка и две маленькие (последние добавленные).
+   Последняя плитка — «Новая подборка». Книги в подборку кладутся со страницы книги: «В подборку ▾» #}
+<div class="list-head">
+  <h1 class="with-booky"><img src="/static/img/booky/1-06.webp" alt="">Подборки</h1>
+</div>
+
+<div class="cols-grid">
+  {% for c in cols %}
+  <a class="col-tile c-{{ c.color }}" href="/collections/{{ c.id }}">
+    <span class="tile">
+      <span class="big">{{ cv(c.covers[0] if c.covers|length > 0 else none) }}</span>
+      <span class="sm">{{ cv(c.covers[1] if c.covers|length > 1 else none) }}{{ cv(c.covers[2] if c.covers|length > 2 else none) }}</span>
+    </span>
+    <b>{{ c.name }}</b>
+    <small>{% if c.n %}{{ c.n }} {{ plural(c.n, 'книга', 'книги', 'книг') }}{% else %}пока пусто{% endif %}</small>
+  </a>
+  {% endfor %}
+  <form class="col-tile new" method="post" action="/collections">
+    <label class="tile" for="new-col">+</label>
+    <input id="new-col" name="name" maxlength="60" required placeholder="Новая подборка" aria-label="Название новой подборки">
+    <button class="nb main">Создать</button>
+  </form>
+</div>
+{% if not cols %}
+<p class="muted cols-hint">Подборка — своя полка: «Тёмная академия», «Перечитать», «Осенние уютные». Создай её здесь
+  или прямо со страницы книги — кнопка «В подборку ▾».</p>
+{% endif %}
+{% endblock %}

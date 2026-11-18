@@ -118,9 +118,10 @@ queries.find_books = lambda u, q: [dict(B(6, "finished", cov=COV), title_ru="З�
 from services import library as _lib
 _lib.save_shelf_order = lambda u, shelf, items: print("SHELF", shelf, items)
 
-_lib.set_next = lambda u, b, on: print("NEXT", b, on)
+NEXTS = {8: True}  # «Следующая» — до перезапуска
+_lib.set_next = lambda u, b, on: NEXTS.__setitem__(b, on)
 _bk = queries.book_detail
-queries.book_detail = lambda u, bid: dict(_bk(u, bid), status="want_to_read", is_next=bid == 8) if bid in (8, 10) else _bk(u, bid)
+queries.book_detail = lambda u, bid: dict(_bk(u, bid), status="want_to_read", is_next=NEXTS.get(bid, False)) if bid in (8, 10) else _bk(u, bid)
 _b2 = queries.books
 queries.books = lambda u: [dict(b, is_next=b["status"] == "want_to_read" and b["id"] % 5 == 0, is_favorite=b["id"] % 7 == 2,
                                 title_ru="Змея и крылья ночи" if b["id"] % 3 == 1 else None) for b in _b2(u)]
@@ -133,11 +134,12 @@ queries.series_names = lambda: ["Crowns of Nyaxia", "Короны Никсии",
 from services import catalog as _cat
 _cat.add_to_series = lambda b, name, pos: print("TO SERIES", b, name, pos)
 _lib.set_cover = lambda b, url: print("COVER", b, _lib.cover_link(url))
-FILES = {6: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing"}
+FILES = {6: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing",
+         8: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing"}
 _bk2 = queries.book_detail
 queries.book_detail = lambda u, bid: dict(_bk2(u, bid), file_url=FILES.get(bid))
 _lib.set_file = lambda u, b, url: FILES.__setitem__(b, (url or "").strip() or None)
-SOURCES = {}  # «Где читать» — до перезапуска
+SOURCES = {8: "https://ficbook.net/readfic/1"}  # «Где читать» — до перезапуска; у книги 8 есть всё: ficbook, файл, «Следующая»
 _bk4 = queries.book_detail
 queries.book_detail = lambda u, bid: dict(_bk4(u, bid), **({"source_url": SOURCES[bid]} if bid in SOURCES else {}))
 _lib.set_source = lambda u, b, url: SOURCES.__setitem__(b, (url or "").strip() or None)
@@ -176,6 +178,37 @@ def _save_review(u, bid, f):
     print("REVIEW", bid, ascii(REVIEWS[bid]), ascii(BOOK_TROPES[bid]))
 _lib.save_review = _save_review
 _lib.delete_review = lambda u, bid: (REVIEWS.pop(bid, None), BOOK_TROPES.pop(bid, None))
+# Подборки — в памяти до перезапуска. Порядок «последней» — по счётчику TICK (как added_at)
+import itertools as _it
+_tick = _it.count(100)
+COLS = {1: {"id": 1, "name": "Тёмная академия", "color": "lilac", "books": {9: 5, 1: 4, 300: 3}, "t": 5},
+        2: {"id": 2, "name": "Перечитать", "color": "mint", "books": {7: 2}, "t": 2},
+        3: {"id": 3, "name": "Ангст, чтобы плакать", "color": "peach", "books": {}, "t": 1}}
+def _colbk(bid):
+    return B(bid, "finished" if bid % 2 else "want_to_read", cov=COV if bid % 3 else None)
+_ord = lambda: sorted(COLS.values(), key=lambda c: -c["t"])
+queries.collections = lambda u: [dict(id=c["id"], name=c["name"], color=c["color"], n=len(c["books"]),
+                                      covers=[_colbk(b) for b, _ in sorted(c["books"].items(), key=lambda x: -x[1])][:3]) for c in _ord()]
+queries.book_collections = lambda u, bid: [dict(id=c["id"], name=c["name"], color=c["color"], has=bid in c["books"]) for c in _ord()]
+queries.collection = lambda u, cid: (lambda c: c and {"id": c["id"], "name": c["name"], "color": c["color"]})(COLS.get(cid))
+queries.collection_books = lambda u, cid: [_colbk(b) for b, _ in sorted(COLS[cid]["books"].items(), key=lambda x: -x[1])]
+def _create_col(u, name, bid=None):
+    name = _lib._collection_name(name)
+    if any(c["name"].lower() == name.lower() for c in COLS.values()):
+        raise _lib.ValidationError(f"Подборка «{name}» уже есть")
+    cid = max(COLS) + 1; t = next(_tick)
+    COLS[cid] = {"id": cid, "name": name, "color": _lib.COLLECTION_COLORS[len(COLS) % 6], "books": {bid: t} if bid else {}, "t": t}
+    return {"id": cid, "name": name, "color": COLS[cid]["color"]}
+def _toggle_col(u, cid, bid, on):
+    c = COLS[cid]
+    if on:
+        c["books"][bid] = c["t"] = next(_tick)
+    else:
+        c["books"].pop(bid, None)
+_lib.create_collection = _create_col
+_lib.set_in_collection = _toggle_col
+_lib.update_collection = lambda u, cid, name, color: COLS[cid].update(name=_lib._collection_name(name), color=color)
+_lib.delete_collection = lambda u, cid: COLS.pop(cid, None)
 # Поиск в Hardcover — выдуманные результаты; «Добавить» открывает книгу 6 или фанфик 27
 from services import catalog as _cat, hardcover_api as _hc
 _hc.search = lambda q: [{"id": 900 + i, "title": f"{q} — вариант {i}", "authors": "SenLinYu", "year": 2021, "pages": 800,

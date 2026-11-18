@@ -223,11 +223,6 @@ details summary{cursor:pointer}
 .rate:not(.locked):hover button{color:var(--accent)}.rate:not(.locked):hover button .ic{fill:var(--accent)}
 .rate:not(.locked) button:hover~button .ic{fill:none}.rate:not(.locked) button:hover~button{color:#ffffff4d}
 .rate.locked{opacity:.4}.rate.locked button{cursor:not-allowed}
-.next-btn{display:flex;align-items:center;gap:.4rem;border-radius:999px;padding:.55rem .95rem;font-weight:800}
-.next-btn .ic{color:var(--p-sky)}
-.next-btn.on{background:linear-gradient(140deg,var(--p-sky),color-mix(in srgb,var(--p-sky) 55%,var(--p-lilac)));border-color:transparent;color:var(--ink);
- box-shadow:0 6px 18px -6px #b5dbffcc,inset 0 1px 0 #fffa}
-.next-btn.on .ic{color:var(--ink)}
 .read-dates input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .read-dates input::-webkit-calendar-picker-indicator{display:none}
 input[type=date].blank:not(:focus){color:transparent}
@@ -680,14 +675,14 @@ html.nav-hide nav:not(:focus-within){transform:translateY(-100%)}
 .tabbar{display:none}
 @media (max-width:720px){
  nav .links{display:none}
- .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:45;
+ .tabbar{display:grid;grid-template-columns:repeat(6,1fr);position:fixed;left:0;right:0;bottom:0;z-index:45;
   padding:.35rem .4rem max(.4rem,env(safe-area-inset-bottom));background:color-mix(in srgb,var(--surface) 86%,transparent);
   -webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4);border-top:1px solid #ffffff1a}
  .wrap{padding-bottom:calc(6rem + env(safe-area-inset-bottom))}
- .tabbar a{display:flex;flex-direction:column;align-items:center;gap:.15rem;padding:.3rem 0;color:var(--mut);font-size:.7rem;font-weight:700;
+ .tabbar a{display:flex;flex-direction:column;align-items:center;gap:.15rem;padding:.3rem 0;color:var(--mut);font-size:.66rem;letter-spacing:-.01em;font-weight:700;
   border-radius:14px;-webkit-tap-highlight-color:transparent}
  .tabbar a:hover{text-decoration:none}
- .tabbar .ic{padding:.2rem .9rem;box-sizing:content-box;border-radius:999px;transition:background-color .2s,color .2s,transform .15s}
+ .tabbar .ic{padding:.2rem .7rem;box-sizing:content-box;border-radius:999px;transition:background-color .2s,color .2s,transform .15s}
  .tabbar a.on{color:var(--text)}
  .tabbar a.on .ic{background:color-mix(in srgb,var(--p-lilac) 26%,transparent);color:var(--accent)}
  .tabbar a:active .ic{transform:scale(.92)}}
@@ -948,10 +943,9 @@ nav{view-transition-name:site-nav}
 
 /* Второстепенные кнопки («Назад», «Настройки книги», «Скачать», ссылки в настройках и у серии, «Читать следующей», «+N»):
    прозрачные, с пастельной рамкой (--kc, обычно сиреневой); при наведении заливаются этим цветом */
-:where(.tool-btn:not(.ws),.back-link,.settings .links a,.settings .links button.link,.side-links a,.side-links button.link,.read-link,.next-btn:not(.on),.chip.more,.read-row button:not(.link)){--kc:var(--p-lilac)}
-.next-btn{--kc:var(--p-sky)}
-:is(.tool-btn:not(.ws),.back-link,.settings .links a,.settings .links button.link,.side-links a,.side-links button.link,.read-link,.next-btn:not(.on),.chip.more,.read-row button:not(.link)){background:transparent;border:1.5px solid color-mix(in srgb,var(--kc) 70%,transparent);box-shadow:none}
-:is(.tool-btn:not(.ws),.back-link,.settings .links a,.settings .links button.link,.side-links a,.side-links button.link,.read-link,.next-btn:not(.on),.chip.more,.read-row button:not(.link)):hover{background:color-mix(in srgb,var(--kc) 22%,transparent);border-color:var(--kc)}
+:where(.tool-btn:not(.ws),.back-link,.settings .links a,.settings .links button.link,.side-links a,.side-links button.link,.read-link,.chip.more,.read-row button:not(.link)){--kc:var(--p-lilac)}
+:is(.tool-btn:not(.ws),.back-link,.settings .links a,.settings .links button.link,.side-links a,.side-links button.link,.read-link,.chip.more,.read-row button:not(.link)){background:transparent;border:1.5px solid color-mix(in srgb,var(--kc) 70%,transparent);box-shadow:none}
+:is(.tool-btn:not(.ws),.back-link,.settings .links a,.settings .links button.link,.side-links a,.side-links button.link,.read-link,.chip.more,.read-row button:not(.link)):hover{background:color-mix(in srgb,var(--kc) 22%,transparent);border-color:var(--kc)}
 
 /* Даты на странице книги — капсула обведена цветом статуса, календарь — в кружке этого цвета (--st ставит .bp-mine.st-…) */
 .bp-mine .read-dates{background:color-mix(in srgb,var(--st,var(--p-lilac)) 10%,transparent);border:1.5px solid color-mix(in srgb,var(--st,var(--p-lilac)) 70%,transparent)}
@@ -1046,8 +1040,9 @@ nav .links a.on{text-decoration-color:var(--sec)}
 .get-links{display:flex;flex-wrap:wrap;gap:.5rem;margin:0}
 .get-links a{display:inline-flex;align-items:center;gap:.4rem;font-size:.86rem;font-weight:800;border-radius:999px;padding:.42rem .9rem}
 .get-links a:hover{text-decoration:none}
-.go-read{color:var(--p-sky);border:1.5px solid color-mix(in srgb,var(--p-sky) 65%,transparent);background:color-mix(in srgb,var(--p-sky) 10%,transparent)}
-.go-read:hover{background:color-mix(in srgb,var(--p-sky) 22%,transparent)}
+/* «Читать онлайн / Ficbook» — ссылка наружу: белый контур и ↗, без цвета — чтобы не путать с кнопками статуса и «Следующей» */
+.go-read{color:var(--text);border:1.5px solid #ffffff59;background:transparent}
+.go-read:hover{background:#ffffff14}
 .go-read .ext{font-size:.95em;opacity:.8}
 .go-file{color:var(--ink);background:var(--p-butter);box-shadow:0 6px 14px -8px #ffe08fcc}
 .go-file:hover{background:#fff0b8}
@@ -1127,3 +1122,87 @@ nav .links a.on{text-decoration-color:var(--sec)}
 .rv-tip{margin:.35rem 0 0;color:#7a6a92}
 .rv-acts{display:flex;align-items:center;gap:1rem}.rv-acts form{margin:0}
 .rv-acts .rv-del{display:inline-flex;align-items:center;gap:.35rem;color:#ffb3c4}
+
+/* ---- подборки: цвета, кнопка «В подборку ▾» на странице книги, страница «Подборки» */
+.c-lilac{--c:var(--p-lilac)}.c-butter{--c:var(--p-butter)}.c-peach{--c:var(--p-peach)}.c-mint{--c:var(--p-mint)}.c-sky{--c:var(--p-sky)}.c-pink{--c:var(--p-pink)}
+/* Подборки на странице книги — выпадающий список, как у статуса. Кнопка — «стекло» с цветными квадратиками подборок
+   (статус — сплошной цвет, ficbook — контур со стрелкой ↗, «Скачать» — жёлтая): так их не спутать */
+.col-menu{position:relative}
+.col-menu summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:.5rem;border-radius:999px;padding:.55rem 1rem .55rem .8rem;font-weight:800;
+ color:var(--text);background:#ffffff14;border:1px solid #ffffff38;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.col-menu summary::-webkit-details-marker{display:none}
+.col-menu summary:hover{background:#ffffff22}
+.col-menu[open] summary>.ic:last-child{rotate:180deg}
+.col-sum{max-width:16ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.col-dots{display:flex;gap:3px;align-items:center}
+.col-dots .ic{color:var(--p-lilac)}
+.col-dots i{width:13px;height:13px;border-radius:4px;background:var(--c);box-shadow:0 0 0 1.5px #ffffff59}
+.col-pop{position:absolute;left:0;top:calc(100% + .5rem);z-index:20;background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:.45rem;
+ width:min(290px,88vw);display:grid;gap:2px}
+.col-row{display:flex;align-items:center;gap:.7rem;background:none;border:0;border-radius:12px;padding:.55rem .7rem;text-align:left;color:var(--text);font-weight:700;cursor:pointer}
+.col-row:hover{background:var(--surface-2)}
+.col-row .sw{width:18px;height:18px;border-radius:6px;background:var(--c);flex:none}
+.col-row .nm{flex:1;min-width:0;overflow-wrap:anywhere}
+.col-row .box{width:22px;height:22px;border-radius:7px;border:2px solid #ffffff59;display:grid;place-items:center;flex:none;transition:background .15s,border-color .15s}
+.col-row .box .ic{opacity:0;color:var(--ink);stroke-width:3}
+.col-row[aria-pressed=true]{background:var(--surface-2)}
+.col-row[aria-pressed=true] .box{background:var(--c);border-color:var(--c)}
+.col-row[aria-pressed=true] .box .ic{opacity:1}
+.col-h{margin:.2rem .6rem .3rem;font-size:.78rem;color:var(--mut)}
+.col-new{display:flex;gap:.4rem;margin-top:.3rem;padding:.5rem .2rem .1rem;border-top:1px solid var(--line)}
+.col-new input{flex:1;min-width:0;border-radius:11px;border:1px solid var(--line);padding:.45rem .6rem;font:inherit;font-size:.9rem;background:#ffffff0d;color:var(--text)}
+.col-new input::placeholder{color:var(--mut)}
+.col-new input:focus{outline:2px solid var(--p-lilac);outline-offset:1px}
+.col-new button{border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--text);font-weight:800;font-size:.86rem;padding:0 .7rem;cursor:pointer}
+.col-new button:hover{background:#ffffff14}
+.col-err{margin:.3rem .5rem 0;color:#ffb3c4;font-size:.84rem;font-weight:700}
+.col-foot{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin:.4rem .3rem .15rem .5rem}
+.col-all{font-size:.86rem;font-weight:800;color:var(--p-lilac)}
+.col-done{border:0;border-radius:999px;background:var(--p-lilac);color:var(--ink);font-weight:800;padding:.5rem 1.2rem;cursor:pointer}
+
+/* «Следующая» — кружок у огонька: пустой (прозрачный) — нет, голубой — на полке «Следующие»; цвет — как у полки */
+.next-corner{margin:0}
+.next-round{width:40px;height:40px;border-radius:50%;padding:0;display:grid;place-items:center;background:transparent;border:1.5px solid #ffffff40;color:#ffffffb3}
+.next-round:hover{color:var(--p-sky);border-color:color-mix(in srgb,var(--p-sky) 70%,transparent)}
+.next-round.on{background:linear-gradient(160deg,var(--p-sky),#7fb6ff);color:var(--ink);border-color:transparent;box-shadow:0 8px 20px -8px #7fb6ffcc}
+.cols-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:1.4rem clamp(.7rem,2vw,1.1rem);margin-top:1rem}
+.col-tile{display:flex;flex-direction:column;gap:.15rem;color:var(--text);text-decoration:none;min-width:0}
+.col-tile:hover{text-decoration:none}
+.col-tile .tile{display:grid;grid-template-columns:3fr 2fr;gap:6px;padding:8px;border-radius:20px;background:var(--c);
+ box-shadow:0 16px 30px -18px #000c;transition:transform .25s var(--ease-out),box-shadow .25s}
+.col-tile:hover .tile{transform:translateY(-4px) rotate(-1deg);box-shadow:0 24px 36px -18px #000e}
+.col-tile .big,.col-tile .sm>*{display:block;border-radius:7px;overflow:hidden}
+.col-tile .big{aspect-ratio:2/3}
+.col-tile .sm{display:grid;grid-template-rows:1fr 1fr;gap:6px;height:0;min-height:100%}
+.col-tile .sm>*{min-height:0}
+.col-tile img,.col-tile .img{width:100%;height:100%;object-fit:cover;display:block}
+.col-tile .img{display:grid;place-items:center;padding:.3em;text-align:center;font:700 .62rem/1.1 var(--display);color:var(--ink);overflow:hidden;background:var(--p-lilac)}
+.col-tile .ph{background:color-mix(in oklab,var(--ink) 12%,transparent)}
+.col-tile b{margin-top:.55rem;font:600 .98rem/1.2 var(--display);overflow-wrap:anywhere}
+.col-tile small{color:var(--mut);font-size:.82rem}
+.col-tile.new{gap:.5rem}
+.col-tile.new .tile{display:grid;place-items:center;grid-template-columns:1fr;min-height:150px;background:#ffffff10;border:2px dashed #ffffff40;box-shadow:none;
+ font:300 2.6rem/1 var(--display);color:var(--mut);cursor:text}
+.col-tile.new:focus-within .tile{border-color:var(--p-butter);color:var(--p-butter)}
+.col-tile.new input{border-radius:12px;border:1px solid #ffffff40;background:#ffffff14;color:var(--text);padding:.5rem .7rem;font:inherit;font-size:.9rem;min-width:0}
+.col-tile.new input::placeholder{color:var(--mut)}
+.col-tile.new .nb{align-self:flex-start}
+.cols-hint{max-width:60ch;margin-top:1.4rem}
+.col-title{display:flex;align-items:center;gap:.6rem;overflow-wrap:anywhere}
+.col-title .sw{width:.8em;height:.8em;border-radius:.22em;background:var(--c);flex:none}
+.col-acts{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.col-acts form{margin:0}
+.col-edit{position:relative}
+.col-edit summary{list-style:none;display:inline-flex;align-items:center;gap:.35rem}.col-edit summary::-webkit-details-marker{display:none}
+.col-edit-pop{color-scheme:light;position:absolute;right:0;top:calc(100% + .5rem);z-index:20;width:min(280px,86vw);display:grid;gap:.45rem;padding:.9rem;border-radius:18px;
+ background:#fffaff;color:var(--ink);box-shadow:0 24px 44px -18px #000c}
+.col-edit-pop label[for],.col-edit-pop p{margin:0;font-size:.8rem;font-weight:800;color:#5b4479}
+.col-edit-pop>input{border-radius:11px;border:1px solid #26113f30;padding:.5rem .65rem;font:inherit;background:#fff;color:var(--ink)}
+.col-colors{display:flex;gap:.45rem;flex-wrap:wrap}
+.col-colors label{position:relative;cursor:pointer}
+.col-colors input{position:absolute;opacity:0;width:1px;height:1px}
+.col-colors span{display:block;width:30px;height:30px;border-radius:9px;background:var(--c);box-shadow:inset 0 0 0 1px #26113f1f}
+.col-colors input:checked+span{box-shadow:0 0 0 2px #fffaff,0 0 0 4px #7b55d6}
+.col-colors input:focus-visible+span{outline:2px solid #7b55d6;outline-offset:4px}
+.col-del{color:#ffb3c4}
+@media (max-width:640px){.cols-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

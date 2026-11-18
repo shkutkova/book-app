@@ -510,3 +510,68 @@ def set_series_extra(user_id: str, series_id: int, book_id: int, extra: bool) ->
                on conflict (user_id, series_id, book_id) do update set is_extra = excluded.is_extra""",
             (user_id, series_id, book_id, choice))
         _drop_empty_series_books(conn, user_id, series_id)
+
+
+# ------------------------------------------------------------------ подборки
+
+COLLECTION_COLORS = ("lilac", "butter", "peach", "mint", "sky", "pink")
+
+
+def _collection_name(raw: str | None) -> str:
+    name = " ".join((raw or "").split())
+    if not name:
+        raise ValidationError("Напиши название подборки")
+    if len(name) > 60:
+        raise ValidationError("Название подборки — до 60 знаков")
+    return name
+
+
+def create_collection(user_id: str, name: str | None, book_id: int | None = None) -> dict:
+    """Новая подборка; цвет — следующий по кругу. book_id — сразу положить в неё эту книгу."""
+    name = _collection_name(name)
+    with transaction() as conn:
+        if conn.execute("select 1 from collections where user_id = %s and lower(name) = lower(%s)", (user_id, name)).fetchone():
+            raise ValidationError(f"Подборка «{name}» уже есть")
+        n = conn.execute("select count(*) as n from collections where user_id = %s", (user_id,)).fetchone()["n"]
+        c = conn.execute("insert into collections (user_id, name, color) values (%s, %s, %s) returning id, name, color",
+                         (user_id, name, COLLECTION_COLORS[n % len(COLLECTION_COLORS)])).fetchone()
+        if book_id:
+            _put(conn, user_id, c["id"], book_id)
+    return dict(c)
+
+
+def update_collection(user_id: str, collection_id: int, name: str | None, color: str | None) -> None:
+    """Переименовать подборку и/или сменить цвет."""
+    name = _collection_name(name)
+    if color not in COLLECTION_COLORS:
+        raise ValidationError("Неизвестный цвет")
+    with transaction() as conn:
+        if conn.execute("""select 1 from collections where user_id = %s and lower(name) = lower(%s) and id <> %s""",
+                        (user_id, name, collection_id)).fetchone():
+            raise ValidationError(f"Подборка «{name}» уже есть")
+        conn.execute("update collections set name = %s, color = %s where id = %s and user_id = %s",
+                     (name, color, collection_id, user_id))
+
+
+def delete_collection(user_id: str, collection_id: int) -> None:
+    """Удаляет подборку; сами книги остаются в библиотеке."""
+    with transaction() as conn:
+        conn.execute("delete from collections where id = %s and user_id = %s", (collection_id, user_id))
+
+
+def _put(conn, user_id: str, collection_id: int, book_id: int) -> None:
+    if not conn.execute("select 1 from library where user_id = %s and book_id = %s", (user_id, book_id)).fetchone():
+        raise ValidationError("Сначала добавь книгу в библиотеку")
+    conn.execute("""insert into collection_books (collection_id, user_id, book_id) values (%s, %s, %s)
+                    on conflict do nothing""", (collection_id, user_id, book_id))
+
+
+def set_in_collection(user_id: str, collection_id: int, book_id: int, on: bool) -> None:
+    """Положить книгу в подборку (on) или убрать из неё."""
+    with transaction() as conn:
+        if not conn.execute("select 1 from collections where id = %s and user_id = %s", (collection_id, user_id)).fetchone():
+            raise ValidationError("Подборка не найдена")
+        if on:
+            _put(conn, user_id, collection_id, book_id)
+        else:
+            conn.execute("delete from collection_books where collection_id = %s and book_id = %s", (collection_id, book_id))

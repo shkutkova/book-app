@@ -327,6 +327,7 @@ def book_page(request: Request, book_id: int, error: str | None = None, review: 
     return templates.TemplateResponse(request, "book.html", {
         "b": b, "genres": queries.genres(user_id), "series_names": queries.series_names(),
         "error": error, "today": date.today().isoformat(),
+        "cols": queries.book_collections(user_id, book_id) if b.get("in_library") else [],
         "open_review": review == "1" and b.get("status") in ("finished", "dnf"),
         "RV": {"moods": library.MOODS, "paces": library.PACES, "driven": library.DRIVEN,
                "liked": library.LIKED, "reread": library.REREAD, "tropes": tropes}})
@@ -514,6 +515,66 @@ def books_page(request: Request):
 def fanfics_page(request: Request):
     return _library_list(request, queries.fanfics(current_user_id()), title="Фанфики", booky="/static/img/booky/2-18.webp",
                          add_url="/add/book?fanfic=1", add_what="фанфик", empty_text="Фанфиков пока нет.")
+
+
+# ------------------------------------------------------------------ подборки
+
+@router.get("/collections", response_class=HTMLResponse)
+def collections_page(request: Request, error: str | None = None):
+    return templates.TemplateResponse(request, "collections.html",
+                                      {"cols": queries.collections(current_user_id()), "error": error})
+
+
+@router.get("/collections/{collection_id}", response_class=HTMLResponse)
+def collection_page(request: Request, collection_id: int, error: str | None = None):
+    user_id = current_user_id()
+    c = queries.collection(user_id, collection_id)
+    if not c:
+        raise HTTPException(404)
+    return _library_list(request, queries.collection_books(user_id, collection_id), title=c["name"], collection=c,
+                         colors=library.COLLECTION_COLORS, booky=None, error=error,
+                         empty_text="Пока пусто. На странице книги нажми «В подборку» и выбери эту.")
+
+
+@router.post("/collections")
+async def collection_create(request: Request):
+    """Новая подборка. Из окошка на странице книги (fetch) — ответ JSON, книга сразу в подборке;
+    со страницы «Подборки» — переход в новую подборку"""
+    form = dict(await request.form())
+    book_id = int(form["book_id"]) if (form.get("book_id") or "").isdigit() else None
+    js = "application/json" in request.headers.get("accept", "")
+    try:
+        c = library.create_collection(current_user_id(), form.get("name"), book_id)
+    except library.ValidationError as e:
+        return JSONResponse({"error": str(e)}, status_code=400) if js else back("/collections", str(e))
+    return JSONResponse(c) if js else back(f"/collections/{c['id']}")
+
+
+@router.post("/collections/{collection_id}/edit")
+async def collection_edit(request: Request, collection_id: int):
+    form = dict(await request.form())
+    try:
+        library.update_collection(current_user_id(), collection_id, form.get("name"), form.get("color"))
+    except library.ValidationError as e:
+        return back(f"/collections/{collection_id}", str(e))
+    return back(f"/collections/{collection_id}")
+
+
+@router.post("/collections/{collection_id}/delete")
+def collection_delete(collection_id: int):
+    library.delete_collection(current_user_id(), collection_id)
+    return back("/collections")
+
+
+@router.post("/collections/{collection_id}/books/{book_id}")
+async def collection_toggle(request: Request, collection_id: int, book_id: int):
+    """Галочка в «В подборку ▾» на странице книги: {"on": true/false}. Ответ без перезагрузки страницы"""
+    data = await request.json()
+    try:
+        library.set_in_collection(current_user_id(), collection_id, book_id, bool(data.get("on")))
+    except library.ValidationError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True}
 
 
 def _ficbook_form(request: Request, form: dict | None = None, error: str | None = None):

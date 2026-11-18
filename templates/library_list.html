@@ -10,8 +10,29 @@
 {% set total = groups.values()|map('length')|sum %}
 {% set favs = groups.values()|sum(start=[])|selectattr('is_favorite')|list %}
 {# «Добавить» — в шапке; справа от заголовка — большой огонёк: показать только избранное (ещё раз — все) #}
+{% if collection %}{% from "_macros.html" import back %}{{ back('/collections', 'Подборки') }}{% endif %}
 <div class="list-head">
+  {% if collection %}
+  {# Подборка: цветной квадратик, название; «Изменить» — название и цвет, «Удалить» — сама подборка (книги остаются) #}
+  <h1 class="col-title c-{{ collection.color }}"><span class="sw" aria-hidden="true"></span>{{ title }}</h1>
+  <div class="col-acts">
+    <details class="col-edit">
+      <summary class="nb">{{ icon('pencil', 16) }} Изменить</summary>
+      <form method="post" action="/collections/{{ collection.id }}/edit" class="col-edit-pop">
+        <label for="col-name">Название</label>
+        <input id="col-name" name="name" value="{{ collection.name }}" maxlength="60" required>
+        <p>Цвет</p>
+        <div class="col-colors">{% set CN = {'lilac': 'лиловый', 'butter': 'жёлтый', 'peach': 'персиковый', 'mint': 'мятный', 'sky': 'голубой', 'pink': 'розовый'} %}{% for c in colors %}<label class="c-{{ c }}" title="{{ CN[c] }}" aria-label="{{ CN[c] }}"><input type="radio" name="color" value="{{ c }}" {{ 'checked' if c == collection.color }}><span></span></label>{% endfor %}</div>
+        <button class="primary">Сохранить</button>
+      </form>
+    </details>
+    <form method="post" action="/collections/{{ collection.id }}/delete" onsubmit='return confirm({{ ("Удалить подборку «" ~ collection.name ~ "»? Книги останутся в библиотеке.")|tojson }})'>
+      <button class="nb col-del">Удалить</button></form>
+  </div>
+  <script>document.addEventListener('click', e => { const d = document.querySelector('.col-edit[open]'); if (d && !d.contains(e.target)) d.open = false; });</script>
+  {% else %}
   <h1 class="with-booky"><img src="{{ booky }}" alt="">{{ title }}</h1>
+  {% endif %}
   {% if favs %}<button type="button" data-show="fav" aria-pressed="false" class="fav-big" aria-label="Избранное: {{ favs|length }}"
     title="Избранное · {{ favs|length }}">{{ icon('flame', 30) }}<span class="n">{{ favs|length }}</span></button>{% endif %}
 </div>
@@ -94,7 +115,7 @@
 </div>
 <p class="empty-note" id="nothing" hidden>Ничего не нашлось. Попробуй часть названия или автора.</p>
 {% else %}
-<p class="empty-note">{{ empty_text }} <a href="{{ add_url }}">Добавить</a></p>
+<p class="empty-note">{{ empty_text }}{% if add_url %} <a href="{{ add_url }}">Добавить</a>{% endif %}</p>
 {% endif %}
 {% endblock %}
 

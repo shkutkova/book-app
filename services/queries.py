@@ -289,3 +289,46 @@ def genres(user_id: str) -> list[dict]:
 def series_names() -> list[str]:
     """Названия всех серий — подсказка в поле «Серия» в настройках книги."""
     return [r["n"] for r in fetch_all("select distinct coalesce(name_ru, name) as n from series order by 1")]
+
+
+# ------------------------------------------------------------------ подборки
+
+def collections(user_id: str) -> list[dict]:
+    """Подборки для страницы «Подборки»: сколько книг и до трёх последних обложек; сверху — куда добавляла недавно."""
+    return fetch_all("""
+        select c.id, c.name, c.color, count(cb.book_id)::int as n,
+               coalesce((select json_agg(x) from (
+                   select b.id, b.title, b.title_ru, b.cover_url from collection_books cb2 join books b on b.id = cb2.book_id
+                    where cb2.collection_id = c.id order by cb2.added_at desc limit 3) x), '[]') as covers
+        from collections c left join collection_books cb on cb.collection_id = c.id
+        where c.user_id = %(u)s
+        group by c.id
+        order by greatest(c.created_at, max(cb.added_at)) desc""", {"u": user_id})
+
+
+def book_collections(user_id: str, book_id: int) -> list[dict]:
+    """Все подборки с отметкой, есть ли в них эта книга. Первая — куда добавляла последней (для кнопки «В подборку»)."""
+    return fetch_all("""
+        select c.id, c.name, c.color,
+               exists (select 1 from collection_books x where x.collection_id = c.id and x.book_id = %(b)s) as has
+        from collections c left join collection_books cb on cb.collection_id = c.id
+        where c.user_id = %(u)s
+        group by c.id
+        order by greatest(c.created_at, max(cb.added_at)) desc""", {"u": user_id, "b": book_id})
+
+
+def collection(user_id: str, collection_id: int) -> dict | None:
+    return fetch_one("select id, name, color from collections where id = %s and user_id = %s", (collection_id, user_id))
+
+
+def collection_books(user_id: str, collection_id: int) -> list[dict]:
+    """Книги и фанфики подборки — в том же виде, что списки «Книги»/«Фанфики»; новые сверху."""
+    return fetch_all(f"""
+        select {BOOK_FIELDS}, b.work_status, {FIRST_SERIES}, {LIST_DESC},
+               (select max(r.finished_at) from reads r
+                 where r.book_id = b.id and r.user_id = %(u)s) as finished_at
+        from collection_books cb
+        join library l on l.user_id = cb.user_id and l.book_id = cb.book_id
+        join books b on b.id = cb.book_id
+        where cb.collection_id = %(c)s and cb.user_id = %(u)s
+        order by cb.added_at desc""", {"u": user_id, "c": collection_id})
